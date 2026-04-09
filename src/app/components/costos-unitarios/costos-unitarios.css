@@ -1,0 +1,437 @@
+/* === Layout Principal === */
+.planificacion-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* === Main Content === */
+.main-content {
+  flex: 1;
+  margin-left: 280px; /* Ancho del sidebar expandido */
+  padding-top: 92px; /* Altura del header (72px) + margen (20px) */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: calc(100vw - 280px);
+  overflow-x: hidden;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* Ajuste cuando el sidebar está colapsado */
+.planificacion-layout.sidebar-collapsed .main-content,
+.layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+  max-width: calc(100vw - 80px);
+}
+
+/* === Content Container === */
+.content-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.planificacion-layout.sidebar-collapsed .content-container,
+.layout.sidebar-collapsed .content-container {
+  max-width: 1600px;
+}
+
+.content-container h1 {
+  font-size: 2.5rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #d8dce6;
+}
+
+/* === Content Section === */
+.content-section {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  min-height: 500px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.content-section p {
+  font-size: 1.1rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+/* === Loading === */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+}
+
+.loading-container p {
+  margin-top: 16px;
+  color: #004271;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 66, 113, 0.1);
+  border-top: 4px solid #004271;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* === Producto Container === */
+.producto-container {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.producto-container:last-child {
+  margin-bottom: 0;
+}
+
+.producto-titulo {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  color: #004271;
+  font-size: 1.5rem;
+  font-weight: 600;
+  padding: 12px 20px;
+  margin: 0;
+  /* border-left: 4px solid #004271; */
+  border-radius: 6px 6px 0 0;
+}
+
+/* === Table Scroll Container === */
+.table-scroll-container {
+  overflow-x: auto;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid #d8dce6;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === Tabla Costos Unitarios === */
+.tabla-costos-unitarios {
+  width: 100%;
+  min-width: 3000px; /* Muy ancha por los muchos meses */
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+/* === Headers === */
+.tabla-costos-unitarios thead {
+  background: linear-gradient(135deg, #004271, #0056a3);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tabla-costos-unitarios th {
+  padding: 16px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.tabla-costos-unitarios th:first-child {
+  border-left: none;
+}
+
+/* Categoria header (sticky a la izquierda) */
+.categoria-header {
+  position: sticky;
+  left: 0;
+  background: linear-gradient(135deg, #003157, #004271) !important;
+  z-index: 11;
+  min-width: 180px;
+  text-align: left !important;
+  padding: 16px 20px !important;
+  border-right: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Headers de año */
+.anio-header {
+  background: linear-gradient(135deg, #004271, #0056a3);
+  font-size: 0.9rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 16px;
+}
+
+/* Headers de mes */
+.mes-header {
+  min-width: 110px;
+  font-size: 0.85rem;
+  padding: 16px;
+}
+
+/* Headers de total */
+.total-header {
+  background: #002a4a;
+  min-width: 110px;
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 16px;
+}
+
+.total-anio-header {
+  background: #002a4a;
+  min-width: 110px;
+  border-left: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 16px;
+}
+
+/* === Body Cells === */
+.tabla-costos-unitarios tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.tabla-costos-unitarios tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.tabla-costos-unitarios td {
+  padding: 14px 16px;
+  text-align: center;
+  font-size: 0.9rem;
+  /* color: #212529; */
+  border-left: 1px solid #e9ecef;
+}
+
+/* Categoria cell (sticky a la izquierda) */
+.categoria-cell {
+  position: sticky;
+  left: 0;
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-align: left !important;
+  padding: 14px 20px !important;
+  z-index: 5;
+  min-width: 180px;
+  color: #495057;
+  border-right: 2px solid #d8dce6;
+}
+
+.tabla-costos-unitarios tbody tr:hover .categoria-cell {
+  background-color: #e9ecef;
+}
+
+/* Valor cells (meses) */
+.valor-cell {
+  font-family: 'Courier New', monospace;
+  color: #212529;
+  font-weight: 500;
+  min-width: 110px;
+  text-align: right;
+}
+
+/* Total cells */
+.total-cell {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #004271;
+  border-left: 2px solid #b8d4e6;
+  font-family: 'Courier New', monospace;
+  min-width: 110px;
+  text-align: right;
+}
+
+.total-anio-cell {
+  background-color: #e8f4f8;
+  font-weight: 700;
+  color: #004271;
+  border-left: 2px solid #b8d4e6;
+  font-family: 'Courier New', monospace;
+  min-width: 110px;
+  text-align: right;
+}
+
+/* === Fila de Totales === */
+.fila-totales {
+  background-color: #f1f3f5;
+  font-weight: 700;
+  border-top: 2px solid #004271;
+  transition: background-color 0.2s ease;
+}
+
+.fila-totales:hover {
+  background-color: #e9ecef !important;
+}
+
+.fila-totales .categoria-cell {
+  background-color: #e9ecef !important;
+  color: #004271 !important;
+  font-weight: 700;
+}
+
+.total-label {
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.3px;
+}
+
+.total-mes-cell {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #004271;
+  background-color: #d1ecf1;
+  min-width: 110px;
+  text-align: right;
+}
+
+.total-general-cell{
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: white;
+  background-color: #004271;
+  border-left: 2px solid #002a4a;
+  min-width: 110px;
+  text-align: right;
+}
+
+/* === Empty State === */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+}
+
+.empty-state svg {
+  margin-bottom: 20px;
+  color: #adb5bd;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  margin: 8px 0;
+  color: #495057;
+  font-weight: 500;
+}
+
+.empty-subtitle {
+  font-size: 0.95rem;
+  color: #6c757d;
+  max-width: 500px;
+  margin-top: 8px;
+}
+
+/* === Responsive === */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 80px;
+    max-width: calc(100vw - 80px);
+  }
+
+  .content-container {
+    padding: 24px;
+  }
+
+  .content-container h1 {
+    font-size: 2rem;
+  }
+
+  .tabla-costos-unitarios {
+    font-size: 0.85rem;
+  }
+
+  .tabla-costos-unitarios th {
+    padding: 12px;
+    font-size: 0.8rem;
+  }
+
+  .tabla-costos-unitarios td {
+    padding: 12px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+    padding-top: 92px;
+    max-width: calc(100vw - 60px);
+  }
+
+  .content-container {
+    padding: 20px;
+  }
+
+  .content-container h1 {
+    font-size: 1.75rem;
+  }
+
+  .content-section {
+    padding: 20px;
+  }
+
+  .producto-titulo {
+    font-size: 1.25rem;
+    padding: 16px 20px;
+  }
+
+  .tabla-costos-unitarios {
+    font-size: 0.85rem;
+  }
+
+  .tabla-costos-unitarios th {
+    padding: 12px;
+    font-size: 0.8rem;
+  }
+
+  .tabla-costos-unitarios td {
+    padding: 12px;
+    font-size: 0.85rem;
+  }
+
+  .categoria-header {
+    min-width: 160px;
+  }
+
+  .categoria-cell {
+    min-width: 160px;
+  }
+
+  .mes-header,
+  .valor-cell,
+  .total-mes-cell {
+    min-width: 100px;
+  }
+}

@@ -1,0 +1,431 @@
+/* === Layout Principal === */
+.planificacion-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* === Main Content === */
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  padding-top: 92px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: calc(100vw - 280px);
+  overflow-x: hidden;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* Ajuste cuando el sidebar está colapsado */
+.planificacion-layout.sidebar-collapsed .main-content,
+.layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+  max-width: calc(100vw - 80px);
+}
+
+/* === Content Container === */
+.content-container {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 32px;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.planificacion-layout.sidebar-collapsed .content-container,
+.layout.sidebar-collapsed .content-container {
+  max-width: 1600px;
+}
+
+/* Header */
+.content-header {
+  margin-bottom: 32px;
+}
+
+.content-header h1 {
+  font-size: 2.5rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #d8dce6;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+/* Estados de carga y vacío */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 64px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.loading-state p,
+.empty-state p {
+  font-size: 1.1rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+/* Contenedor de tabla */
+.table-container {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  overflow-x: auto;
+  max-width: calc(100vw - 280px - 64px); /* viewport - sidebar - padding */
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  border: 1px solid #d8dce6;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ajuste del contenedor de tabla cuando sidebar está colapsado */
+.planificacion-layout.sidebar-collapsed .table-container {
+  max-width: calc(100vw - 80px - 64px);
+}
+
+/* Tabla de datos */
+.data-table {
+  width: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: white;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.data-table thead {
+  background-color: #004271;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.data-table th {
+  padding: 16px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.data-table th:last-child {
+  border-right: none;
+}
+
+/* Headers específicos */
+.producto-header {
+  text-align: left;
+  padding: 16px 20px;
+  padding-left: 40px;
+  min-width: 180px;
+  max-width: 200px;
+  border-top-left-radius: 12px;
+}
+
+.anio-header {
+  background-color: #003157;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-left: 3px solid rgba(255, 255, 255, 0.4);
+  padding: 16px;
+}
+
+.meses-header {
+  background-color: #004271;
+  font-size: 0.85rem;
+  padding: 16px;
+}
+
+.total-header {
+  min-width: 100px;
+  font-weight: 700;
+  background-color: #002a4a;
+  padding: 16px;
+}
+
+.total-anio-header {
+  min-width: 100px;
+  font-weight: 700;
+  background-color: #002a4a;
+  border-left: 3px solid rgba(255, 255, 255, 0.4);
+  padding: 16px;
+}
+
+.total-anio-header:last-child {
+  border-top-right-radius: 12px;
+}
+
+.mes-num {
+  min-width: 110px;
+  padding: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Cuerpo de la tabla */
+.data-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table td {
+  padding: 14px 16px;
+  color: #212529;
+  font-size: 0.9rem;
+  text-align: center;
+  border-left: 1px solid #e9ecef;
+  white-space: nowrap;
+}
+
+.data-table td:last-child {
+  border-right: none;
+}
+
+/* Celdas específicas */
+.producto-cell {
+  text-align: left !important;
+  padding: 14px 20px !important;
+  padding-left: 40px !important;
+  min-width: 180px;
+  max-width: 200px;
+  border-right: 2px solid #d8dce6 !important;
+}
+
+.number-cell {
+  font-family: 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: #212529;
+  min-width: 110px;
+  padding: 14px 16px;
+  text-align: right;
+}
+
+.total-cell {
+  background-color: #f8f9fa;
+  font-weight: 700 !important;
+  color: #004271 !important;
+  min-width: 100px !important;
+  border-left: 2px solid #d8dce6;
+  padding: 14px 16px;
+}
+
+.total-anio-cell {
+  background-color: #e8f4f8;
+  font-weight: 700 !important;
+  color: #004271 !important;
+  min-width: 100px !important;
+  border-left: 2px solid #b8d4e6;
+  padding: 14px 16px;
+}
+
+/* === Responsive === */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 80px;
+  }
+  
+  .table-container {
+    max-width: calc(100vw - 80px - 64px);
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+    padding-top: 92px;
+  }
+
+  .content-container {
+    padding: 20px;
+  }
+
+  .content-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .table-container {
+    max-width: calc(100vw - 60px - 40px);
+    padding: 16px;
+  }
+  
+  .data-table {
+    font-size: 0.7rem;
+  }
+  
+  .data-table th {
+    padding: 8px 6px;
+    font-size: 0.65rem;
+  }
+  
+  .data-table td {
+    padding: 8px 6px;
+    font-size: 0.7rem;
+  }
+  
+  .number-cell {
+    min-width: 55px;
+  }
+  
+  .producto-cell {
+    min-width: 120px;
+  }
+}
+
+/* === Sticky Column (Producto) === */
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 3 !important;
+  background: #004271 !important;
+  box-shadow: 2px 0 8px rgba(0, 66, 113, 0.15);
+}
+
+/* Sticky column en tbody tiene fondo diferente */
+.data-table tbody .sticky-col {
+  background-color: #f8f9fa !important;
+  color: #004271;
+  font-weight: 600;
+  z-index: 1 !important;
+  box-shadow: 2px 0 4px rgba(0, 66, 113, 0.08);
+}
+
+.data-table tbody tr:hover .sticky-col {
+  background-color: #e9ecef !important;
+  box-shadow: 3px 0 10px rgba(0, 0, 0, 0.15);
+}
+
+/* === Sección de Exportación === */
+.export-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  border: 1px solid #d8dce6;
+}
+
+.export-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.export-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-field label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #004271;
+  white-space: nowrap;
+}
+
+.export-select {
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  border: 2px solid #d8dce6;
+  border-radius: 8px;
+  background-color: white;
+  color: #212529;
+  min-width: 120px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.export-select:hover {
+  border-color: #004271;
+}
+
+.export-select:focus {
+  border-color: #004271;
+  box-shadow: 0 0 0 3px rgba(0, 66, 113, 0.1);
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #004271 0%, #003157 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 66, 113, 0.3);
+}
+
+.export-btn:hover {
+  background: linear-gradient(135deg, #003157 0%, #002a4a 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.4);
+}
+
+.export-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 66, 113, 0.3);
+}
+
+.export-btn i {
+  font-size: 1rem;
+}
+
+/* Responsive para exportación */
+@media (max-width: 768px) {
+  .export-section {
+    padding: 16px;
+  }
+  
+  .export-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .export-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  
+  .export-select {
+    width: 100%;
+  }
+  
+  .export-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

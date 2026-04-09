@@ -1,0 +1,53 @@
+<app-header></app-header>
+
+<main class="contenido-principal">
+  <section class="seccion-planes-negocio">
+    <h1>Planes de negocio</h1>
+    <p>
+      Un plan de negocio es un documento formal que describe la visión de una empresa, sus
+      objetivos, estrategias, estructura organizativa, productos o servicios, mercado objetivo,
+      análisis de la competencia, proyecciones financieras y otros aspectos relevantes para el éxito
+      y la gestión del negocio.
+    </p>
+    <input
+      type="search"
+      class="barra-busqueda"
+      placeholder="Buscar..."
+      [(ngModel)]="searchTerm"
+      (input)="filterPlanes()"
+    />
+
+    <div class="lista-planes">
+      <a
+        *ngFor="let plan of filteredPlanes | slice : 0 : mostrarLimite"
+        class="a_planes"
+        [routerLink]="'/planificacion/' + plan.id"
+      >
+        <div class="elemento-plan">
+          <a [routerLink]="'/planificacion/' + plan.id">
+            <img src="book_icon.svg" class="icono-plan" alt="Icono de Planificación" />
+          </a>
+          <p class="problematica-plan">{{ plan.problematica }}</p>
+        </div>
+      </a>
+    </div>
+
+    <button
+      class="mostrar-mas"
+      *ngIf="mostrarLimite < filteredPlanes.length"
+      (click)="mostrarMasPlanes()"
+    >
+      Ver más
+    </button>
+  </section>
+
+  <div class="aside">
+    <button (click)="openNewPlanModal()" class="boton-crear-plan">Crear un plan</button>
+  </div>
+</main>
+
+<!-- Modal de nueva planificación -->
+<app-new-planification
+  (onCreate)="handleCreatePlan($event)"
+  (onClose)="handleModalClose()"
+></app-new-planification>

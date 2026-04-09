@@ -1,0 +1,92 @@
+/* === Layout Principal === */
+.planificacion-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+/* === Main Content === */
+.main-content {
+  flex: 1;
+  margin-left: 280px; /* Ancho del sidebar expandido */
+  padding-top: 92px; /* Altura del header (72px) + margen (20px) */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+
+/* Ajuste cuando el sidebar está colapsado */
+.planificacion-layout.sidebar-collapsed .main-content,
+.layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+}
+
+/* === Content Container === */
+.content-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.planificacion-layout.sidebar-collapsed .content-container,
+.layout.sidebar-collapsed .content-container {
+  max-width: 1600px;
+}
+
+.content-container h1 {
+  font-size: 2.5rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #d8dce6;
+}
+
+/* === Content Section === */
+.content-section {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  min-height: 500px;
+}
+
+.content-section p {
+  font-size: 1.1rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+/* === Responsive === */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 80px;
+  }
+
+  .content-container {
+    padding: 24px;
+  }
+
+  .content-container h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px; /* Espacio para sidebar colapsado en móvil */
+    padding-top: 92px;
+  }
+
+  .content-container {
+    padding: 20px;
+  }
+
+  .content-container h1 {
+    font-size: 1.75rem;
+  }
+
+  .content-section {
+    padding: 20px;
+  }
+}

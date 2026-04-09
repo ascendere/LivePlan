@@ -1,0 +1,79 @@
+<app-header></app-header>
+
+<div class="planificacion-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Sidebar -->
+  <app-sidebar [planId]="planId" (onItemChange)="handleSidebarChange($event)" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+
+  <!-- Componente flotante de Variables de Sensibilidad -->
+  <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
+
+  <!-- Componente flotante de Políticas de Compra/Venta -->
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="content-container">
+      <div class="content-header">
+        <h1>Presupuesto de Venta</h1>
+        <p class="subtitle">Proyección de demanda anual por producto</p>
+      </div>
+      
+      <!-- Loading State -->
+      <div *ngIf="cargando" class="loading-state">
+        <p>Cargando presupuesto de venta...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!cargando && presupuestosAgrupados.length === 0" class="empty-state">
+        <p>No hay presupuestos de venta registrados para este plan de negocio.</p>
+      </div>
+
+      <!-- Tabla de Presupuesto de Venta -->
+      <div *ngIf="!cargando && presupuestosAgrupados.length > 0" class="table-container">
+        
+        <!-- Iterar por cada año -->
+        <div *ngFor="let grupo of presupuestosAgrupados" class="seccion-group">
+          <div class="seccion-header">
+            <h2>Año {{ grupo.anio }}</h2>
+          </div>
+          
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th rowspan="2">Proyección<br>de Demanda</th>
+                <th rowspan="2">Crecimiento<br>(%)</th>
+                <th colspan="12">Meses</th>
+                <th rowspan="2">Total<br>Anual</th>
+              </tr>
+              <tr>
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+                <th>4</th>
+                <th>5</th>
+                <th>6</th>
+                <th>7</th>
+                <th>8</th>
+                <th>9</th>
+                <th>10</th>
+                <th>11</th>
+                <th>12</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let presupuesto of grupo.items">
+                <td class="producto-cell">{{ presupuesto.producto?.nombre || 'Sin nombre' }}</td>
+                <td class="number-cell">{{ (presupuesto.crecimiento ?? 0) | number:'1.0-0' }}%</td>
+                <td class="number-cell" *ngFor="let mes of getMeses(presupuesto.mensual ?? 0)">
+                  {{ mes | number:'1.2-2' }}
+                </td>
+                <td class="number-cell total-cell">{{ (presupuesto.anual ?? 0) | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>

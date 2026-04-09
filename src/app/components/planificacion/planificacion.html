@@ -1,0 +1,19 @@
+<app-header></app-header>
+
+<div class="planificacion-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Sidebar -->
+  <app-sidebar [planId]="planId" (onItemChange)="handleSidebarChange($event)" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="content-container">
+      <h1>Planificación</h1>
+      
+      <div class="content-section">
+        
+        <app-secciones-pdf></app-secciones-pdf>
+
+      </div>
+    </div>
+  </main>
+</div>

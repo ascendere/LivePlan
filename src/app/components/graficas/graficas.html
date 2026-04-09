@@ -1,0 +1,200 @@
+<app-header></app-header>
+
+<div class="planificacion-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Sidebar -->
+  <app-sidebar [planId]="planId" (onItemChange)="handleSidebarChange($event)" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+
+  <!-- Componente flotante de Variables de Sensibilidad -->
+  <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
+
+  <!-- Componente flotante de Políticas de Compra/Venta -->
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="content-container">
+      <div class="header-with-info">
+        <h1>Gráficas</h1>
+        <div class="info-tooltip">
+              <i class="fas fa-info-circle"></i>
+              <span class="tooltip-text">
+                Usa los controles de zoom o expande a pantalla completa para ver los detalles.
+              </span>
+            </div>
+      </div>
+
+      <div class="content-section">
+        <!-- Estado de Resultados -->
+        <section class="chart-section">
+          <h2>Estado de Resultados</h2>
+
+          <div class="chart-with-table">
+            <div class="chart-container">
+              <div class="chart-controls">
+                <button class="chart-btn" title="Acercar" (click)="zoomIn('estado')">
+                  <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="chart-btn" title="Alejar" (click)="zoomOut('estado')">
+                  <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="chart-btn" title="Restablecer" (click)="resetZoom('estado')">
+                  <i class="fas fa-undo"></i>
+                </button>
+                <button class="chart-btn expand-btn" title="Pantalla completa" (click)="openFullscreen('estado')">
+                  <i class="fas fa-expand"></i>
+                </button>
+              </div>
+              <canvas id="chart-estado" aria-label="Estado de Resultados" role="img"></canvas>
+            </div>
+            <div class="data-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Concepto</th>
+                    <th>Año 1</th>
+                    <th>Año 2</th>
+                    <th>Año 3</th>
+                    <th>Año 4</th>
+                    <th>Año 5</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of estadoData">
+                    <td class="concept-cell">{{ row.concepto }}</td>
+                    <td>{{ row.ano1 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano2 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano3 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano4 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano5 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Balance General -->
+        <section class="chart-section">
+          <h2>Balance General</h2>
+          <div class="chart-with-table">
+            <div class="chart-container">
+              <div class="chart-controls">
+                <button class="chart-btn" title="Acercar" (click)="zoomIn('balance')">
+                  <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="chart-btn" title="Alejar" (click)="zoomOut('balance')">
+                  <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="chart-btn" title="Restablecer" (click)="resetZoom('balance')">
+                  <i class="fas fa-undo"></i>
+                </button>
+                <button class="chart-btn expand-btn" title="Pantalla completa" (click)="openFullscreen('balance')">
+                  <i class="fas fa-expand"></i>
+                </button>
+              </div>
+              <canvas id="chart-balance" aria-label="Balance General" role="img"></canvas>
+            </div>
+            <div class="data-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Concepto</th>
+                    <th>Año 1</th>
+                    <th>Año 2</th>
+                    <th>Año 3</th>
+                    <th>Año 4</th>
+                    <th>Año 5</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of balanceData">
+                    <td class="concept-cell">{{ row.concepto }}</td>
+                    <td>{{ row.ano1 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano2 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano3 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano4 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano5 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Flujo de Efectivo -->
+        <section class="chart-section">
+          <h2>Flujo de Efectivo</h2>
+          <div class="chart-with-table">
+            <div class="chart-container">
+              <div class="chart-controls">
+                <button class="chart-btn" title="Acercar" (click)="zoomIn('flujo')">
+                  <i class="fas fa-search-plus"></i>
+                </button>
+                <button class="chart-btn" title="Alejar" (click)="zoomOut('flujo')">
+                  <i class="fas fa-search-minus"></i>
+                </button>
+                <button class="chart-btn" title="Restablecer" (click)="resetZoom('flujo')">
+                  <i class="fas fa-undo"></i>
+                </button>
+                <button class="chart-btn expand-btn" title="Pantalla completa" (click)="openFullscreen('flujo')">
+                  <i class="fas fa-expand"></i>
+                </button>
+              </div>
+              <canvas id="chart-flujo" aria-label="Flujo de Efectivo" role="img"></canvas>
+            </div>
+            <div class="data-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Concepto</th>
+                    <th>Año 1</th>
+                    <th>Año 2</th>
+                    <th>Año 3</th>
+                    <th>Año 4</th>
+                    <th>Año 5</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of flujoData">
+                    <td class="concept-cell">{{ row.concepto }}</td>
+                    <td>{{ row.ano1 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano2 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano3 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano4 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                    <td>{{ row.ano5 | currency : '$' : 'symbol' : '1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Fullscreen para gráficas -->
+<div class="chart-modal-overlay" *ngIf="fullscreenChart" (click)="closeFullscreen()">
+  <div class="chart-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ getChartTitle(fullscreenChart) }}</h2>
+      <div class="modal-controls">
+        <button class="modal-btn" title="Acercar" (click)="zoomIn(fullscreenChart)">
+          <i class="fas fa-search-plus"></i>
+        </button>
+        <button class="modal-btn" title="Alejar" (click)="zoomOut(fullscreenChart)">
+          <i class="fas fa-search-minus"></i>
+        </button>
+        <button class="modal-btn" title="Restablecer" (click)="resetZoom(fullscreenChart)">
+          <i class="fas fa-undo"></i>
+        </button>
+        <button class="modal-btn close-btn" title="Cerrar" (click)="closeFullscreen()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="modal-chart-container">
+      <canvas id="chart-fullscreen" aria-label="Gráfica ampliada" role="img"></canvas>
+    </div>
+  </div>
+</div>

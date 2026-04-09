@@ -1,0 +1,150 @@
+/* Header principal */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #B1BBCE 0%, #d8dce6 50%, #ffffff 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  transition: all 0.3s ease;
+}
+
+.app-header:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Sección izquierda - Logo */
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  transition: transform 0.3s ease;
+}
+
+
+.logo-link:hover {
+  transform: scale(1.05);
+}
+
+.logo-img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-link span {
+    color: #004271;
+    font-size: 18px; 
+    font-weight:bold;
+    margin-left: 10px;
+}
+
+/* Navegación derecha */
+.header-right {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Botones de navegación */
+.nav-btn {
+  padding: 0.625rem 1.25rem;
+  background-color: rgba(0, 66, 113, 0.08);
+  color: #004271;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.nav-btn:hover {
+  background-color: rgba(0, 66, 113, 0.15);
+  border-color: rgba(0, 66, 113, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 66, 113, 0.2);
+}
+
+.nav-btn:active {
+  transform: translateY(0);
+}
+
+/* Botón activo */
+.nav-btn.active {
+  background-color: rgba(0, 66, 113, 0.2);
+  border-color: #004271;
+  font-weight: 600;
+  color: #004271;
+}
+
+/* Botón de autenticación */
+.auth-btn {
+  background-color: #004271;
+  color: white;
+  font-weight: 600;
+  border: none;
+}
+
+.auth-btn:hover {
+  background-color: #003155;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.4);
+}
+
+/* Responsive - Tablets */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .header-right {
+    gap: 0.5rem;
+  }
+
+  .nav-btn {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .logo-img {
+    height: 32px;
+  }
+}
+
+/* Responsive - Móviles */
+@media (max-width: 480px) {
+  .app-header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: space-around;
+    flex-wrap: wrap;
+  }
+
+  .nav-btn {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+}

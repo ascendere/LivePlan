@@ -1,0 +1,35 @@
+<div id="pdf-table" class="pdf-container">
+  <div class="pdf-header">
+    <h2>Proyección de Ventas – Año {{ anioSeleccionado }}</h2>
+  </div>
+
+  <table class="pdf-table">
+    <thead>
+      <tr>
+        <th class="producto-col">Producto</th>
+        <th *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" class="mes-col">
+          Mes {{ m }}
+        </th>
+        <th class="total-col">Total Año</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let grupo of ventasAgrupadas; let odd = odd" [class.odd-row]="odd">
+        <td class="producto-col">{{ grupo.producto }}</td>
+
+        <ng-container *ngIf="getVenta(grupo) as venta; else sinDatos">
+          <td *ngFor="let mes of getMeses(venta.mensual ?? 0)" class="number-col">
+            {{ mes | number:'1.2-2' }}
+          </td>
+          <td class="total-col">{{ venta.anual | number:'1.2-2' }}</td>
+        </ng-container>
+
+        <ng-template #sinDatos>
+          <td *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12]" class="number-col">-</td>
+          <td class="total-col">-</td>
+        </ng-template>
+      </tr>
+    </tbody>
+  </table>
+</div>

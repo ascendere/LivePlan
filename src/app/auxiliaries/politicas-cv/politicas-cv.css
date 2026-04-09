@@ -1,0 +1,572 @@
+/* Botón flotante */
+.floating-btn {
+  position: fixed;
+  bottom: 100px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #004271 0%, #0056a0 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1100;
+}
+
+.floating-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 66, 113, 0.6);
+}
+
+.floating-btn:active {
+  transform: scale(0.95);
+}
+
+.floating-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal container */
+.modal-container {
+  background: white;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #004271 0%, #0056a0 100%);
+  color: white;
+  flex-shrink: 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Pestañas / Tabs */
+.tabs-container {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab-btn:hover {
+  color: #004271;
+  background: rgba(0, 66, 113, 0.05);
+}
+
+.tab-btn.active {
+  color: #004271;
+  background: white;
+  font-weight: 600;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #004271 0%, #0056a0 100%);
+  border-radius: 3px 3px 0 0;
+}
+
+.tab-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tab-btn .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+/* Modal body */
+.modal-body {
+  padding: 16px 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.info-text {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border-left: 3px solid #004271;
+}
+
+/* Loading state */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #004271;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Políticas container */
+.politicas-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.anio-group {
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.anio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #004271 0%, #0056a0 100%);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.anio-header:hover {
+  background: linear-gradient(135deg, #003558 0%, #004680 100%);
+}
+
+.anio-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.anio-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.collapse-icon {
+  color: white;
+  transition: transform 0.3s ease;
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
+.anio-content {
+  padding: 12px;
+  max-height: 1000px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.anio-content.collapsed {
+  max-height: 0;
+  padding: 0 12px;
+}
+
+/* Tabla de políticas */
+.politicas-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.politicas-table thead {
+  background: #f3f4f6;
+}
+
+.politicas-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.politicas-table td {
+  padding: 6px 12px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.politicas-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* Fila modificada */
+.politicas-table tbody tr.modificada {
+  background: #fef3c7;
+}
+
+.politicas-table tbody tr.modificada:hover {
+  background: #fde68a;
+}
+
+.mes-cell {
+  font-weight: 500;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Indicador de modificado */
+.indicador-modificado {
+  color: #f59e0b;
+  font-size: 0.75rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Input de porcentaje */
+.input-porcentaje {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+/* Input modificado */
+.input-porcentaje.input-modificado {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.input-porcentaje:focus {
+  outline: none;
+  border-color: #004271;
+  box-shadow: 0 0 0 3px rgba(0, 66, 113, 0.1);
+}
+
+.input-porcentaje::-webkit-inner-spin-button,
+.input-porcentaje::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Botón guardar row */
+.btn-guardar-row {
+  background: #10b981;
+  border: none;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-guardar-row:hover:not(:disabled) {
+  background: #059669;
+}
+
+.btn-guardar-row:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.empty-state svg {
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  font-size: 0.875rem;
+}
+
+/* Modal footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+/* Contador de modificadas */
+.contador-modificadas {
+  margin-right: auto;
+  font-size: 0.875rem;
+  color: #f59e0b;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contador-modificadas::before {
+  content: '●';
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #004271 0%, #0056a0 100%);
+  border: none;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Spinner icon */
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+/* Mensaje de estado */
+.mensaje-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.875rem;
+  animation: slideIn 0.3s ease;
+}
+
+.mensaje-estado.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .modal-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .politicas-table th,
+  .politicas-table td {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+
+  .input-porcentaje {
+    width: 60px;
+    padding: 6px 8px;
+  }
+
+  .floating-btn {
+    bottom: 90px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+  }
+}

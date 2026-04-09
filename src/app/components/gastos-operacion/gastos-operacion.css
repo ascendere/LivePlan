@@ -1,0 +1,521 @@
+/* === Layout Principal === */
+.planificacion-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+/* === Main Content === */
+.main-content {
+  flex: 1;
+  margin-left: 280px; /* Ancho del sidebar expandido */
+  padding-top: 92px; /* Altura del header (72px) + margen (20px) */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+
+/* Ajuste cuando el sidebar está colapsado */
+.planificacion-layout.sidebar-collapsed .main-content,
+.layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+}
+
+/* === Content Container === */
+.content-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.planificacion-layout.sidebar-collapsed .content-container,
+.layout.sidebar-collapsed .content-container {
+  max-width: 1600px;
+}
+
+.content-container h1 {
+  font-size: 2.5rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #d8dce6;
+}
+
+/* === Content Section === */
+.content-section {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  min-height: 500px;
+}
+
+.content-section p {
+  font-size: 1.1rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+/* === Estado Vacío/Carga === */
+.estado-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: #6c757d;
+  text-align: center;
+}
+
+.estado-vacio svg {
+  color: #004271;
+  margin-bottom: 20px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.estado-vacio p {
+  font-size: 1.1rem;
+  color: #6c757d;
+  margin: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* === Table Container === */
+.table-responsive {
+  overflow-x: auto;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 66, 113, 0.1);
+}
+
+/* === Tabla Gastos de Operación Unificada === */
+.tabla-gastos-operacion {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 0.90rem;
+}
+
+.tabla-gastos-operacion thead {
+  background: #004271;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.tabla-gastos-operacion th {
+  padding: 12px 10px;
+  text-align: center;
+  font-weight: 600;
+  border: 1px solid #d8dce6;
+  white-space: nowrap;
+}
+
+/* Columna Sticky - Solo primera columna (Gastos de Operación) */
+.tabla-gastos-operacion th.sticky-col:first-child,
+.tabla-gastos-operacion td.sticky-col:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 3 !important;
+  background: #004271 !important;
+  color: white !important;
+  text-align: left;
+  min-width: 250px;
+  max-width: 250px;
+  box-shadow: 2px 0 4px rgba(0, 66, 113, 0.15);
+}
+
+/* Columna Referencia (segunda columna - NO sticky) */
+.tabla-gastos-operacion th.sticky-col:nth-child(2) {
+  position: relative;
+  background: #004271 !important;
+  color: white !important;
+  min-width: 150px;
+  max-width: 150px;
+  box-shadow: none;
+}
+
+/* Headers */
+.tabla-gastos-operacion .header-anio {
+  background: #004271;
+  color: white;
+  font-size: 0.95rem;
+  padding: 14px 10px;
+}
+
+.tabla-gastos-operacion .header-mes {
+  background: #e9ecef;
+  color: #004271;
+  min-width: 85px;
+  font-size: 0.85rem;
+}
+
+.tabla-gastos-operacion .header-total {
+  background: #d1ecf1;
+  color: #004271;
+  min-width: 100px;
+  font-weight: 700;
+}
+
+.tabla-gastos-operacion .header-total-anio {
+  background: #004271;
+  color: white;
+  min-width: 120px;
+}
+
+/* Body */
+.tabla-gastos-operacion tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.tabla-gastos-operacion tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.tabla-gastos-operacion tbody td {
+  padding: 12px 10px;
+  border: 1px solid #e9ecef;
+}
+
+.tabla-gastos-operacion tbody td.sticky-col:first-child {
+  font-weight: 500;
+  color: white !important;
+  background: #004271 !important;
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.tabla-gastos-operacion tbody .col-concepto {
+  font-weight: 500;
+  color: #212529;
+  overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.tabla-gastos-operacion tbody .col-valor {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  background-color: white;
+  color: #495057;
+  min-width: 85px;
+}
+
+.tabla-gastos-operacion tbody .col-total-mensual {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  background-color: #d1ecf1;
+  color: #004271;
+  font-weight: 600;
+  min-width: 100px;
+}
+
+.tabla-gastos-operacion tbody .col-total-anual {
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  background-color: #004271;
+  color: white;
+  font-weight: 600;
+  min-width: 120px;
+}
+
+/* Fila Subtotal (Gastos de Operación) */
+.tabla-gastos-operacion .subtotal-row {
+  background-color: #f0f8ff;
+  font-weight: 700;
+}
+
+.tabla-gastos-operacion .subtotal-row td.sticky-col:first-child {
+  background: #004271 !important;
+  color: white !important;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.tabla-gastos-operacion .subtotal-row .col-referencia {
+  background: #f0f8ff !important;
+  font-weight: 700;
+}
+
+.tabla-gastos-operacion .subtotal-row .col-valor {
+  background-color: #f0f8ff;
+  color: #01579b;
+  font-weight: 600;
+}
+
+.tabla-gastos-operacion .subtotal-row .col-total-mensual {
+  font-weight: 700;
+}
+
+.tabla-gastos-operacion .subtotal-row .col-total-anual {
+  background-color: #01579b !important;
+  color: white !important;
+  font-weight: 700;
+}
+
+/* Fila Total */
+.tabla-gastos-operacion .total-row {
+  background-color: #fef9f3;
+  font-weight: 800;
+}
+
+.tabla-gastos-operacion .total-row td.sticky-col:first-child {
+  background: #004271 !important;
+  color: white !important;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.tabla-gastos-operacion .total-row .col-referencia {
+  background: #fef9f3 !important;
+  font-weight: 800;
+}
+
+.tabla-gastos-operacion .total-row .col-valor {
+  background-color: #fef9f3;
+  font-weight: 700;
+}
+
+.tabla-gastos-operacion .total-row .col-total-mensual {
+  /* color: white !important; */
+  font-weight: 800;
+}
+
+.tabla-gastos-operacion .total-row .col-total-anual {
+  color: white !important;
+  font-weight: 800;
+}
+
+/* === Botones de Acción === */
+.acciones-tabla {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #d8dce6;
+  border-left: 4px solid #004271;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.info-cambios {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #004271;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.info-cambios i {
+  color: #004271;
+  font-size: 1.1rem;
+  opacity: 0.8;
+  animation: pulse-info 2s ease-in-out infinite;
+}
+
+@keyframes pulse-info {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.botones-accion {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-cancelar-cambios,
+.btn-guardar-cambios {
+  padding: 10px 24px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 66, 113, 0.1);
+  letter-spacing: 0.3px;
+}
+
+.btn-cancelar-cambios {
+  background: white;
+  color: #6c757d;
+  border-color: #d8dce6;
+}
+
+.btn-cancelar-cambios:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #6c757d;
+  color: #495057;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-guardar-cambios {
+  background: #004271;
+  color: white;
+  border-color: #004271;
+}
+
+.btn-guardar-cambios:hover:not(:disabled) {
+  background: #003258;
+  border-color: #003258;
+  box-shadow: 0 3px 10px rgba(0, 66, 113, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-cancelar-cambios:disabled,
+.btn-guardar-cambios:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* === Columna Referencia Editable === */
+.col-referencia {
+  min-width: 150px !important;
+  max-width: 150px !important;
+  position: relative;
+  background: white !important;
+  text-align: center;
+}
+
+.tabla-gastos-operacion tbody .col-referencia {
+  background: white !important;
+  padding: 8px 10px;
+  transition: background-color 0.3s ease;
+}
+
+.tabla-gastos-operacion tbody .col-referencia.modificado {
+  background: #fff3cd !important;
+  border-left: 3px solid #ED7D31;
+}
+
+.valor-no-editable {
+  text-align: center;
+  color: #adb5bd;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.input-container-simple {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.input-edicion {
+  width: 100%;
+  padding: 8px 32px 8px 10px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #004271;
+  background: white;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input-edicion:hover {
+  border-color: #5B9BD5;
+}
+
+.input-edicion:focus {
+  border-color: #70AD47;
+  box-shadow: 0 0 0 3px rgba(91, 155, 213, 0.1);
+  background: #f0f8ff;
+}
+
+.col-referencia.modificado .input-edicion {
+  border-color: #ED7D31;
+  background: #fffaf0;
+}
+
+.icono-editar-inline {
+  position: absolute;
+  right: 10px;
+  color: #5B9BD5;
+  font-size: 0.85rem;
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.input-edicion:focus + .icono-editar-inline,
+.input-container-simple:hover .icono-editar-inline {
+  opacity: 0.8;
+}
+
+/* === Responsive === */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 80px;
+  }
+
+  .content-container {
+    padding: 24px;
+  }
+
+  .content-container h1 {
+    font-size: 2rem;
+  }
+
+  .col-referencia {
+    min-width: 130px !important;
+    max-width: 130px !important;
+  }
+
+  .tabla-gastos-operacion th.sticky-col:first-child,
+  .tabla-gastos-operacion td.sticky-col:first-child {
+    min-width: 200px;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px; /* Espacio para sidebar colapsado en móvil */
+    padding-top: 92px;
+  }
+
+  .content-container {
+    padding: 20px;
+  }
+
+  .content-container h1 {
+    font-size: 1.75rem;
+  }
+
+  .content-section {
+    padding: 20px;
+  }
+}

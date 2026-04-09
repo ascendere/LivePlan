@@ -1,0 +1,226 @@
+<app-header></app-header>
+
+<div class="planificacion-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Sidebar -->
+  <app-sidebar [planId]="planId" (onItemChange)="handleSidebarChange($event)" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+
+  <!-- Componente flotante de Variables de Sensibilidad -->
+  <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
+
+  <!-- Componente flotante de Políticas de Compra/Venta -->
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="content-container">
+      <h1>Préstamo</h1>
+      
+      <div *ngIf="cargando" class="loading-container">
+        <div class="spinner"></div>
+        <p>Cargando datos del préstamo...</p>
+      </div>
+
+      <div *ngIf="!cargando" class="content-section">
+        <!-- Tabla Superior: Monto y Tasa de Interés Anual -->
+        <div class="datos-principales">
+          <div class="dato-card">
+            <div class="dato-label">Monto del Préstamo</div>
+            <div class="dato-valor">${{ datosPrestamo.monto ?? 0 | number:'1.2-2' }}</div>
+          </div>
+
+          <div class="dato-card">
+            <div class="dato-label">Tasa de Interés Anual</div>
+            <div class="dato-valor">{{ datosPrestamo.tasa_anual ?? 0 }}%</div>
+          </div>
+        </div>
+
+        <!-- Formulario de Edición -->
+        <div class="formulario-prestamo">
+          <h2>Configuración del Préstamo</h2>
+
+          <div class="form-grid">
+            <!-- Periodo de Capitalización (Editable) -->
+            <div class="form-group">
+              <label for="periodos_capitalizacion" class="form-label">
+                Periodo de Capitalización
+              </label>
+              <input
+                type="number"
+                id="periodos_capitalizacion"
+                class="form-input"
+                [(ngModel)]="datosPrestamo.periodos_capitalizacion"
+                (input)="onCampoEditado()"
+                min="1"
+                step="1"
+              />
+            </div>
+
+            <!-- Tasa de Interés Mensual (Solo Lectura) -->
+            <div class="form-group">
+              <label for="tasa_mensual" class="form-label">
+                Tasa de Interés Mensual
+              </label>
+              <input
+                type="text"
+                id="tasa_mensual"
+                class="form-input readonly"
+                [value]="(datosPrestamo.tasa_mensual ?? 0) + '%'"
+                readonly
+              />
+            </div>
+
+            <!-- Periodos de Amortización (Editable) -->
+            <div class="form-group">
+              <label for="periodos_amortizacion" class="form-label">
+                Periodos de Amortización
+              </label>
+              <input
+                type="number"
+                id="periodos_amortizacion"
+                class="form-input"
+                [(ngModel)]="datosPrestamo.periodos_amortizacion"
+                (input)="onCampoEditado()"
+                min="1"
+                step="1"
+              />
+            </div>
+
+            <!-- Cuota Fija (Solo Lectura) -->
+            <div class="form-group">
+              <label for="cuota" class="form-label">
+                Cuota Fija
+              </label>
+              <input
+                type="text"
+                id="cuota"
+                class="form-input readonly"
+                [value]="'$' + ((datosPrestamo.cuota ?? 0) | number:'1.2-2')"
+                readonly
+              />
+            </div>
+          </div>
+
+          <!-- Botón de Guardar (solo visible cuando hay cambios) -->
+          <div *ngIf="hayChangios" class="acciones-formulario">
+            <button 
+              class="btn-guardar" 
+              (click)="actualizarDatosPrestamo()"
+              [disabled]="guardando"
+            >
+              <svg *ngIf="!guardando" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <svg *ngIf="guardando" class="spinner-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+              {{ guardando ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
+          </div>
+
+          <!-- Mensaje de Guardado -->
+          <div *ngIf="mensajeGuardado" class="mensaje-guardado" [class.error]="mensajeGuardado.includes('Error')">
+            <svg *ngIf="!mensajeGuardado.includes('Error')" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <svg *ngIf="mensajeGuardado.includes('Error')" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+            {{ mensajeGuardado }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Amortización -->
+      <div *ngIf="!cargandoCuotas && cuotasAgrupadas.length > 0" class="tabla-amortizacion-section">
+        <h2 class="section-title">
+          Tabla de Amortización
+        </h2>
+
+        <div *ngFor="let grupo of cuotasAgrupadas" class="anio-container">
+          <h3 class="anio-titulo">Año {{ grupo.anio }}</h3>
+          
+          <div class="table-scroll-container">
+            <table class="tabla-amortizacion">
+              <thead>
+                <tr>
+                  <th class="concepto-header">Concepto</th>
+                  <th *ngFor="let mes of [1,2,3,4,5,6,7,8,9,10,11,12]" class="mes-header">
+                    Mes {{ mes }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Saldo Inicial -->
+                <tr class="fila-concepto">
+                  <td class="concepto-cell">Saldo Inicial</td>
+                  <td *ngFor="let mes of [1,2,3,4,5,6,7,8,9,10,11,12]" class="valor-cell">
+                    <ng-container *ngIf="getCuotaParaMes(grupo.cuotas, mes) as cuota; else sinDato">
+                      ${{ cuota.saldo_inicial ?? 0 | number:'1.2-2' }}
+                    </ng-container>
+                    <ng-template #sinDato>-</ng-template>
+                  </td>
+                </tr>
+
+                <!-- Cuota Fija -->
+                <tr class="fila-concepto">
+                  <td class="concepto-cell">Cuota Fija</td>
+                  <td *ngFor="let mes of [1,2,3,4,5,6,7,8,9,10,11,12]" class="valor-cell">
+                    <ng-container *ngIf="getCuotaParaMes(grupo.cuotas, mes) as cuota; else sinDato">
+                      ${{ cuota.cuota_total ?? 0 | number:'1.2-2' }}
+                    </ng-container>
+                    <ng-template #sinDato>-</ng-template>
+                  </td>
+                </tr>
+
+                <!-- Intereses -->
+                <tr class="fila-concepto">
+                  <td class="concepto-cell">Intereses</td>
+                  <td *ngFor="let mes of [1,2,3,4,5,6,7,8,9,10,11,12]" class="valor-cell interes">
+                    <ng-container *ngIf="getCuotaParaMes(grupo.cuotas, mes) as cuota; else sinDato">
+                      ${{ cuota.interes ?? 0 | number:'1.2-2' }}
+                    </ng-container>
+                    <ng-template #sinDato>-</ng-template>
+                  </td>
+                </tr>
+
+                <!-- Abono a Capital -->
+                <tr class="fila-concepto">
+                  <td class="concepto-cell">Abono a Capital</td>
+                  <td *ngFor="let mes of [1,2,3,4,5,6,7,8,9,10,11,12]" class="valor-cell capital">
+                    <ng-container *ngIf="getCuotaParaMes(grupo.cuotas, mes) as cuota; else sinDato">
+                      ${{ cuota.amortizacion ?? 0 | number:'1.2-2' }}
+                    </ng-container>
+                    <ng-template #sinDato>-</ng-template>
+                  </td>
+                </tr>
+
+                <!-- Saldo Final -->
+                <tr class="fila-concepto saldo-final-row">
+                  <td class="concepto-cell">Saldo Final</td>
+                  <td *ngFor="let mes of [1,2,3,4,5,6,7,8,9,10,11,12]" class="valor-cell saldo-final">
+                    <ng-container *ngIf="getCuotaParaMes(grupo.cuotas, mes) as cuota; else sinDato">
+                      ${{ cuota.saldo_pendiente ?? 0 | number:'1.2-2' }}
+                    </ng-container>
+                    <ng-template #sinDato>-</ng-template>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading de Cuotas -->
+      <div *ngIf="cargandoCuotas" class="loading-container">
+        <div class="spinner"></div>
+        <p>Cargando tabla de amortización...</p>
+      </div>
+
+
+    </div>
+  </main>
+</div>

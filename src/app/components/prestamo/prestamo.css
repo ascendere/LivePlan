@@ -1,0 +1,693 @@
+/* === Layout Principal === */
+.planificacion-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* === Main Content === */
+.main-content {
+  flex: 1;
+  margin-left: 280px; /* Ancho del sidebar expandido */
+  padding-top: 92px; /* Altura del header (72px) + margen (20px) */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: calc(100vw - 280px);
+  overflow-x: hidden;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* Ajuste cuando el sidebar está colapsado */
+.planificacion-layout.sidebar-collapsed .main-content,
+.layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+  max-width: calc(100vw - 80px);
+}
+
+/* === Content Container === */
+.content-container {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 32px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.planificacion-layout.sidebar-collapsed .content-container,
+.layout.sidebar-collapsed .content-container {
+  max-width: 1600px;
+}
+
+.content-container h1 {
+  font-size: 2.5rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #d8dce6;
+  word-wrap: break-word;
+}
+
+/* === Loading === */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+}
+
+.loading-container p {
+  margin-top: 16px;
+  color: #004271;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 66, 113, 0.1);
+  border-top: 4px solid #004271;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* === Content Section === */
+.content-section {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  margin-bottom: 40px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* === Datos Principales (Mitad y Mitad) === */
+.datos-principales {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 40px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dato-card {
+  background: linear-gradient(135deg, #004271, #0056a3);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dato-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 66, 113, 0.25);
+}
+
+.dato-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  word-wrap: break-word;
+}
+
+.dato-valor {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+}
+
+/* === Formulario === */
+.formulario-prestamo {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 32px;
+  border: 2px solid #e9ecef;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.formulario-prestamo h2 {
+  font-size: 1.75rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #d8dce6;
+  word-wrap: break-word;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.editable-badge,
+.readonly-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editable-badge {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.readonly-badge {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1rem;
+  border: 2px solid #d8dce6;
+  border-radius: 8px;
+  background-color: white;
+  color: #212529;
+  transition: all 0.2s ease;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #004271;
+  box-shadow: 0 0 0 3px rgba(0, 66, 113, 0.1);
+}
+
+.form-input.readonly {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+  border-color: #ced4da;
+}
+
+.form-input.readonly:focus {
+  border-color: #ced4da;
+  box-shadow: none;
+}
+
+/* === Acciones del Formulario === */
+.acciones-formulario {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 2px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-guardar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #004271, #0056a3);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.2);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-guardar:hover {
+  background: linear-gradient(135deg, #003157, #004271);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 66, 113, 0.3);
+}
+
+.btn-guardar:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.2);
+}
+
+.btn-guardar svg {
+  flex-shrink: 0;
+}
+
+/* === Mensaje de Guardado === */
+.mensaje-guardado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  font-weight: 500;
+  animation: fadeInOut 3s ease;
+}
+
+.mensaje-guardado svg {
+  flex-shrink: 0;
+}
+
+.mensaje-guardado.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
+/* === Spinner Animation === */
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+/* === Disabled Button State === */
+.btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+}
+
+.btn-guardar:disabled:hover {
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.15);
+  transform: translateY(0);
+}
+
+/* === Tabla de Amortización === */
+.tabla-amortizacion-section {
+  margin-top: 48px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 2rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 32px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #d8dce6;
+  word-wrap: break-word;
+}
+
+.section-title svg {
+  flex-shrink: 0;
+}
+
+.anio-container {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  margin-bottom: 32px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.anio-titulo {
+  font-size: 1.5rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 20px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-left: 4px solid #004271;
+  border-radius: 6px;
+}
+
+.table-scroll-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #d8dce6;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabla-amortizacion {
+  width: 100%;
+  min-width: 1400px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.tabla-amortizacion thead {
+  background: linear-gradient(135deg, #004271, #0056a3);
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.concepto-header {
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 600;
+  min-width: 180px;
+  position: sticky;
+  left: 0;
+  background: linear-gradient(135deg, #003157, #004271);
+  border-right: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 11;
+}
+
+.mes-header {
+  padding: 16px;
+  text-align: center;
+  font-weight: 600;
+  min-width: 110px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fila-concepto {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.fila-concepto:hover {
+  background-color: #f8f9fa;
+}
+
+.concepto-cell {
+  padding: 14px 20px;
+  font-weight: 600;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-right: 2px solid #d8dce6;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  min-width: 180px;
+}
+
+.valor-cell {
+  padding: 14px 16px;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+  color: #212529;
+  border-left: 1px solid #e9ecef;
+}
+
+.valor-cell.interes {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.valor-cell.capital {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.valor-cell.saldo-final {
+  background-color: #e8f4f8;
+  font-weight: 700;
+  color: #004271;
+}
+
+.saldo-final-row {
+  background-color: #f1f3f5;
+  font-weight: 700;
+}
+
+.saldo-final-row .concepto-cell {
+  background-color: #e9ecef;
+  color: #004271;
+}
+
+/* === Responsive === */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 80px;
+    max-width: calc(100vw - 80px);
+  }
+
+  .content-container {
+    padding: 24px;
+    max-width: 100%;
+  }
+
+  .content-container h1 {
+    font-size: 2rem;
+  }
+
+  .datos-principales {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .dato-valor {
+    font-size: 2rem;
+  }
+
+  .dato-card {
+    padding: 24px;
+  }
+
+  .formulario-prestamo {
+    padding: 24px;
+  }
+
+  .anio-container {
+    padding: 20px;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+    padding-top: 92px;
+    max-width: calc(100vw - 60px);
+  }
+
+  .content-container {
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .content-container h1 {
+    font-size: 1.75rem;
+  }
+
+  .content-section {
+    padding: 20px;
+  }
+
+  .formulario-prestamo {
+    padding: 20px;
+  }
+
+  .dato-card {
+    padding: 20px;
+  }
+
+  .dato-valor {
+    font-size: 1.75rem;
+  }
+
+  .dato-label {
+    font-size: 0.85rem;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+  }
+
+  .form-input {
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
+
+  .btn-guardar {
+    padding: 12px 24px;
+    font-size: 0.95rem;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .anio-container {
+    padding: 16px;
+  }
+
+  .anio-titulo {
+    font-size: 1.25rem;
+    padding: 10px 16px;
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+  }
+
+  .table-scroll-container {
+    border-radius: 6px;
+  }
+
+  .concepto-header,
+  .concepto-cell {
+    min-width: 140px;
+    font-size: 0.85rem;
+    padding: 12px 16px;
+  }
+
+  .mes-header {
+    min-width: 90px;
+    font-size: 0.85rem;
+    padding: 12px 10px;
+  }
+
+  .valor-cell {
+    font-size: 0.85rem;
+    padding: 12px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    margin-left: 0;
+    padding-top: 80px;
+    max-width: 100vw;
+  }
+
+  .content-container {
+    padding: 12px;
+  }
+
+  .content-container h1 {
+    font-size: 1.5rem;
+  }
+
+  .content-section {
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .datos-principales {
+    gap: 12px;
+  }
+
+  .dato-card {
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .dato-valor {
+    font-size: 1.5rem;
+  }
+
+  .dato-label {
+    font-size: 0.8rem;
+  }
+
+  .formulario-prestamo {
+    padding: 16px;
+  }
+
+  .formulario-prestamo h2 {
+    font-size: 1.25rem;
+  }
+
+  .form-grid {
+    gap: 12px;
+  }
+
+  .anio-container {
+    padding: 12px;
+  }
+
+  .anio-titulo {
+    font-size: 1.1rem;
+    padding: 8px 12px;
+  }
+
+  .concepto-header,
+  .concepto-cell {
+    min-width: 120px;
+    font-size: 0.8rem;
+    padding: 10px 12px;
+  }
+
+  .mes-header {
+    min-width: 80px;
+    font-size: 0.8rem;
+    padding: 10px 8px;
+  }
+
+  .valor-cell {
+    font-size: 0.8rem;
+    padding: 10px 8px;
+  }
+}

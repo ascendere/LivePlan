@@ -1,0 +1,73 @@
+<!-- Modal Overlay -->
+<div class="modal-overlay" *ngIf="isOpen" (click)="closeModal()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <h2>Nueva Planificación</h2>
+      <button class="close-btn" (click)="closeModal()" aria-label="Cerrar modal">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <form class="modal-body" (ngSubmit)="onSubmit()" #planForm="ngForm">
+      <!-- Campo Problemática -->
+      <div class="form-group">
+        <label for="problematica" class="form-label">
+          Problemática <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="problematica"
+          name="problematica"
+          class="form-input"
+          [(ngModel)]="formData.problematica"
+          placeholder="Ej: Falta de sistema de gestión de inventarios"
+          required
+          maxlength="100"
+          #problematica="ngModel"
+        />
+        <div class="error-message" *ngIf="problematica.invalid && problematica.touched">
+          <small *ngIf="problematica.errors?.['required']">La problemática es obligatoria</small>
+        </div>
+        <small class="character-count">{{ formData.problematica.length }}/100</small>
+      </div>
+
+      <!-- Campo Descripción -->
+      <div class="form-group">
+        <label for="descripcion" class="form-label">
+          Descripción <span class="required">*</span>
+        </label>
+        <textarea
+          id="descripcion"
+          name="descripcion"
+          class="form-textarea"
+          [(ngModel)]="formData.descripcion"
+          placeholder="Describe detalladamente el problema que quieres resolver con este plan de negocio..."
+          required
+          rows="6"
+          maxlength="500"
+          #descripcion="ngModel"
+        ></textarea>
+        <div class="error-message" *ngIf="descripcion.invalid && descripcion.touched">
+          <small *ngIf="descripcion.errors?.['required']">La descripción es obligatoria</small>
+        </div>
+        <small class="character-count">{{ formData.descripcion.length }}/500</small>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="planForm.invalid || isSubmitting">
+          <span *ngIf="!isSubmitting">Crear Planificación</span>
+          <span *ngIf="isSubmitting">Creando...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

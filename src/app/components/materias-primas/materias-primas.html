@@ -1,0 +1,96 @@
+<app-header></app-header>
+
+<div class="planificacion-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Sidebar -->
+  <app-sidebar [planId]="planId" (onItemChange)="handleSidebarChange($event)" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+
+  <!-- Componente flotante de Variables de Sensibilidad -->
+  <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
+
+  <!-- Componente flotante de Políticas de Compra/Venta -->
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="content-container">
+      <h1>Costo de Materia Prima por Volumen</h1>
+      
+      <div class="content-section">
+        <!-- Loading State -->
+        <div *ngIf="cargando" class="loading-container">
+          <div class="spinner"></div>
+          <p>Cargando costos de materia prima...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!cargando && productosMateriaPrima.length === 0" class="empty-state">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#004271" stroke-width="2">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+          </svg>
+          <p>No hay datos de materia prima disponibles</p>
+        </div>
+
+        <!-- Tabla de Materia Prima -->
+        <div *ngIf="!cargando && productosMateriaPrima.length > 0" class="tabla-wrapper">
+          <table class="tabla-materia-prima">
+            <!-- Header -->
+            <thead>
+              <!-- Row 1: Años -->
+              <tr>
+                <th scope="col" rowspan="2" class="col-producto sticky-col">Producto</th>
+                <th scope="colgroup" colspan="13" class="header-anio">Año 1</th>
+                <th scope="colgroup" colspan="13" class="header-anio">Año 2</th>
+                <th scope="colgroup" colspan="13" class="header-anio">Año 3</th>
+                <th scope="col" rowspan="2" class="header-total-anio">Total Año 4</th>
+                <th scope="col" rowspan="2" class="header-total-anio">Total Año 5</th>
+              </tr>
+              <!-- Row 2: Meses -->
+              <tr>
+                <!-- Año 1 -->
+                <th scope="col" *ngFor="let mes of meses" class="header-mes">{{ mes }}</th>
+                <th scope="col" class="header-total">Total</th>
+                <!-- Año 2 -->
+                <th scope="col" *ngFor="let mes of meses" class="header-mes">{{ mes }}</th>
+                <th scope="col" class="header-total">Total</th>
+                <!-- Año 3 -->
+                <th scope="col" *ngFor="let mes of meses" class="header-mes">{{ mes }}</th>
+                <th scope="col" class="header-total">Total</th>
+              </tr>
+            </thead>
+
+            <!-- Body -->
+            <tbody>
+              <tr *ngFor="let producto of productosMateriaPrima">
+                <!-- Producto -->
+                <td class="col-producto sticky-col">{{ producto.nombreProducto }}</td>
+                
+                <!-- Año 1 - Meses -->
+                <td *ngFor="let costo of producto.anio1.meses" class="col-valor">
+                  {{ costo | number: '1.2-2' }}
+                </td>
+                <td class="col-total-mensual">{{ producto.anio1.totalAnio | number: '1.2-2' }}</td>
+                
+                <!-- Año 2 - Meses -->
+                <td *ngFor="let costo of producto.anio2.meses" class="col-valor">
+                  {{ costo | number: '1.2-2' }}
+                </td>
+                <td class="col-total-mensual">{{ producto.anio2.totalAnio | number: '1.2-2' }}</td>
+                
+                <!-- Año 3 - Meses -->
+                <td *ngFor="let costo of producto.anio3.meses" class="col-valor">
+                  {{ costo | number: '1.2-2' }}
+                </td>
+                <td class="col-total-mensual">{{ producto.anio3.totalAnio | number: '1.2-2' }}</td>
+                
+                <!-- Totales Año 4 y 5 -->
+                <td class="col-total-anual">{{ producto.totalAnio4 | number: '1.2-2' }}</td>
+                <td class="col-total-anual">{{ producto.totalAnio5 | number: '1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,976 @@
+<app-header></app-header>
+
+<div class="layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <app-sidebar [planId]="planId" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+  
+  <!-- Componente flotante de Variables de Sensibilidad -->
+  <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
+
+  <!-- Componente flotante de Políticas de Compra/Venta -->
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>  
+
+  <main class="main-content">
+    <div class="content-container">
+      <h1>Datos Iniciales</h1>
+
+      <div class="content-section">
+        <!-- Indicador de progreso -->
+        <div class="progress-indicator">
+          <span class="progress-text">
+            Sección {{ seccionActual + 1 }} de {{ secciones.length }}
+          </span>
+          <div class="progress-dots">
+            <span
+              *ngFor="let seccion of secciones; let i = index"
+              class="dot"
+              [class.active]="i === seccionActual"
+              (click)="seccionActual = i"
+              (keypress)="seccionActual = i"
+              tabindex="0"
+            >
+            </span>
+          </div>
+        </div>
+
+        <!-- Contenedor del carrusel con scroll -->
+        <div class="carousel-container">
+          <!-- Flecha izquierda -->
+          <button
+            class="nav-arrow left"
+            (click)="anterior()"
+            [disabled]="!hayAnterior()"
+            [class.disabled]="!hayAnterior()"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+
+          <!-- Contenido de la sección actual con scroll -->
+          <div class="carousel-content">
+            <div class="section-header">
+              <h2>{{ seccionActiva.titulo }}</h2>
+            </div>
+            
+            <!-- ========== SECCIÓN 1: INDICADORES MACROECONÓMICOS ========== -->
+            <div *ngIf="seccionActual === 0" class="form-section">
+              <form class="data-form">
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label for="tipoCambio">Tipo de Cambio *</label>
+                    <input
+                      type="number"
+                      id="tipoCambio"
+                      [(ngModel)]="macros.tipo_cambio"
+                      (ngModelChange)="onMacroFieldChange('tipo_cambio')"
+                      name="tipoCambio"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="inflacion">Inflación (%) *</label>
+                    <input
+                      type="number"
+                      id="inflacion"
+                      [(ngModel)]="macros.inflacion"
+                      (ngModelChange)="onMacroFieldChange('inflacion')"
+                      name="inflacion"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="tasaDeuda">Tasa de Deuda (%) *</label>
+                    <input
+                      type="number"
+                      id="tasaDeuda"
+                      [(ngModel)]="macros.tasa_deuda"
+                      (ngModelChange)="onMacroFieldChange('tasa_deuda')"
+                      name="tasaDeuda"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="tasaInteres">Tasa de Interés (%) *</label>
+                    <input
+                      type="number"
+                      id="tasaInteres"
+                      [(ngModel)]="macros.tasa_interes"
+                      (ngModelChange)="onMacroFieldChange('tasa_interes')"
+                      name="tasaInteres"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="tasaImpuesto">Tasa de Impuesto (%) *</label>
+                    <input
+                      type="number"
+                      id="tasaImpuesto"
+                      [(ngModel)]="macros.tasa_impuesto"
+                      (ngModelChange)="onMacroFieldChange('tasa_impuesto')"
+                      name="tasaImpuesto"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="ptuMacro">PTU - Participación de Trabajadores (%) *</label>
+                    <input
+                      type="number"
+                      id="ptuMacro"
+                      [(ngModel)]="macros.ptu"
+                      (ngModelChange)="onMacroFieldChange('ptu')"
+                      name="ptuMacro"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="diasxmes">Días por Mes *</label>
+                    <input
+                      type="number"
+                      id="diasxmes"
+                      [(ngModel)]="macros.diasxmes"
+                      (ngModelChange)="onMacroFieldChange('diasxmes')"
+                      name="diasxmes"
+                      min="1"
+                      max="31"
+                      step="1"
+                      placeholder="30"
+                    />
+                  </div>
+                </div>
+                <div class="form-actions" *ngIf="hayMacrosModificados()">
+                  <button 
+                    type="button" 
+                    class="btn-primary" 
+                    (click)="guardarMacros()"
+                    [disabled]="estadoGuardadoMacros === 'guardando'"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Guardar Indicadores ({{ camposMacrosModificados.size }})
+                  </button>
+                  
+                  <!-- Mensaje de estado -->
+                  <span *ngIf="estadoGuardadoMacros === 'guardando'" class="mensaje-estado guardando">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Guardando...
+                  </span>
+                  <span *ngIf="estadoGuardadoMacros === 'exito'" class="mensaje-estado exito">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Guardado correctamente
+                  </span>
+                  <span *ngIf="estadoGuardadoMacros === 'error'" class="mensaje-estado error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    {{ mensajeErrorMacros }}
+                  </span>
+                </div>
+              </form>
+            </div>
+
+            <!-- ========== SECCIÓN 2: COMPOSICIÓN DEL FINANCIAMIENTO DE LAS INVERSIONES ========== -->
+            <div *ngIf="seccionActual === 1" class="form-section">
+              <form class="data-form">
+                <p class="info-text">
+                  Configure la composición del financiamiento. Al ingresar el porcentaje de capital, el porcentaje de deuda se calcula automáticamente.
+                </p>
+
+                <!-- Mostrar total de inversión (siempre visible para debug) -->
+                <div class="info-box">
+                  <strong>Total de Inversión:</strong> 
+                  <span *ngIf="composicionFinanciamiento.total_inversion !== undefined && composicionFinanciamiento.total_inversion !== null">
+                    {{ composicionFinanciamiento.total_inversion | number:'1.2-2' }}
+                  </span>
+                  <span *ngIf="composicionFinanciamiento.total_inversion === undefined || composicionFinanciamiento.total_inversion === null">
+                    Cargando...
+                  </span>
+                </div>
+                
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label for="capitalPorcentaje">Capital (%) *</label>
+                    <input
+                      type="number"
+                      id="capitalPorcentaje"
+                      [(ngModel)]="composicionFinanciamiento.capital_porcentaje"
+                      (ngModelChange)="onCapitalPorcentajeChange()"
+                      name="capitalPorcentaje"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0"
+                    />
+                    <small class="field-info">Monto: {{ getMontoCapital() | number:'1.2-2' }}</small>
+                  </div>
+                  
+                  <div class="form-field">
+                    <label for="deudaPorcentaje">Deuda (%) *</label>
+                    <input
+                      type="number"
+                      id="deudaPorcentaje"
+                      [(ngModel)]="composicionFinanciamiento.deuda_porcentaje"
+                      name="deudaPorcentaje"
+                      readonly
+                      class="readonly-input"
+                      placeholder="0"
+                    />
+                    <small class="field-info">Monto: {{ getMontoDeuda() | number:'1.2-2' }}</small>
+                  </div>
+                  
+                  <div class="form-field">
+                    <label for="totalPorcentaje">Total (%) *</label>
+                    <input
+                      type="number"
+                      id="totalPorcentaje"
+                      [value]="(composicionFinanciamiento.capital_porcentaje || 0) + (composicionFinanciamiento.deuda_porcentaje || 0)"
+                      name="totalPorcentaje"
+                      readonly
+                      class="readonly-input"
+                      placeholder="0"
+                    />
+                    <small class="field-info">Monto: {{ (getMontoCapital() + getMontoDeuda()) | number:'1.2-2' }}</small>
+                  </div>
+                </div>
+
+                <div class="form-actions" *ngIf="hayComposicionModificada()">
+                  <button 
+                    type="button" 
+                    class="btn-primary" 
+                    (click)="guardarComposicionFinanciamiento()"
+                    [disabled]="estadoGuardadoComposicion === 'guardando'"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Guardar Composición
+                  </button>
+                  
+                  <!-- Mensaje de estado -->
+                  <span *ngIf="estadoGuardadoComposicion === 'guardando'" class="mensaje-estado guardando">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Guardando...
+                  </span>
+                  <span *ngIf="estadoGuardadoComposicion === 'exito'" class="mensaje-estado exito">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Guardado correctamente
+                  </span>
+                  <span *ngIf="estadoGuardadoComposicion === 'error'" class="mensaje-estado error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    {{ mensajeErrorComposicion }}
+                  </span>
+                </div>
+              </form>
+            </div>
+
+            <!-- ========== SECCIÓN 3: PRODUCTOS (TABLA DINÁMICA) ========== -->
+            <div *ngIf="seccionActual === 2" class="productos-section">
+              <!-- Formulario para agregar producto -->
+              <div class="add-product-form">
+                <h3>Agregar Producto / Servicio</h3>
+                <div class="form-grid-compact">
+                  <div class="form-field">
+                    <label>Nombre *</label>
+                    <input type="text" [(ngModel)]="nuevoProducto.nombre" placeholder="Ej: Pan" />
+                  </div>
+                  <div class="form-field full-width">
+                    <button type="button" class="btn-add" (click)="agregarProducto()">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      Agregar Producto
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tabla de productos -->
+              <div class="table-container">
+                <h3>Productos Agregados ({{ productos.length }})</h3>
+                <table class="data-table" *ngIf="productos.length > 0">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let producto of productos; let i = index">
+                      <td>
+                        <span *ngIf="!productoEnEdicion || productoEnEdicion.index !== i">
+                          {{ producto.nombre }}
+                        </span>
+                        <input
+                          *ngIf="productoEnEdicion && productoEnEdicion.index === i"
+                          type="text"
+                          [(ngModel)]="productoEnEdicion.producto.nombre"
+                          class="input-edit"
+                        />
+                      </td>
+                      <td>
+                        <span
+                          class="badge"
+                          [class.badge-saved]="producto.id"
+                          [class.badge-pending]="!producto.id"
+                        >
+                          {{ producto.id ? 'Guardado' : 'Pendiente' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div
+                          class="action-buttons"
+                          *ngIf="!productoEnEdicion || productoEnEdicion.index !== i"
+                        >
+                          <button class="btn-edit" (click)="editarProducto(i)" title="Editar">
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                            >
+                              <path
+                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                              ></path>
+                              <path
+                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                              ></path>
+                            </svg>
+                          </button>
+                          <button class="btn-delete" (click)="eliminarProducto(i)" title="Eliminar">
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                            >
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path
+                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                              ></path>
+                            </svg>
+                          </button>
+                        </div>
+                        <div
+                          class="action-buttons"
+                          *ngIf="productoEnEdicion && productoEnEdicion.index === i"
+                        >
+                          <button class="btn-save" (click)="guardarEdicion()" title="Guardar">
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </button>
+                          <button class="btn-cancel" (click)="cancelarEdicion()" title="Cancelar">
+                            <svg
+                              width="18"
+                              height="18"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="empty-state" *ngIf="productos.length === 0">
+                  <p>No hay productos agregados aún</p>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button
+                  type="button"
+                  class="btn-primary"
+                  (click)="guardarProductos()"
+                  [disabled]="!hayProductosNuevos() || estadoGuardadoProductos === 'guardando'"
+                  [class.disabled]="!hayProductosNuevos()"
+                >
+                  Guardar Productos
+                  <span *ngIf="hayProductosNuevos()">({{ contarProductosNuevos() }})</span>
+                </button>
+                
+                <!-- Mensaje de estado -->
+                <span *ngIf="estadoGuardadoProductos === 'guardando'" class="mensaje-estado guardando">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                  </svg>
+                  Guardando...
+                </span>
+                <span *ngIf="estadoGuardadoProductos === 'exito'" class="mensaje-estado exito">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Guardado correctamente
+                </span>
+                <span *ngIf="estadoGuardadoProductos === 'error'" class="mensaje-estado error">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                  </svg>
+                  {{ mensajeErrorProductos }}
+                </span>
+              </div>
+            </div>
+
+            <!-- ========== SECCIÓN 4: SUPUESTOS ========== -->
+            <div *ngIf="seccionActual === 3" class="form-section">
+              <form class="data-form">
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label for="porcenVentas">Porcentaje de Ventas para determinar el inventario (%) *</label>
+                    <input
+                      type="number"
+                      id="porcenVentas"
+                      [(ngModel)]="supuestos.porcen_ventas"
+                      name="porcenVentas"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0"
+                    />
+                  </div>
+                  <!-- <div class="form-field">
+                    <label for="variacionPorcenVentas">Variación Porcentaje de Ventas pronosticadas (%) *</label>
+                    <input
+                      type="number"
+                      id="variacionPorcenVentas"
+                      [(ngModel)]="supuestos.variacion_porcen_ventas"
+                      name="variacionPorcenVentas"
+                      min="-100"
+                      max="100"
+                      step="0.01"
+                      placeholder="0"
+                    />
+                  </div> -->
+                  <div class="form-field">
+                    <label for="ptu">PTU - Participación de Trabajadores en Utilidades (%) *</label>
+                    <input
+                      type="number"
+                      id="ptu"
+                      [(ngModel)]="supuestos.ptu"
+                      name="ptu"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="isr">ISR - Impuesto Sobre la Renta (%) *</label>
+                    <input
+                      type="number"
+                      id="isr"
+                      [(ngModel)]="supuestos.isr"
+                      name="isr"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button 
+                    type="button" 
+                    class="btn-primary" 
+                    (click)="guardarSupuestos()"
+                    [disabled]="estadoGuardadoSupuestos === 'guardando'"
+                  >
+                    Guardar Supuestos
+                  </button>
+                  
+                  <!-- Mensaje de estado -->
+                  <span *ngIf="estadoGuardadoSupuestos === 'guardando'" class="mensaje-estado guardando">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Guardando...
+                  </span>
+                  <span *ngIf="estadoGuardadoSupuestos === 'exito'" class="mensaje-estado exito">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Guardado correctamente
+                  </span>
+                  <span *ngIf="estadoGuardadoSupuestos === 'error'" class="mensaje-estado error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    {{ mensajeErrorSupuestos }}
+                  </span>
+                </div>
+              </form>
+            </div>
+
+            <!-- ========== SECCIÓN 5: VENTAS POR DÍA ========== -->
+            <div *ngIf="seccionActual === 4" class="productos-section">
+              <!-- Tabla de ventas por día -->
+              <div class="table-container">
+                <!-- <h3>Ventas por Día</h3> -->
+                <p class="info-text">
+                  Configure el número de ventas esperadas por día para cada producto/servicio
+                </p>
+
+                <table class="data-table" *ngIf="ventasDiarias.length > 0">
+                  <thead>
+                    <tr>
+                      <th>Producto / Servicio</th>
+                      <th>Ventas por Día</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let venta of ventasDiarias; let i = index">
+                      <td>{{ (venta.producto_servicio && venta.producto_servicio.nombre) || 'Sin nombre' }}</td>
+                      <td>
+                        <input
+                          type="number"
+                          class="form-input venta-input"
+                          [(ngModel)]="venta.venta_dia"
+                          (ngModelChange)="onVentaDiariaChange(venta.producto_servicio_id)"
+                          min="0"
+                          placeholder="Ej: 30"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="empty-state" *ngIf="ventasDiarias.length === 0">
+                  <p>No hay productos disponibles. Primero agregue productos en la sección 1.</p>
+                </div>
+
+                <div class="form-actions" *ngIf="ventasDiarias.length > 0">
+                  <button 
+                    class="btn btn-primary" 
+                    (click)="guardarVentasDiarias()"
+                    [disabled]="!hayVentasDiariasModificadas() || estadoGuardadoVentas === 'guardando'"
+                    [class.disabled]="!hayVentasDiariasModificadas()"
+                  >
+                    Guardar Ventas por Día
+                    <span *ngIf="hayVentasDiariasModificadas()">({{ ventasDiariasModificadas.size }})</span>
+                  </button>
+                  
+                  <!-- Mensaje de estado -->
+                  <span *ngIf="estadoGuardadoVentas === 'guardando'" class="mensaje-estado guardando">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Guardando...
+                  </span>
+                  <span *ngIf="estadoGuardadoVentas === 'exito'" class="mensaje-estado exito">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Guardado correctamente
+                  </span>
+                  <span *ngIf="estadoGuardadoVentas === 'error'" class="mensaje-estado error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    {{ mensajeErrorVentas }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========== SECCIÓN 6: VARIABLES DE SENSIBILIDAD ========== -->
+            <!-- <div *ngIf="seccionActual === 5" class="form-section">
+              <form class="data-form">
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label for="cantidadVol">Cantidad Volumen *</label>
+                    <input
+                      type="number"
+                      id="cantidadVol"
+                      [(ngModel)]="variablesSensibilidad.cantidad_volumen"
+                      name="cantidadVol"
+                      min="0"
+                      step="10"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="variacionPrecio">Precio *</label>
+                    <input
+                      type="number"
+                      id="variacionPrecio"
+                      [(ngModel)]="variablesSensibilidad.precio"
+                      name="variacionPrecio"
+                      min="0"
+                      step="1"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div class="form-field">
+                    <label for="costo">Costo *</label>
+                    <input
+                      type="number"
+                      id="costo"
+                      [(ngModel)]="variablesSensibilidad.costo"
+                      name="costo"
+                      min="0"
+                      step="1"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button
+                    type="button"
+                    class="btn-primary"
+                    (click)="guardarVariablesSensibilidad()"
+                    [disabled]="estadoGuardadoVariables === 'guardando'"
+                  >
+                    Guardar
+                  </button> -->
+                  
+                  <!-- Mensaje de estado -->
+                  <!-- <span *ngIf="estadoGuardadoVariables === 'guardando'" class="mensaje-estado guardando">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Guardando...
+                  </span>
+                  <span *ngIf="estadoGuardadoVariables === 'exito'" class="mensaje-estado exito">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Guardado correctamente
+                  </span>
+                  <span *ngIf="estadoGuardadoVariables === 'error'" class="mensaje-estado error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    {{ mensajeErrorVariables }}
+                  </span>
+                </div>
+              </form>
+            </div> -->
+            <!-- ========== SECCIÓN 7: Variacion Anual ========== -->
+            <div *ngIf="seccionActual === 5" class="form-section">
+              <div class="table-container">
+                <!-- <h3>Variación Anual</h3> -->
+                <p class="info-text">
+                  Configure el porcentaje de crecimiento en ventas para cada año (%)
+                </p>
+
+                <form class="data-form">
+                  <div class="form-grid">
+                    <div class="form-field">
+                      <label for="anio1">Año 1 (%)</label>
+                      <input
+                        type="number"
+                        id="anio1"
+                        [(ngModel)]="variacionAnual.anio1"
+                        name="anio1"
+                        min="0"
+                        step="0.1"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="anio2">Año 2 (%)</label>
+                      <input
+                        type="number"
+                        id="anio2"
+                        [(ngModel)]="variacionAnual.anio2"
+                        name="anio2"
+                        min="0"
+                        step="0.1"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="anio3">Año 3 (%)</label>
+                      <input
+                        type="number"
+                        id="anio3"
+                        [(ngModel)]="variacionAnual.anio3"
+                        name="anio3"
+                        min="0"
+                        step="0.1"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="anio4">Año 4 (%)</label>
+                      <input
+                        type="number"
+                        id="anio4"
+                        [(ngModel)]="variacionAnual.anio4"
+                        name="anio4"
+                        min="0"
+                        step="0.1"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="anio5">Año 5 (%)</label>
+                      <input
+                        type="number"
+                        id="anio5"
+                        [(ngModel)]="variacionAnual.anio5"
+                        name="anio5"
+                        min="0"
+                        step="0.1"
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                  <div class="form-actions">
+                    <button 
+                      type="button" 
+                      class="btn-primary" 
+                      (click)="guardarVariacionAnual()"
+                      [disabled]="estadoGuardadoVariacion === 'guardando'"
+                    >
+                      Guardar Variación Anual
+                    </button>
+                    
+                    <!-- Mensaje de estado -->
+                    <span *ngIf="estadoGuardadoVariacion === 'guardando'" class="mensaje-estado guardando">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                      </svg>
+                      Guardando...
+                    </span>
+                    <span *ngIf="estadoGuardadoVariacion === 'exito'" class="mensaje-estado exito">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      Guardado correctamente
+                    </span>
+                    <span *ngIf="estadoGuardadoVariacion === 'error'" class="mensaje-estado error">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                      </svg>
+                      {{ mensajeErrorVariacion }}
+                    </span>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- ========== SECCIÓN 8: PRECIOS DE PRODUCTOS/SERVICIOS ========== -->
+            <div *ngIf="seccionActual === 6" class="productos-section">
+              <!-- Tabla de precios de productos/servicios -->
+              <div class="table-container">
+                <p class="info-text">
+                  Configure los precios para cada producto/servicio
+                </p>
+
+                <table class="data-table" *ngIf="preciosProducto.length > 0">
+                  <thead>
+                    <tr>
+                      <th>Producto / Servicio</th>
+                      <th>Precio</th>
+                      <th>Precio Calculado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let precio of preciosProducto; let i = index">
+                      <td>{{ (precio.producto_servicio && precio.producto_servicio.nombre) || 'Sin nombre' }}</td>
+                      <td>
+                        <input
+                          type="number"
+                          class="form-input precio-input"
+                          [(ngModel)]="precio.precio"
+                          (ngModelChange)="onPrecioChange(precio.id!)"
+                          [name]="'precio-' + i"
+                          min="0"
+                          step="0.01"
+                          placeholder="Ej: 100.00"
+                        />
+                      </td>
+                      <td class="precio-calculado">
+                        {{ precio.precio_calc ? (precio.precio_calc | number:'1.2-2') : '0.00' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="empty-state" *ngIf="preciosProducto.length === 0">
+                  <p>No hay productos disponibles. Primero agregue productos en la sección de Productos/Servicios.</p>
+                </div>
+
+                <!-- Botón guardar solo visible cuando hay cambios -->
+                <div class="form-actions" *ngIf="hayPreciosModificados()">
+                  <button 
+                    class="btn btn-primary" 
+                    (click)="guardarPreciosProducto()"
+                    [disabled]="estadoGuardadoPrecios === 'guardando'"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Guardar Precios ({{ preciosModificados.size }} modificado{{ preciosModificados.size !== 1 ? 's' : '' }})
+                  </button>
+                  
+                  <!-- Mensaje de estado -->
+                  <span *ngIf="estadoGuardadoPrecios === 'guardando'" class="mensaje-estado guardando">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Guardando...
+                  </span>
+                  <span *ngIf="estadoGuardadoPrecios === 'exito'" class="mensaje-estado exito">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Guardado correctamente
+                  </span>
+                  <span *ngIf="estadoGuardadoPrecios === 'error'" class="mensaje-estado error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    {{ mensajeErrorPrecios }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========== SECCIÓN 9: COSTOS DE PRODUCTOS/SERVICIOS ========== -->
+            <div *ngIf="seccionActual === 7" class="productos-section">
+              <!-- Tabla de costos de productos/servicios -->
+              <div class="table-container">
+                <p class="info-text">
+                  Visualice los costos por categoría para cada producto/servicio
+                </p>
+
+                <div *ngIf="getProductosConCostos().length > 0">
+                  <!-- Iterar por cada producto -->
+                  <div *ngFor="let grupo of getProductosConCostos(); let isLast = last" class="producto-grupo">
+                    <h4 class="producto-nombre">{{ grupo.producto }}</h4>
+                    
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Categoría</th>
+                          <th>Costo</th>
+                          <!-- <th>Costo Calculado</th> -->
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let costo of grupo.costos">
+                          <td>{{ (costo.categoria_costo && costo.categoria_costo.nombre) || 'Sin categoría' }}</td>
+                          <td class="text-right">{{ costo.costo | number:'1.2-2' }}</td>
+                          <!-- <td class="text-right precio-calculado">
+                            {{ costo.costo_calc ? (costo.costo_calc | number:'1.2-2') : '0.00' }}
+                          </td> -->
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="empty-state" *ngIf="costosProducto.length === 0">
+                  <p>No hay costos disponibles. Los costos se generan automáticamente al configurar los productos.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Flecha derecha -->
+          <button
+            class="nav-arrow right"
+            (click)="siguiente()"
+            [disabled]="!haySiguiente()"
+            [class.disabled]="!haySiguiente()"
+          >
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,190 @@
+/* === Layout Principal === */
+.contenido-principal {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px;
+  gap: 20px;
+  padding-top: 92px; /* Altura del header (72px) + margen (20px) */
+}
+
+/* === Sección de Planes === */
+.seccion-planes-negocio {
+  flex: 1;
+  max-width: 70%;
+}
+
+.seccion-planes-negocio h1 {
+  font-size: 3rem;
+  color: #004271;
+  font-weight: 500;
+  border-bottom: 4px solid #b1bbce;
+  padding-bottom: 5px;
+  margin: 25px 0 10px;
+  display: inline-block;
+}
+
+.seccion-planes-negocio p {
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* === Barra de búsqueda === */
+.barra-busqueda {
+  padding: 12px 16px;
+  margin: 10px 0 20px;
+  width: 100%;
+  max-width: 600px;
+  border: 2px solid #b1bbce;
+  border-radius: 15px;
+  background-color: #f8f9fa;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.barra-busqueda:focus {
+  outline: none;
+  border-color: #004271;
+  background-color: white;
+}
+
+.barra-busqueda::placeholder {
+  color: #6c757d;
+}
+
+/* === Lista de Planes === */
+.lista-planes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
+  margin-top: 15px;
+}
+
+.a_planes {
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+.a_planes:hover {
+  transform: translateY(-5px);
+}
+
+.elemento-plan {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  height: 125px;
+  background-color: #f8f9fa;
+  border-left: 5px solid #004271;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.1);
+  transition: all 0.3s ease;
+}
+
+.elemento-plan:hover {
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.2);
+}
+
+.icono-plan {
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.problematica-plan {
+  color: #004271;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* === Botón Ver Más === */
+.mostrar-mas {
+  background-color: #004271;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.3s ease;
+}
+
+.mostrar-mas:hover {
+  background-color: #003155;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 66, 113, 0.3);
+}
+
+/* === Sidebar === */
+.aside {
+  width: 280px;
+  margin-top: 100px;
+}
+
+.boton-crear-plan {
+  width: 100%;
+  padding: 16px;
+  background-color: #004271;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 66, 113, 0.2);
+}
+
+.boton-crear-plan:hover {
+  background-color: #003155;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 66, 113, 0.3);
+}
+
+/* === Responsive === */
+@media (max-width: 1024px) {
+  .contenido-principal {
+    flex-direction: column;
+  }
+
+  .seccion-planes-negocio {
+    max-width: 100%;
+  }
+
+  .aside {
+    width: 100%;
+    margin-top: 40px;
+  }
+
+  .lista-planes {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .seccion-planes-negocio h1 {
+    font-size: 2rem;
+  }
+
+  .lista-planes {
+    grid-template-columns: 1fr;
+  }
+
+  .barra-busqueda {
+    font-size: 14px;
+  }
+}

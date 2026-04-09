@@ -1,0 +1,203 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed">
+  <!-- Navigation Menu -->
+  <nav class="sidebar-nav">
+    <ul class="nav-list">
+      <!-- Toggle Button como item -->
+      <li class="toggle-btn-container">
+        <button
+          class="toggle-btn"
+          (click)="toggleSidebar()"
+          [attr.aria-label]="isCollapsed ? 'Expandir menú' : 'Contraer menú'"
+        >
+          <svg
+            class="toggle-icon"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+
+          <!-- <span class="toggle-text" *ngIf="!isCollapsed">Contraer menú</span> -->
+        </button>
+      </li>
+
+      <li class="nav-divider" *ngIf="!isCollapsed"></li>
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'Planificacion'"
+        (click)="setActive('Planificacion'); navigateTo('planificacion')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Planificacion' : ''">
+          <img src="planificacion_icon.svg" alt="Planificación" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Planificación</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'inversion'"
+        (click)="setActive('Inversion Inicial'); navigateTo('inversion')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Inversion Inicial' : ''">
+          <img src="inversion_icon.svg" alt="Inversión Inicial" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Inversión Inicial</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'financiero'"
+        (click)="setActive('financiero'); navigateTo('datos-iniciales')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Plan Financiero' : ''">
+          <img src="datos_icon.svg" alt="Datos Iniciales" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Datos Iniciales</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'depreciaciones'"
+        (click)="setActive('depreciaciones'); navigateTo('depreciaciones')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Plan Financiero' : ''">
+          <img src="depreciacion_icon.svg" alt="Depreciaciones" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Depreciaciones</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'marketing'"
+        (click)="setActive('marketing'); navigateTo('presupuesto-venta')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Estrategia de Marketing' : ''">
+          <img src="presupuesto_icon.svg" alt="Presupuesto de Venta" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Presupuesto de Venta</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'recursos'"
+        (click)="setActive('recursos'); navigateTo('calculo-ventas')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Recursos Humanos' : ''">
+          <img src="calculoventa_icon.svg" alt="Calculo de Ventas" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Calculo de Ventas</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'operaciones'"
+        (click)="setActive('operaciones'); navigateTo('costos-unitarios')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Operaciones' : ''">
+          <img src="costosu_icon.svg" alt="Costos Unitarios" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Costos Unitarios</span>
+        </a>
+      </li>
+      
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'costo-ventas'"
+        (click)="setActive('costo-ventas'); navigateTo('costo-ventas')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'costo-ventas' : ''">
+          <img src="costosVentas_icon.svg" alt="Costos de Venta" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Costos de Venta</span>
+        </a>
+      </li>
+
+      <!-- <li class="nav-divider" *ngIf="!isCollapsed"></li> -->
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'documentos'"
+        (click)="setActive('documentos'); navigateTo('prestamo')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Préstamo' : ''">
+          <img src="prestamo_icon.svg" alt="Prestamo" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Préstamo</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'materias'"
+        (click)="setActive('materias'); navigateTo('materias-primas')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Materias Primas' : ''">
+          <img src="materiap_icon.svg" alt="Materias Primas" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Materias Primas</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'gastos_operacion'"
+        (click)="setActive('gastos_operacion'); navigateTo('gastos-operacion')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Gastos de Operación' : ''">
+          <img src="gastoso_icon.svg" alt="Gastos de Operación" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Gastos de Operación</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'estado_financiero'"
+        (click)="setActive('estado_financiero'); navigateTo('estados-financieros')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Estado Financiero' : ''">
+          <img src="estado_icon.svg" alt="Estado Financiero" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Estado Financiero</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'evaluacion'"
+        (click)="setActive('evaluacion'); navigateTo('evaluacion')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Evaluación' : ''">
+          <img src="evaluacion_icon.svg" alt="Evaluación" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Evaluación</span>
+        </a>
+      </li>
+
+      <li
+        class="nav-item"
+        [class.active]="activeItem === 'graficas'"
+        (click)="setActive('graficas'); navigateTo('graficas')"
+      >
+        <a class="nav-link" [title]="isCollapsed ? 'Gráficas' : ''">
+          <img src="graficas_icon.svg" alt="Graficas" class="nav-icon" />
+          <span class="nav-text" *ngIf="!isCollapsed">Gráficas</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Sidebar Footer -->
+  <!-- <div class="sidebar-footer" *ngIf="!isCollapsed">
+    <div class="help-card">
+      <div class="help-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <p class="help-text">¿Necesitas ayuda?</p>
+      <button class="help-btn">Soporte</button>
+    </div>
+  </div> -->
+</aside>

@@ -1,0 +1,201 @@
+<div class="content-wrapper">
+  <div class="content-container">
+    <!-- Header -->
+    <div class="content-header">
+      <h1>Plan de Negocio</h1>
+      <p class="subtitle">Configura y descarga tu plan de negocio completo</p>
+    </div>
+
+    <!-- Acciones principales -->
+    <div class="acciones-principales">
+      <button class="btn-primary" (click)="exportarPDF()" [disabled]="loadingPDF">
+        <span *ngIf="!loadingPDF">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Descargar PDF
+        </span>
+        <span *ngIf="loadingPDF" class="loading-content">
+          <span class="spinner"></span>
+          Generando PDF...
+        </span>
+      </button>
+
+      <div *ngIf="mensajeGuardado" class="mensaje-guardado">
+        {{ mensajeGuardado }}
+      </div>
+    </div>
+
+    <!-- Secciones con Drag and Drop -->
+    <div class="secciones-list" cdkDropList (cdkDropListDropped)="onDrop($event)">
+      <div *ngFor="let seccion of secciones; let i = index" 
+           class="seccion-card" 
+           cdkDrag
+           [cdkDragData]="seccion">
+        
+        <!-- Handle para arrastrar -->
+        <div class="drag-handle" cdkDragHandle>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="5" r="1"></circle>
+            <circle cx="9" cy="12" r="1"></circle>
+            <circle cx="9" cy="19" r="1"></circle>
+            <circle cx="15" cy="5" r="1"></circle>
+            <circle cx="15" cy="12" r="1"></circle>
+            <circle cx="15" cy="19" r="1"></circle>
+          </svg>
+        </div>
+
+        <!-- Placeholder mientras se arrastra -->
+        <div class="seccion-placeholder" *cdkDragPlaceholder></div>
+
+        <!-- Header de sección -->
+        <div class="seccion-header">
+          <!-- Título editable -->
+          <div class="titulo-container">
+            <h3 *ngIf="editandoTitulo !== i" 
+                (dblclick)="iniciarEdicionTitulo(i)"
+                class="titulo-texto"
+                [class.titulo-vacio]="!seccion.titulo">
+              {{ seccion.titulo || 'Haz doble clic para añadir título' }}
+            </h3>
+            <input *ngIf="editandoTitulo === i"
+                   type="text"
+                   [(ngModel)]="seccion.titulo"
+                   (blur)="finalizarEdicionTitulo(i)"
+                   (keydown)="onTituloKeydown($event, i)"
+                   class="titulo-input"
+                   placeholder="Escribe el título de la sección..."
+                   #tituloInput
+                   autofocus />
+            <button *ngIf="editandoTitulo !== i" 
+                    class="edit-titulo-btn" 
+                    (click)="iniciarEdicionTitulo(i)"
+                    title="Editar título">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+            </button>
+          </div>
+          
+          <button *ngIf="esSeccionPrecargada(seccion)" 
+                  class="info-button" 
+                  #infoBtn 
+                  (mouseenter)="mostrarNota(i, $event, infoBtn)" 
+                  (mouseleave)="ocultarNota()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Instrucción (solo visible en secciones precargadas, NO se exporta al PDF) -->
+        <div class="instruccion-box" *ngIf="esSeccionPrecargada(seccion)">
+          <strong>Instrucción (solo guía, no se incluye en PDF):</strong>
+          <p>{{ seccion.instruccion }}</p>
+        </div>
+
+        <!-- Subsecciones -->
+        <div class="subsecciones-container" *ngIf="seccion.subsecciones && seccion.subsecciones.length > 0">
+          <div class="subseccion" *ngFor="let subseccion of seccion.subsecciones; let j = index">
+            <label class="subseccion-label">{{ subseccion.pregunta }}</label>
+            <textarea
+              [(ngModel)]="subseccion.descripcion"
+              (ngModelChange)="onSeccionChange(i)"
+              placeholder="Escribe tu respuesta aquí..."
+              rows="3"
+              class="form-textarea"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Descripción general (solo si no es Análisis DAFO) -->
+        <div class="descripcion-general" *ngIf="seccion.titulo !== 'Análisis DAFO'">
+          <label class="form-label">Descripción General</label>
+          <textarea
+            [(ngModel)]="seccion.descripcion"
+            (ngModelChange)="onSeccionChange(i)"
+            placeholder="Añade información adicional sobre esta sección..."
+            rows="4"
+            class="form-textarea"
+          ></textarea>
+        </div>
+
+        <!-- Adjuntar imagen -->
+        <div class="imagen-section">
+          <label class="btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <input type="file" accept="image/*" (change)="onImagenSeleccionada($event, i)" style="display: none;" />
+            Adjuntar imagen
+          </label>
+
+          <div *ngIf="seccion.imagenUrl" class="imagen-preview">
+            <img [src]="seccion.imagenUrl" alt="Imagen adjunta" />
+          </div>
+        </div>
+
+        <!-- Botón eliminar -->
+        <div class="seccion-actions">
+          <button class="btn-danger" (click)="eliminarSeccion(i)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Eliminar sección
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agregar nueva sección -->
+    <div class="add-section-container">
+      <button class="btn-add" (click)="agregarSeccion()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Agregar Nueva Sección
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Nota flotante -->
+<div *ngIf="notaVisible" [ngStyle]="{ top: notaPosY + 'px', left: notaPosX + 'px' }" class="nota-flotante">
+  {{ notaContenido }}
+</div>
+
+<!-- Contenido oculto para generar PDF -->
+<div id="pdf-content" style="position: absolute; left: -9999px; top: 0">
+  <div class="secciones-container">
+    <div *ngFor="let seccion of secciones" class="seccion">
+      <h3>{{ seccion.titulo }}</h3>
+      <p><strong>Instrucción:</strong> {{ seccion.instruccion }}</p>
+
+      <div class="subsecciones-container">
+        <div class="subseccion" *ngFor="let subseccion of seccion.subsecciones">
+          <p>
+            <strong>{{ subseccion.pregunta }}</strong><br />
+            <span style="white-space: pre-line">{{ subseccion.descripcion }}</span>
+          </p>
+        </div>
+      </div>
+
+      <div *ngIf="seccion.imagenUrl" class="imagen-preview">
+        <img [src]="seccion.imagenUrl" alt="Imagen adjunta" />
+      </div>
+
+      <div *ngIf="seccion.titulo !== 'Análisis DAFO' && seccion.descripcion">
+        <p style="white-space: pre-line">{{ seccion.descripcion }}</p>
+      </div>
+    </div>
+  </div>
+</div>

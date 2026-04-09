@@ -1,0 +1,23 @@
+<!-- /home/santiago/Desktop/Uni/LiveplanApp/src/app/auxiliaries/header/header.html -->
+<header class="app-header">
+    <div class="header-left">
+        <!-- Logo: reemplaza assets/logo.png por la ruta real -->
+        <a routerLink="/" class="logo-link" aria-label="Ir al inicio">
+            <img src="marcapapel.svg" alt="Logo" class="logo-img">
+            <span>C  I  P  N</span>
+        </a>
+    </div>
+
+    <nav class="header-right" role="navigation" aria-label="Menú principal">
+        <a routerLink="/home" class="nav-btn" routerLinkActive="active">Home</a>
+        <a routerLink="/acerca-de" class="nav-btn" routerLinkActive="active">Acerca del Proyecto</a>
+
+        <!-- Botón de inicio/cierre de sesión.
+                 - isLoggedIn debe ser una propiedad booleana en el componente TS padre/this component.
+                 - onAuthAction() debe manejar iniciar/cerrar sesión según isLoggedIn. -->
+        <button class="nav-btn auth-btn" (click)="onAuthAction()" aria-pressed="{{isLoggedIn}}">
+            <span *ngIf="isLoggedIn; else loginLabel">Cerrar sesión</span>
+            <ng-template #loginLabel>Iniciar sesión</ng-template>
+        </button>
+    </nav>
+</header>

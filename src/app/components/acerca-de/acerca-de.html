@@ -1,0 +1,73 @@
+<app-header></app-header>
+
+<body>
+    <div class="slider">
+        <section class="section" id="section1">
+            <div class="text">
+                <h2>Herramienta para crear un</h2>
+                <h1>PLAN DE NEGOCIO</h1>
+                <h3>¡Bienvenido!</h3>
+            </div>
+
+            <!-- <button class="empezar-button" (click)="redirectToHome()">
+                Empezar
+            </button> -->
+
+        </section>
+        <section class="section" id="section2">
+            <div class="contenedor-columnas">
+                <div class="columna columna-1">
+                    <h3 class = "title-text title-text-sec2">Sobre el proyecto</h3>
+                    <p class = "desc-text desc-text-sec2">
+                        La herramienta definitiva para crear, organizar y ejecutar tus planes de negocio.
+                        Te ayudamos a gestionar cada detalle de tu proyecto para maximizar su éxito.
+                    </p>
+                </div>
+                <div class="columna columna-2">
+                    <img src="personas_acerca_de.svg" alt="Descripción de la imagen"
+                        class="imagen-columna">
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="section3">
+            <h3 class = "title-text title-text-sec3">Herramientas</h3>
+
+            <div class="custom-slider-container">
+                <button class="custom-prev-btn" id="prev-btn" (click)="prevSlide()">
+                    <img src="flecha_izquierda.svg" class="icono-flecha" alt="Icono para regresar">
+                </button>
+
+                <div class="custom-slider" id="slider">
+                    <div class="custom-slide" *ngFor="let slide of slides">
+                        <h4 class="slide-title">{{ slide.title }}</h4>
+                        <!-- <p class="slide-description">{{ slide.description }}</p> -->
+                        <img [src]="slide.image" alt="{{ slide.title }}" class="slide-image" />
+                    </div>
+                </div>
+
+                <button class="custom-next-btn" id="next-btn" (click)="nextSlide()">
+                    <img src="flecha_derecha.svg" class="icono-flecha" alt="Icono para regresar">
+
+                </button>
+            </div>
+        </section>
+
+        <section class="section" id="section4">
+            <div class="contenedor-columnas">
+                <div class="columna columna-2 columna-2-sec4">
+                    <img src="reunion_acerca_de.svg" alt="Descripción de la imagen"
+                        class="imagen-columna img-col-sec4">
+                </div>
+                <div class="columna columna-1 col-1-sec4">
+                    <h3 class = "title-text title-text-sec4">¡Esperamos que sea util para ti!</h3>
+                    <p class = "desc-text desc-text-sec4">
+                        Este gestor está diseñado para hacer que tu proceso de planificación y ejecución sea más eficiente y preciso. 
+                        ¡Estamos seguros de que será una herramienta invaluable para ti!
+                    </p>
+                </div>
+                
+            </div>
+        </section>
+    </div>
+</body>

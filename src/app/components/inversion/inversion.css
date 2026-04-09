@@ -1,0 +1,708 @@
+/* === Layout Principal === */
+.planificacion-layout,
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+/* === Main Content === */
+.main-content {
+  flex: 1;
+  margin-left: 280px; /* Ancho del sidebar expandido */
+  padding-top: 92px; /* Altura del header (72px) + margen (20px) */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0;
+}
+
+/* Ajuste cuando el sidebar está colapsado */
+.planificacion-layout.sidebar-collapsed .main-content,
+.layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+}
+
+/* === Content Container === */
+.content-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.planificacion-layout.sidebar-collapsed .content-container,
+.layout.sidebar-collapsed .content-container {
+  max-width: 1600px;
+}
+
+.content-container h1 {
+  font-size: 2.5rem;
+  color: #004271;
+  font-weight: 600;
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #d8dce6;
+}
+
+/* === Content Section === */
+.content-section {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 66, 113, 0.08);
+  min-height: 500px;
+}
+
+.content-section p {
+  font-size: 1.1rem;
+  color: #495057;
+  line-height: 1.6;
+}
+
+/* === Loading State === */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  color: #004271;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.loading-state p {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-state p::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border: 3px solid #e9ecef;
+  border-top-color: #004271;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* === Responsive === */
+
+/* === Tabla de Inversiones === */
+.container-padre {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* === Table Header === */
+.table-header-row {
+  background: linear-gradient(135deg, #004271 0%, #0056a0 100%);
+  color: white;
+}
+
+.table-header-row th {
+  padding: 18px 20px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.table-header-row .col-1 {
+  width: 50%;
+}
+
+.table-header-row .col-2 {
+  width: 35%;
+  text-align: right;
+}
+
+.table-header-row .col-3 {
+  width: 15%;
+  text-align: center;
+}
+
+/* === Section Headers (Tipos de Inversión) === */
+.section-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-top: 2px solid #dee2e6;
+}
+
+.section-header td {
+  padding: 16px 20px;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-container strong {
+  font-size: 1.15rem;
+  color: #004271;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* === Botón Header (Agregar Sección) === */
+.agg-btn-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: transparent;
+  color: #004271;
+  border: 2px dashed #004271;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.agg-btn-header:hover {
+  background: rgba(0, 66, 113, 0.05);
+  border-color: #003157;
+  color: #003157;
+  transform: translateY(-1px);
+}
+
+.agg-btn-header:active {
+  transform: translateY(0);
+  background: rgba(0, 66, 113, 0.1);
+}
+
+.agg-btn-header svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5;
+}
+
+.icono-agg-header {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+/* === Header Sección (Inversión General) === */
+.header-seccion {
+  background: #ffffff;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.header-seccion td {
+  padding: 14px 20px;
+  vertical-align: middle;
+}
+
+.header-seccion input {
+  font-weight: 600;
+  color: #004271;
+  font-size: 1rem;
+}
+
+/* === Header Elemento (Detalle) === */
+.header-elemento {
+  background: #fafbfc;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.header-elemento td {
+  padding: 12px 20px;
+  vertical-align: middle;
+}
+
+.header-elemento:hover {
+  background: #f1f3f5;
+  transition: background 0.2s ease;
+}
+
+/* === Form Controls === */
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #495057;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #004271;
+  box-shadow: 0 0 0 3px rgba(0, 66, 113, 0.1);
+  background: #ffffff;
+}
+
+.form-control:hover:not(:focus):not([readonly]) {
+  border-color: #0056a0;
+}
+
+.form-control[readonly] {
+  background: #f8f9fa;
+  color: #004271;
+  font-weight: 600;
+  cursor: not-allowed;
+  border-color: #dee2e6;
+}
+
+.form-control::placeholder {
+  color: #adb5bd;
+  font-style: italic;
+}
+
+input[type="number"].form-control {
+  text-align: right;
+}
+
+/* === Celda Delete === */
+.celda-delete {
+  text-align: center;
+  padding: 8px !important;
+}
+
+.delete-btn {
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background: rgba(220, 53, 69, 0.1);
+  transform: translateY(-1px);
+}
+
+.delete-btn:active {
+  transform: translateY(0);
+  background: rgba(220, 53, 69, 0.15);
+}
+
+.delete-btn svg {
+  width: 18px;
+  height: 18px;
+  color: #dc3545;
+  stroke-width: 2;
+}
+
+.icono-delete {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+/* === Celda Button (Agregar/Guardar) === */
+.celda-btn {
+  text-align: center;
+  padding: 16px 20px !important;
+  background: #ffffff;
+  border-bottom: 1px solid #e9ecef;
+}
+
+/* === Botón Agregar Elemento === */
+.agg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: transparent;
+  color: #004271;
+  border: 2px dashed #004271;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.agg-btn:hover {
+  background: rgba(0, 66, 113, 0.05);
+  border-color: #003157;
+  color: #003157;
+  transform: translateY(-1px);
+}
+
+.agg-btn:active {
+  transform: translateY(0);
+  background: rgba(0, 66, 113, 0.1);
+}
+
+.agg-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
+}
+
+.icono-agg {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
+
+.btn-text {
+  font-size: 0.9rem;
+}
+
+/* === Botón Primary (Guardar) === */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+}
+
+.btn-primary:disabled {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}
+
+/* === Botón Guardar al Final === */
+.fila-guardar-final {
+  background: white;
+  border-top: 2px solid #e9ecef;
+}
+
+.fila-guardar-final td {
+  padding: 24px 20px !important;
+  text-align: center;
+}
+
+.btn-guardar-final {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #0066cc 0%, #004d99 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-guardar-final:hover {
+  background: linear-gradient(135deg, #004d99 0%, #003d7a 100%);
+  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-guardar-final:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.btn-guardar-final svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* === Nueva Fila (Temporal sin ID) === */
+.nueva-fila {
+  background: linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%) !important;
+  border-left: 3px solid #ffc107 !important;
+  animation: pulse-highlight 1.5s ease-in-out;
+}
+
+.nueva-fila:hover {
+  background: linear-gradient(135deg, #fff5d6 0%, #fff9e6 100%) !important;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+  }
+  50% {
+    box-shadow: 0 0 10px 2px rgba(255, 193, 7, 0.3);
+  }
+}
+
+/* === Total del Tipo === */
+.total-tipo {
+  background: linear-gradient(135deg, #004271 0%, #0056a0 100%);
+  color: white;
+  font-size: 1.1rem;
+  border-top: 3px solid #003357;
+}
+
+.total-tipo td {
+  padding: 16px 20px;
+  font-weight: 700;
+}
+
+.total-tipo td:nth-child(2) {
+  text-align: right;
+  font-size: 1.2rem;
+  letter-spacing: 0.5px;
+}
+
+/* === Responsive === */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 80px;
+  }
+
+  .content-container {
+    padding: 24px;
+  }
+
+  .content-container h1 {
+    font-size: 2rem;
+  }
+
+  .header-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .agg-btn-header {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .table-header-row .col-1 {
+    width: 45%;
+  }
+
+  .table-header-row .col-2 {
+    width: 35%;
+  }
+
+  .table-header-row .col-3 {
+    width: 20%;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+    padding-top: 92px;
+  }
+
+  .content-container {
+    padding: 20px;
+  }
+
+  .content-container h1 {
+    font-size: 1.75rem;
+  }
+
+  .content-section {
+    padding: 20px;
+  }
+
+  .container-padre {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 650px;
+  }
+
+  .table-header-row th {
+    padding: 14px 12px;
+    font-size: 0.9rem;
+  }
+
+  .section-header td,
+  .header-seccion td,
+  .header-elemento td,
+  .celda-btn {
+    padding: 10px 12px !important;
+  }
+
+  .form-control {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+
+  .agg-btn-header,
+  .agg-btn,
+  .btn-primary {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .header-container strong {
+    font-size: 1rem;
+  }
+
+  .delete-btn {
+    padding: 6px 8px;
+  }
+
+  .icono-delete,
+  .icono-agg,
+  .icono-agg-header {
+    width: 16px;
+    height: 16px;
+  }
+
+  .total-tipo {
+    font-size: 1rem;
+  }
+
+  .total-tipo td:nth-child(2) {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-container h1 {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .content-section {
+    padding: 16px;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+
+  .agg-btn-header span,
+  .agg-btn .btn-text {
+    display: none;
+  }
+
+  .agg-btn-header,
+  .agg-btn {
+    padding: 8px;
+    min-width: 40px;
+    justify-content: center;
+  }
+
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .loading-state {
+    min-height: 300px;
+    font-size: 1rem;
+  }
+
+  .btn-guardar-final {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+
+  .btn-guardar-final svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* === Animaciones === */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header-seccion,
+.header-elemento {
+  animation: fadeIn 0.3s ease;
+}
+
+/* === Estados de Hover === */
+.table tbody tr:not(.section-header):not(.total-tipo):not(.celda-btn):hover {
+  background: #f8f9fa;
+  transition: background 0.2s ease;
+}
+
+/* === Focus Visible para Accesibilidad === */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #004271;
+  outline-offset: 2px;
+}
+
+/* === Print Styles === */
+@media print {
+  .agg-btn-header,
+  .agg-btn,
+  .delete-btn,
+  .btn-primary {
+    display: none;
+  }
+
+  .table {
+    box-shadow: none;
+    border: 1px solid #dee2e6;
+  }
+
+  .content-section {
+    box-shadow: none;
+  }
+}

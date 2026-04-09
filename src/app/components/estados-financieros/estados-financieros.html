@@ -1,0 +1,281 @@
+<app-header></app-header>
+
+<div class="planificacion-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Sidebar -->
+  <app-sidebar [planId]="planId" (onItemChange)="handleSidebarChange($event)" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+
+  <!-- Componente flotante de Variables de Sensibilidad -->
+  <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
+
+  <!-- Componente flotante de Políticas de Compra/Venta -->
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="content-container">
+      <div class="content-header">
+        <h1>Estados Financieros</h1>
+        <p class="subtitle">Análisis completo de estados financieros proyectados</p>
+      </div>
+
+      <!-- Navegación de Pestañas -->
+      <div class="tabs-container">
+        <div class="tabs-navigation">
+          <button 
+            *ngFor="let tab of tabs"
+            class="tab-button"
+            [class.active]="isTabActive(tab.id)"
+            (click)="selectTab(tab.id)"
+            [attr.aria-selected]="isTabActive(tab.id)"
+            role="tab">
+            <img *ngIf="tab.icon" [src]="tab.icon" [alt]="tab.label" class="tab-icon" />
+            <span class="tab-label">{{ tab.label }}</span>
+          </button>
+        </div>
+
+        <!-- Contenido de las Pestañas -->
+        <div class="tabs-content">
+          
+          <!-- Estado de Resultados -->
+          <div 
+            *ngIf="isTabActive('estado-resultados')" 
+            class="tab-panel"
+            role="tabpanel">
+            <div class="panel-header">
+              <h2>Estado de Resultados</h2>
+              <p class="panel-description">Estado de pérdidas y ganancias proyectado a 5 años</p>
+            </div>
+            
+            <!-- Loading State -->
+            <div *ngIf="cargando" class="loading-container">
+              <div class="spinner"></div>
+              <p>Cargando estado de resultados...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!cargando && conceptosEstado.length === 0" class="empty-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-7-7z"/>
+                <polyline points="9 2 9 9 16 9"/>
+              </svg>
+              <p>No hay datos de estado de resultados registrados para este plan de negocio.</p>
+            </div>
+
+            <!-- Tabla de Estado de Resultados -->
+            <div *ngIf="!cargando && conceptosEstado.length > 0" class="panel-content">
+              <div class="tabla-wrapper">
+                <table class="tabla-estado-resultados">
+                  <thead>
+                    <!-- Primera fila: Años -->
+                    <tr>
+                      <th rowspan="2" class="sticky-col col-concepto" scope="col">Estado de Resultado</th>
+                      <th colspan="13" class="header-anio" scope="colgroup">Año 1</th>
+                      <th colspan="13" class="header-anio" scope="colgroup">Año 2</th>
+                      <th colspan="13" class="header-anio" scope="colgroup">Año 3</th>
+                      <th rowspan="2" class="header-total-anio" scope="col">Total<br>Año 4</th>
+                      <th rowspan="2" class="header-total-anio" scope="col">Total<br>Año 5</th>
+                    </tr>
+                    <!-- Segunda fila: Meses -->
+                    <tr>
+                      <!-- Año 1 -->
+                      <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                      <th class="header-total" scope="col">Total</th>
+                      
+                      <!-- Año 2 -->
+                      <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                      <th class="header-total" scope="col">Total</th>
+                      
+                      <!-- Año 3 -->
+                      <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                      <th class="header-total" scope="col">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let concepto of conceptosEstado; let i = index" 
+                        [class.subtotal-row]="i === 2 || i === 6 || i === 8 || i === 10"
+                        [class.total-row]="i === 12">
+                      <!-- Columna Concepto (sticky) -->
+                      <td class="sticky-col col-concepto">{{ concepto.concepto }}</td>
+                      
+                      <!-- Año 1: 12 meses + total -->
+                      <td class="col-valor" *ngFor="let valor of concepto.anio1.meses">
+                        {{ valor | number:'1.2-2' }}
+                      </td>
+                      <td class="col-total-mensual">{{ concepto.anio1.totalAnio | number:'1.2-2' }}</td>
+                      
+                      <!-- Año 2: 12 meses + total -->
+                      <td class="col-valor" *ngFor="let valor of concepto.anio2.meses">
+                        {{ valor | number:'1.2-2' }}
+                      </td>
+                      <td class="col-total-mensual">{{ concepto.anio2.totalAnio | number:'1.2-2' }}</td>
+                      
+                      <!-- Año 3: 12 meses + total -->
+                      <td class="col-valor" *ngFor="let valor of concepto.anio3.meses">
+                        {{ valor | number:'1.2-2' }}
+                      </td>
+                      <td class="col-total-mensual">{{ concepto.anio3.totalAnio | number:'1.2-2' }}</td>
+                      
+                      <!-- Año 4: Solo total -->
+                      <td class="col-total-anual">{{ concepto.totalAnio4 | number:'1.2-2' }}</td>
+                      
+                      <!-- Año 5: Solo total -->
+                      <td class="col-total-anual">{{ concepto.totalAnio5 | number:'1.2-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Balance General -->
+          <div 
+            *ngIf="isTabActive('balance-general')" 
+            class="tab-panel"
+            role="tabpanel">
+            <div class="panel-header">
+              <h2>Balance General</h2>
+              <p class="panel-description">Situación patrimonial proyectada a 5 años</p>
+            </div>
+            <div class="panel-content">
+              <!-- Tabla de Balance General (mismo formato que Estado de Resultados) -->
+              <div *ngIf="cargando" class="loading-container">
+                <div class="spinner"></div>
+                <p>Cargando balance general...</p>
+              </div>
+
+              <div *ngIf="!cargando && (!conceptosBalance || conceptosBalance.length === 0)" class="empty-state">
+                <p>No hay datos de balance general registrados para este plan de negocio.</p>
+              </div>
+
+              <div *ngIf="!cargando && conceptosBalance && conceptosBalance.length > 0" class="panel-content">
+                <div class="tabla-wrapper">
+                  <table class="tabla-estado-resultados">
+                    <thead>
+                      <tr>
+                        <th rowspan="2" class="sticky-col col-concepto" scope="col">Balance General</th>
+                        <th colspan="13" class="header-anio" scope="colgroup">Año 1</th>
+                        <th colspan="13" class="header-anio" scope="colgroup">Año 2</th>
+                        <th colspan="13" class="header-anio" scope="colgroup">Año 3</th>
+                        <th rowspan="2" class="header-total-anio" scope="col">Total<br>Año 4</th>
+                        <th rowspan="2" class="header-total-anio" scope="col">Total<br>Año 5</th>
+                      </tr>
+                      <tr>
+                        <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                        <th class="header-total" scope="col">Total</th>
+
+                        <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                        <th class="header-total" scope="col">Total</th>
+
+                        <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                        <th class="header-total" scope="col">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let concepto of conceptosBalance; let i = index">
+                        <td class="sticky-col col-concepto">{{ concepto.concepto }}</td>
+
+                        <!-- Año 1 -->
+                        <td class="col-valor" *ngFor="let v of concepto.anio1.meses">{{ v | number:'1.2-2' }}</td>
+                        <td class="col-total-mensual">{{ concepto.anio1.totalAnio | number:'1.2-2' }}</td>
+
+                        <!-- Año 2 -->
+                        <td class="col-valor" *ngFor="let v of concepto.anio2.meses">{{ v | number:'1.2-2' }}</td>
+                        <td class="col-total-mensual">{{ concepto.anio2.totalAnio | number:'1.2-2' }}</td>
+
+                        <!-- Año 3 -->
+                        <td class="col-valor" *ngFor="let v of concepto.anio3.meses">{{ v | number:'1.2-2' }}</td>
+                        <td class="col-total-mensual">{{ concepto.anio3.totalAnio | number:'1.2-2' }}</td>
+
+                        <!-- Año 4 y 5 totals -->
+                        <td class="col-total-anual">{{ concepto.totalAnio4 | number:'1.2-2' }}</td>
+                        <td class="col-total-anual">{{ concepto.totalAnio5 | number:'1.2-2' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Flujo de Efectivo -->
+          <div 
+            *ngIf="isTabActive('flujo-efectivo')" 
+            class="tab-panel"
+            role="tabpanel">
+            <div class="panel-header">
+              <h2>Flujo de Efectivo</h2>
+              <p class="panel-description">Estado de flujos de efectivo proyectado a 5 años</p>
+            </div>
+            <div class="panel-content">
+              <!-- Tabla de Flujo de Efectivo (mismo formato que Estado de Resultados) -->
+              <div *ngIf="cargando" class="loading-container">
+                <div class="spinner"></div>
+                <p>Cargando flujo de efectivo...</p>
+              </div>
+
+              <div *ngIf="!cargando && (!conceptosFlujo || conceptosFlujo.length === 0)" class="empty-state">
+                <p>No hay datos de flujo de efectivo registrados para este plan de negocio.</p>
+              </div>
+
+              <div *ngIf="!cargando && conceptosFlujo && conceptosFlujo.length > 0" class="panel-content">
+                <div class="tabla-wrapper">
+                  <table class="tabla-estado-resultados">
+                    <thead>
+                      <tr>
+                        <th rowspan="2" class="sticky-col col-concepto" scope="col">Flujo de Efectivo</th>
+                        <th [attr.colspan]="mesesFlujoAnio1.length + 1" class="header-anio" scope="colgroup">Año 1</th>
+                        <th colspan="13" class="header-anio" scope="colgroup">Año 2</th>
+                        <th colspan="13" class="header-anio" scope="colgroup">Año 3</th>
+                        <th rowspan="2" class="header-total-anio" scope="col">Total<br>Año 4</th>
+                        <th rowspan="2" class="header-total-anio" scope="col">Total<br>Año 5</th>
+                      </tr>
+                      <tr>
+                        <!-- Año 1: incluye mes 0..12 -->
+                        <th class="header-mes" scope="col" *ngFor="let mes of mesesFlujoAnio1">{{ mes }}</th>
+                        <th class="header-total" scope="col">Total</th>
+
+                        <!-- Año 2 -->
+                        <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                        <th class="header-total" scope="col">Total</th>
+
+                        <!-- Año 3 -->
+                        <th class="header-mes" scope="col" *ngFor="let mes of meses">{{ mes }}</th>
+                        <th class="header-total" scope="col">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let concepto of conceptosFlujo; let i = index"
+                          [class.ingresos-row]="concepto.tipo === 'ingreso'"
+                          [class.egresos-row]="concepto.tipo === 'egreso'"
+                          [class.flujo-row]="concepto.tipo === 'flujo'"
+                          [class.efectivo-row]="concepto.tipo === 'efectivo'">
+                        <td class="sticky-col col-concepto">{{ concepto.concepto }}</td>
+
+                        <!-- Año 1 (incluye mes 0..12) -->
+                        <td class="col-valor" *ngFor="let v of concepto.anio1.meses">{{ v | number:'1.2-2' }}</td>
+                        <td class="col-total-mensual">{{ concepto.anio1.totalAnio | number:'1.2-2' }}</td>
+
+                        <!-- Año 2 -->
+                        <td class="col-valor" *ngFor="let v of concepto.anio2.meses">{{ v | number:'1.2-2' }}</td>
+                        <td class="col-total-mensual">{{ concepto.anio2.totalAnio | number:'1.2-2' }}</td>
+
+                        <!-- Año 3 -->
+                        <td class="col-valor" *ngFor="let v of concepto.anio3.meses">{{ v | number:'1.2-2' }}</td>
+                        <td class="col-total-mensual">{{ concepto.anio3.totalAnio | number:'1.2-2' }}</td>
+
+                        <!-- Año 4 y 5 totals -->
+                        <td class="col-total-anual">{{ concepto.totalAnio4 | number:'1.2-2' }}</td>
+                        <td class="col-total-anual">{{ concepto.totalAnio5 | number:'1.2-2' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

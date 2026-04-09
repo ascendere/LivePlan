@@ -1,0 +1,181 @@
+<app-header></app-header>
+
+<div class="planificacion-layout" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <!-- Sidebar -->
+  <app-sidebar [planId]="planId" (onItemChange)="handleSidebarChange($event)" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
+
+  <!-- Componente flotante de Variables de Sensibilidad -->
+  <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
+
+  <!-- Componente flotante de Políticas de Compra/Venta -->
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="content-container">
+      <h1>Evaluacion</h1>
+      
+      <div class="content-section">
+        <div class="panel-header">
+          <h2>Conceptos de Evaluación</h2>
+          <p class="panel-description">Resultados de la evaluación financiera (flujos nominales, valor actual, rescate).</p>
+        </div>
+
+        <div class="panel-content">
+          <div *ngIf="cargando" class="loading-container">
+            <div class="spinner"></div>
+            <p>Cargando conceptos de evaluación...</p>
+          </div>
+
+          <!-- Layout en dos columnas: tabla pequeña a la izquierda, espacio para otra tabla a la derecha -->
+          <div *ngIf="!cargando" class="evaluacion-grid">
+            <div class="evaluacion-left">
+              <div *ngIf="evaluationRows && evaluationRows.length > 0" class="tabla-wrapper">
+                <table class="tabla-evaluacion tabla-evaluacion-small">
+                  <thead>
+                    <tr>
+                      <th class="sticky-col">Concepto</th>
+                      <th>Año 0</th>
+                      <th>Año 1</th>
+                      <th>Año 2</th>
+                      <th>Año 3</th>
+                      <th>Año 4</th>
+                      <th>Año 5</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of evaluationRows">
+                      <td class="sticky-col col-concepto">{{ row.concepto }}</td>
+                      <td class="col-valor">{{ formatCurrency(row.valores[0]) }}</td>
+                      <td class="col-valor">{{ formatCurrency(row.valores[1]) }}</td>
+                      <td class="col-valor">{{ formatCurrency(row.valores[2]) }}</td>
+                      <td class="col-valor">{{ formatCurrency(row.valores[3]) }}</td>
+                      <td class="col-total-mensual">{{ formatCurrency(row.valores[4]) }}</td>
+                      <td class="col-total-anual">{{ formatCurrency(row.valores[5]) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div *ngIf="evaluationRows.length === 0" class="empty-state">
+                <p>No hay datos de evaluación para este plan.</p>
+              </div>
+            </div>
+
+            <div class="evaluacion-right">
+              <div *ngIf="evaluacionProyecto" class="tabla-wrapper evaluacion-right-wrapper">
+                <table class="tabla-evaluacion tabla-evaluacion-right tabla-evaluacion-right-compact">
+                  <tbody>
+                    <tr>
+                      <td class="col-concepto">VAN</td>
+                      <td class="col-total-anual">{{ formatCurrency(evaluacionProyecto.van) }}</td>
+                    </tr>
+                    <tr>
+                      <td class="col-concepto">TIR</td>
+                      <td class="col-total-mensual">{{ formatPercent(evaluacionProyecto.tir) }}</td>
+                    </tr>
+                    <tr>
+                      <td class="col-concepto">TREMA</td>
+                      <td class="col-valor">{{ formatPercent(evaluacionProyecto.trema) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div *ngIf="!evaluacionProyecto" class="placeholder-content">
+                <p>Datos de evaluación del proyecto aún no disponibles</p>
+              </div>
+            </div>
+          </div>
+          <!-- Analisis de sensibilidad: matriz volumen x costo -->
+          <div class="analisis-sensibilidad-section">
+            <div class="panel-header analisis-header">
+              <div class="header-content">
+                <h2>Análisis de Sensibilidad</h2>
+                <p class="panel-description">Matriz resultado por variaciones de Volumen (filas) y Costo (columnas).</p>
+              </div>
+              <div class="header-actions">
+                <!-- Indicador de estado -->
+                <div class="status-indicator" [class.updated]="statusAnalisis === true" [class.pending]="statusAnalisis === false">
+                  <div class="status-dot" [class.loading]="cargandoStatus"></div>
+                  <span class="status-text">
+                    {{ cargandoStatus ? 'Cargando...' : (statusAnalisis === true ? 'Análisis de sensibilidad Actualizado' : 'Análisis de sensibilidad pendiente de actualizar') }}
+                  </span>
+                </div>
+                
+                <button class="btn-recalcular" (click)="ejecutarRecalcular()" [disabled]="cargandoRecalcular || cargandoStatus" title="Ejecutar recalcular">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"></path>
+                  </svg>
+                  Recalcular
+                </button>
+              </div>
+            </div>
+            <!-- VAN corner (moved here so it's not clipped by table stacking) -->
+            <div class="matrix-corner" *ngIf="evaluacionProyecto">VAN: {{ formatCurrency(evaluacionProyecto.van) }}</div>
+
+            <div *ngIf="analisisMatrix && analisisMatrix.length > 0" class="tabla-wrapper tabla-analisis-wrapper">
+              <div class="tabla-analisis-container">
+                <table class="tabla-evaluacion tabla-analisis">
+                  <thead>
+                    <tr>
+                      <th class="sticky-col">
+                        <div class="van-badge" *ngIf="evaluacionProyecto">VAN: {{ formatCurrency(evaluacionProyecto.van) }}</div>
+                        Volumen
+                      </th>
+                      <th *ngFor="let v of analisisVolumenes">{{ v }}%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of analisisMatrix">
+                      <td class="sticky-col col-concepto">{{ row[0] }}%</td>
+                      <td *ngFor="let cell of row.slice(1)" class="col-valor">{{ cell === '-' ? '-' : formatCurrency(cell) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div *ngIf="!analisisMatrix || analisisMatrix.length === 0" class="empty-state">
+              <p>No hay análisis de sensibilidad disponible para este plan.</p>
+            </div>
+          </div>
+        </div>
+  </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal de confirmación para recalcular -->
+<div class="modal-overlay" *ngIf="mostrarModalConfirmacion" (click)="cancelarRecalcular()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#1976d2" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h2>¿Ejecutar recálculo?</h2>
+    <p>Esto recalculará el análisis de sensibilidad con los parámetros actuales.</p>
+    <p class="modal-note">Este proceso puede tomar algunos segundos.</p>
+    <div class="modal-actions">
+      <button class="btn-cancelar" (click)="cancelarRecalcular()">Cancelar</button>
+      <button class="btn-confirmar" (click)="confirmarRecalcular()">Recalcular</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de carga para recalcular -->
+<div class="loading-overlay" *ngIf="cargandoRecalcular">
+  <div class="loading-content">
+    <div class="loading-spinner">
+      <div class="spinner-circle"></div>
+    </div>
+    <h2>Calculando análisis de sensibilidad</h2>
+    <p>Por favor espera mientras actualizamos tu análisis de sensibilidad...</p>
+    <p class="loading-note">Esto puede tomar algunos segundos</p>
+  </div>
+</div>
