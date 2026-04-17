@@ -24,6 +24,19 @@
 
         <!-- Tabla de costos unitarios por producto -->
         <div *ngIf="!cargando && gruposProductos.length > 0" class="costos-container">
+          
+          <div class="form-actions" style="margin-bottom: 2rem; display: flex; justify-content: flex-end;">
+            <button 
+              class="btn-primary" 
+              (click)="guardarCambios()" 
+              [disabled]="cambiosPendientes.size === 0 || guardando">
+              <span *ngIf="!guardando">
+                Guardar Costos Mensuales
+                <span *ngIf="cambiosPendientes.size > 0">({{ cambiosPendientes.size }} {{ cambiosPendientes.size === 1 ? 'modificación' : 'modificaciones' }})</span>
+              </span>
+              <span *ngIf="guardando">Guardando...</span>
+            </button>
+          </div>
 
           <!-- Iterar por cada producto -->
           <div *ngFor="let grupo of gruposProductos; let isLast = last" class="producto-container">
@@ -38,10 +51,9 @@
                     <th scope="colgroup" class="anio-header" colspan="13">Año 1</th>
                     <th scope="colgroup" class="anio-header" colspan="13">Año 2</th>
                     <th scope="colgroup" class="anio-header" colspan="13">Año 3</th>
-                    <th scope="col" rowspan="2" class="total-anio-header">Año 4</th>
-                    <th scope="col" rowspan="2" class="total-anio-header">Año 5</th>
+                    <th scope="col" class="total-anio-header" rowspan="2">Año 4</th>
+                    <th scope="col" class="total-anio-header" rowspan="2">Año 5</th>
                   </tr>
-                  <!-- Fila 2: Meses y Totales -->
                   <tr>
                     <!-- Año 1 -->
                     <th scope="col" class="mes-header" *ngFor="let mes of meses">{{ mes }}</th>
@@ -52,66 +64,56 @@
                     <!-- Año 3 -->
                     <th scope="col" class="mes-header" *ngFor="let mes of meses">{{ mes }}</th>
                     <th scope="col" class="total-header">Total Año 3</th>
-                    <!-- Años 4 y 5 sin meses, solo totales -->
                   </tr>
                 </thead>
                 <tbody>
-                  <!-- Fila por cada categoría de costo -->
-                  <tr *ngFor="let costoMensual of grupo.costosMensuales">
-                    <td class="categoria-cell">{{ costoMensual.categoriaNombre }}</td>
+                  <tr *ngFor="let costo of grupo.costosMensuales">
+                    <td class="categoria-cell">{{ costo.categoriaNombre }}</td>
                     
                     <!-- Año 1: 12 meses + total -->
-                    <td class="valor-cell" *ngFor="let valorMes of costoMensual.meses">
-                      {{ valorMes | number:'1.2-2' }}
+                    <td class="valor-cell" *ngFor="let celda of costo.anio1">
+                      <input type="number" class="input-edit value-input" [(ngModel)]="celda.valor" (ngModelChange)="onCellValueChange(celda, grupo, costo)" />
                     </td>
-                    <td class="total-cell">{{ costoMensual.totalAnio1 | number:'1.2-2' }}</td>
+                    <td class="total-cell">{{ costo.totalAnio1 | number:'1.2-2' }}</td>
                     
                     <!-- Año 2: 12 meses + total -->
-                    <td class="valor-cell" *ngFor="let valorMes of costoMensual.meses">
-                      {{ valorMes | number:'1.2-2' }}
+                    <td class="valor-cell" *ngFor="let celda of costo.anio2">
+                      <input type="number" class="input-edit value-input" [(ngModel)]="celda.valor" (ngModelChange)="onCellValueChange(celda, grupo, costo)" />
                     </td>
-                    <td class="total-cell">{{ costoMensual.totalAnio2 | number:'1.2-2' }}</td>
+                    <td class="total-cell">{{ costo.totalAnio2 | number:'1.2-2' }}</td>
                     
                     <!-- Año 3: 12 meses + total -->
-                    <td class="valor-cell" *ngFor="let valorMes of costoMensual.meses">
-                      {{ valorMes | number:'1.2-2' }}
+                    <td class="valor-cell" *ngFor="let celda of costo.anio3">
+                      <input type="number" class="input-edit value-input" [(ngModel)]="celda.valor" (ngModelChange)="onCellValueChange(celda, grupo, costo)" />
                     </td>
-                    <td class="total-cell">{{ costoMensual.totalAnio3 | number:'1.2-2' }}</td>
+                    <td class="total-cell">{{ costo.totalAnio3 | number:'1.2-2' }}</td>
                     
-                    <!-- Año 4: solo total -->
-                    <td class="total-anio-cell">{{ costoMensual.totalAnio4 | number:'1.2-2' }}</td>
+                    <!-- Año 4: solo total editable (aplica a todos los meses tras bambalinas) -->
+                    <td class="valor-cell">
+                        <input type="number" class="input-edit value-input" [ngModel]="costo.anio4[0].valor" (ngModelChange)="onAnioUnicoValueChange(costo.anio4, $event, grupo, costo)" />
+                    </td>
                     
-                    <!-- Año 5: solo total -->
-                    <td class="total-anio-cell">{{ costoMensual.totalAnio5 | number:'1.2-2' }}</td>
+                    <!-- Año 5: solo total editable -->
+                    <td class="valor-cell">
+                        <input type="number" class="input-edit value-input" [ngModel]="costo.anio5[0].valor" (ngModelChange)="onAnioUnicoValueChange(costo.anio5, $event, grupo, costo)" />
+                    </td>
                   </tr>
 
                   <!-- Fila de totales por columna (suma del producto) -->
                   <tr class="fila-totales">
                     <td class="categoria-cell total-label">Total</td>
                     
-                    <!-- Año 1: 12 totales + total general -->
-                    <td class="total-mes-cell" *ngFor="let totalMes of grupo.totalesPorMes">
-                      {{ totalMes | number:'1.2-2' }}
-                    </td>
-                    <td class="total-general-cell">{{ grupo.totalAnio1 | number:'1.2-2' }}</td>
+                    <td class="total-mes-cell" *ngFor="let t of grupo.totalesAnio1">{{ t | number:'1.2-2' }}</td>
+                    <td class="total-general-cell">{{ grupo.totalGralAnio1 | number:'1.2-2' }}</td>
                     
-                    <!-- Año 2: 12 totales + total general -->
-                    <td class="total-mes-cell" *ngFor="let totalMes of grupo.totalesPorMes">
-                      {{ totalMes | number:'1.2-2' }}
-                    </td>
-                    <td class="total-general-cell">{{ grupo.totalAnio2 | number:'1.2-2' }}</td>
+                    <td class="total-mes-cell" *ngFor="let t of grupo.totalesAnio2">{{ t | number:'1.2-2' }}</td>
+                    <td class="total-general-cell">{{ grupo.totalGralAnio2 | number:'1.2-2' }}</td>
                     
-                    <!-- Año 3: 12 totales + total general -->
-                    <td class="total-mes-cell" *ngFor="let totalMes of grupo.totalesPorMes">
-                      {{ totalMes | number:'1.2-2' }}
-                    </td>
-                    <td class="total-general-cell">{{ grupo.totalAnio3 | number:'1.2-2' }}</td>
+                    <td class="total-mes-cell" *ngFor="let t of grupo.totalesAnio3">{{ t | number:'1.2-2' }}</td>
+                    <td class="total-general-cell">{{ grupo.totalGralAnio3 | number:'1.2-2' }}</td>
                     
-                    <!-- Año 4: total general -->
-                    <td class="total-general-cell">{{ grupo.totalAnio4 | number:'1.2-2' }}</td>
-                    
-                    <!-- Año 5: total general -->
-                    <td class="total-general-cell">{{ grupo.totalAnio5 | number:'1.2-2' }}</td>
+                    <td class="total-general-cell">{{ grupo.totalGralAnio4 | number:'1.2-2' }}</td>
+                    <td class="total-general-cell">{{ grupo.totalGralAnio5 | number:'1.2-2' }}</td>
                   </tr>
                 </tbody>
               </table>

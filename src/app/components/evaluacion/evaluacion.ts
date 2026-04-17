@@ -70,7 +70,7 @@ export class Evaluacion implements OnInit, OnDestroy {
     // Captura el ID de la ruta
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Evaluación:', this.planId);
+      // console.log('ID del plan en Evaluación:', this.planId);
       if (this.planId) {
         this.suscribirseAlEstado();
         this.cargarConceptosEvaluacion();
@@ -95,7 +95,7 @@ export class Evaluacion implements OnInit, OnDestroy {
       .pipe(skip(1))
       .subscribe(variables => {
         if (variables && this.planId) {
-          console.log('Variables de sensibilidad actualizadas, recargando evaluación...');
+          // console.log('Variables de sensibilidad actualizadas, recargando evaluación...');
           // Marcar el análisis como pendiente de actualizar
           this.statusAnalisis = false;
           // Recargar datos de evaluación
@@ -266,7 +266,7 @@ export class Evaluacion implements OnInit, OnDestroy {
    */
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**
@@ -294,7 +294,7 @@ export class Evaluacion implements OnInit, OnDestroy {
       this.cargandoStatus = true;
       const response = await this.inversionService.getAnalisisSensibilidadStatus(this.planId);
       this.statusAnalisis = response.status || false;
-      console.log('Status del análisis:', this.statusAnalisis);
+      // console.log('Status del análisis:', this.statusAnalisis);
     } catch (error: any) {
       console.error('Error al cargar status:', error);
       this.statusAnalisis = false;
@@ -341,7 +341,7 @@ export class Evaluacion implements OnInit, OnDestroy {
     this.cargandoRecalcular = true;
     try {
       const response = await this.inversionService.ejecutarRecalcular2(this.planId);
-      console.log('Recalcular2 completado:', response);
+      // console.log('Recalcular2 completado:', response);
       // Actualizar el estado después de recalcular
       this.statusAnalisis = true;
       // Recargar el análisis de sensibilidad después de recalcular

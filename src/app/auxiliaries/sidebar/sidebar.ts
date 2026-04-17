@@ -6,7 +6,7 @@ import { filter } from 'rxjs/operators';
   selector: 'app-sidebar',
   standalone: false,
   templateUrl: './sidebar.html',
-  styleUrl: './sidebar.css'
+  styleUrl: './sidebar.css',
 })
 export class Sidebar implements OnInit {
   @Output() onItemChange = new EventEmitter<string>();
@@ -23,7 +23,7 @@ export class Sidebar implements OnInit {
 
   constructor(
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
@@ -31,11 +31,11 @@ export class Sidebar implements OnInit {
     this.updateActiveItem(this.router.url);
 
     // Escuchar cambios de ruta
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
-      this.updateActiveItem(event.url);
-    });
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        this.updateActiveItem(event.url);
+      });
   }
 
   /**
@@ -44,26 +44,26 @@ export class Sidebar implements OnInit {
   private updateActiveItem(url: string): void {
     // Extraer la ruta base sin el ID
     const routeBase = url.split('/')[1]; // Obtiene 'planificacion', 'inversion', etc.
-    
+
     const routeMap: { [key: string]: string } = {
-      'planificacion': 'Planificacion',
-      'inversion': 'inversion',
+      planificacion: 'Planificacion',
+      inversion: 'inversion',
       'datos-iniciales': 'financiero',
-      'depreciaciones': 'depreciaciones',
+      depreciaciones: 'depreciaciones',
       'presupuesto-venta': 'marketing',
       'calculo-ventas': 'recursos',
       'costos-unitarios': 'operaciones',
-      'prestamo': 'documentos',
+      prestamo: 'documentos',
       'materias-primas': 'materias',
       'gastos-operacion': 'gastos_operacion',
       'estados-financieros': 'estado_financiero',
-      'evaluacion': 'evaluacion',
-      'graficas': 'graficas',
+      evaluacion: 'evaluacion',
+      graficas: 'graficas',
       'costo-ventas': 'costo-ventas',
     };
 
     this.activeItem = routeMap[routeBase] || '';
-    console.log('Ruta actual:', routeBase, '- Item activo:', this.activeItem);
+    // console.log('Ruta actual:', routeBase, '- Item activo:', this.activeItem);
   }
 
   /**
@@ -80,7 +80,7 @@ export class Sidebar implements OnInit {
   setActive(item: string): void {
     this.activeItem = item;
     this.onItemChange.emit(item);
-    console.log('Navegando a:', item);
+    // console.log('Navegando a:', item);
   }
 
   /**

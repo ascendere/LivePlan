@@ -73,7 +73,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     // Captura el ID de la ruta
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Estados Financieros:', this.planId);
+      // console.log('ID del plan en Estados Financieros:', this.planId);
       if (this.planId) {
         this.suscribirseAlEstado();
         this.cargarEstadoResultados();
@@ -92,7 +92,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     // Suscribirse a cambios en variables de sensibilidad
     const variablesSub = this.datosStateService.variablesSensibilidad$.subscribe(variables => {
       if (variables && this.planId) {
-        console.log('Variables de sensibilidad actualizadas, recargando estados financieros...');
+        // console.log('Variables de sensibilidad actualizadas, recargando estados financieros...');
         // Recargar la pestaña activa
         if (this.activeTab === 'estado-resultados') {
           this.cargarEstadoResultados();
@@ -112,7 +112,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
    */
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**
@@ -127,7 +127,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
    */
   selectTab(tabId: string): void {
     this.activeTab = tabId;
-    console.log('Pestaña activa:', tabId);
+    // console.log('Pestaña activa:', tabId);
     // Si se selecciona Flujo de Efectivo, cargar datos
     if (tabId === 'flujo-efectivo' && this.planId) {
       this.cargarFlujoEfectivo();
@@ -153,7 +153,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     this.inversionService.getEstadoResultados(this.planId)
       .then((response) => {
         this.estadoResultados = response;
-        console.log('Estado de Resultados cargado:', this.estadoResultados);
+        // console.log('Estado de Resultados cargado:', this.estadoResultados);
         this.procesarEstadoResultados();
         this.cargando = false;
       })
@@ -174,7 +174,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     this.inversionService.getFlujoEfectivo(this.planId)
       .then((response) => {
         this.flujoEfectivo = response;
-        console.log('Flujo de Efectivo cargado:', this.flujoEfectivo);
+        // console.log('Flujo de Efectivo cargado:', this.flujoEfectivo);
         this.procesarFlujoEfectivo();
         this.cargando = false;
       })
@@ -194,7 +194,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     this.inversionService.getBalanceGeneral(this.planId)
       .then((response) => {
         this.balanceGeneral = response;
-        console.log('Balance General cargado:', this.balanceGeneral);
+        // console.log('Balance General cargado:', this.balanceGeneral);
         this.procesarBalanceGeneral();
         this.cargando = false;
       })

@@ -916,6 +916,11 @@
                 <p class="info-text">
                   Visualice los costos por categoría para cada producto/servicio
                 </p>
+                <p class="info-note">
+                  <strong>Importante:</strong> estos datos son independientes del precio de los productos/servicios, se deben actualizar manualmente.
+
+                  Al actualizar estos datos, automáticamente se recalcularán los costos mensuales en la sección Costos Unitarios.
+                </p>
 
                 <div *ngIf="getProductosConCostos().length > 0">
                   <!-- Iterar por cada producto -->
@@ -933,7 +938,18 @@
                       <tbody>
                         <tr *ngFor="let costo of grupo.costos">
                           <td>{{ (costo.categoria_costo && costo.categoria_costo.nombre) || 'Sin categoría' }}</td>
-                          <td class="text-right">{{ costo.costo | number:'1.2-2' }}</td>
+                          <td>
+                            <input
+                              type="number"
+                              class="form-input precio-input"
+                              [(ngModel)]="costo.costo"
+                              (ngModelChange)="onCostoChange(costo.id!)"
+                              [name]="'costo-' + costo.id"
+                              min="0"
+                              step="0.01"
+                              placeholder="Ej: 10.00"
+                            />
+                          </td>
                           <!-- <td class="text-right precio-calculado">
                             {{ costo.costo_calc ? (costo.costo_calc | number:'1.2-2') : '0.00' }}
                           </td> -->
@@ -945,6 +961,44 @@
 
                 <div class="empty-state" *ngIf="costosProducto.length === 0">
                   <p>No hay costos disponibles. Los costos se generan automáticamente al configurar los productos.</p>
+                </div>
+
+                <!-- Botón guardar solo visible cuando hay cambios -->
+                <div class="form-actions" *ngIf="hayCostosModificados()">
+                  <button 
+                    class="btn btn-primary" 
+                    (click)="guardarCostosProducto()"
+                    [disabled]="estadoGuardadoCostos === 'guardando'"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Guardar Costos ({{ costosModificados.size }} modificado{{ costosModificados.size !== 1 ? 's' : '' }})
+                  </button>
+                  
+                  <!-- Mensaje de estado -->
+                  <span *ngIf="estadoGuardadoCostos === 'guardando'" class="mensaje-estado guardando">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Guardando...
+                  </span>
+                  <span *ngIf="estadoGuardadoCostos === 'exito'" class="mensaje-estado exito">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Guardado correctamente
+                  </span>
+                  <span *ngIf="estadoGuardadoCostos === 'error'" class="mensaje-estado error">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="15" y1="9" x2="9" y2="15"></line>
+                      <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                    {{ mensajeErrorCostos }}
+                  </span>
                 </div>
               </div>
             </div>

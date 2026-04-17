@@ -18,7 +18,7 @@ export class Planificacion implements OnInit {
     // Captura el ID de la ruta
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Planificación:', this.planId);
+      // console.log('ID del plan en Planificación:', this.planId);
     });
   }
 
@@ -27,7 +27,7 @@ export class Planificacion implements OnInit {
    */
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**

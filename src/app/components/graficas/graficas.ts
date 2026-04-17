@@ -44,7 +44,7 @@ export class Graficas implements OnInit, OnDestroy {
     // Captura el ID de la ruta
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Gráficas:', this.planId);
+      // console.log('ID del plan en Gráficas:', this.planId);
       if (this.planId) {
         this.loadAllDataAndRenderCharts();
       }
@@ -72,7 +72,7 @@ export class Graficas implements OnInit, OnDestroy {
    */
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**

@@ -29,7 +29,7 @@ export class CalculoVentas implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Cálculo de Ventas:', this.planId);
+      // console.log('ID del plan en Cálculo de Ventas:', this.planId);
       if (this.planId) {
         this.cargarVentas();
       }
@@ -81,7 +81,7 @@ export class CalculoVentas implements OnInit {
 
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**

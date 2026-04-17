@@ -71,7 +71,7 @@ export class GastosOperacion implements OnInit, OnDestroy {
   private suscribirseAlEstado(): void {
     const variablesSub = this.datosStateService.variablesSensibilidad$.subscribe(variables => {
       if (variables && this.planId) {
-        console.log('Variables de sensibilidad actualizadas, recargando gastos de operación...');
+        // console.log('Variables de sensibilidad actualizadas, recargando gastos de operación...');
         this.cargarGastosOperacion();
       }
     });
@@ -87,7 +87,7 @@ export class GastosOperacion implements OnInit, OnDestroy {
     try {
       const data: GastosOperacionData = await this.inversionService.getGastosOperacion(this.planId);
       this.procesarGastosOperacion(data);
-      console.log('Gastos de operación cargados y procesados:', data);
+      // console.log('Gastos de operación cargados y procesados:', data);
     } catch (error) {
       console.error('Error al cargar gastos de operación:', error);
     } finally {
@@ -268,14 +268,14 @@ export class GastosOperacion implements OnInit, OnDestroy {
       const cambios = Array.from(this.valoresEditados.entries());
       const totalCambios = cambios.length;
 
-      console.log(`Guardando ${totalCambios} cambio(s) en gastos de operación...`);
+      // console.log(`Guardando ${totalCambios} cambio(s) en gastos de operación...`);
 
       // Procesar cada cambio
       for (let i = 0; i < totalCambios; i++) {
         const [gastoId, nuevoValor] = cambios[i];
         const esUltimo = i === totalCambios - 1;
 
-        console.log(`Actualizando gasto ${gastoId}: ${nuevoValor} (${i + 1}/${totalCambios}) recalc=${esUltimo}`);
+        // console.log(`Actualizando gasto ${gastoId}: ${nuevoValor} (${i + 1}/${totalCambios}) recalc=${esUltimo}`);
 
         await this.inversionService.actualizarGastosOperacion(
           gastoId,
@@ -287,15 +287,15 @@ export class GastosOperacion implements OnInit, OnDestroy {
       // Limpiar cambios pendientes
       this.valoresEditados.clear();
       
-      console.log('Todos los cambios guardados exitosamente. Recargando datos...');
+      // console.log('Todos los cambios guardados exitosamente. Recargando datos...');
       
       // Recargar datos actualizados
       await this.cargarGastosOperacion();
       
-      console.log('Cambios guardados exitosamente');
+      // console.log('Cambios guardados exitosamente');
     } catch (error) {
       console.error('Error al guardar cambios:', error);
-      console.log('Error al guardar los cambios. Por favor, intente nuevamente.');
+      // console.log('Error al guardar los cambios. Por favor, intente nuevamente.');
     } finally {
       this.guardando = false;
     }

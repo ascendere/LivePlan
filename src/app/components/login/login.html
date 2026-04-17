@@ -7,12 +7,26 @@
 
     <section class="aside">
       <section class="seccion-inicio">
-        <form (ngSubmit)="login()" class="formulario-inicio">
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="formulario-inicio">
+          @if (!isLoginMode()) {
+            <div class="grupo-formulario">
+              <label for="nombre">Nombre</label>
+              <input
+                type="text"
+                formControlName="name"
+                class="entrada"
+                placeholder="Ingresar nombre"
+                id="nombre"
+                name="nombre"
+                required
+              />
+            </div>
+          }
           <div class="grupo-formulario">
             <label for="correo">Email</label>
             <input
               type="email"
-              [(ngModel)]="email"
+              formControlName="email"
               class="entrada"
               placeholder="Ingresar email"
               id="correo"
@@ -24,8 +38,8 @@
             <label for="contrasena">Contraseña</label>
             <div class="input-group eye-inside">
               <input
-                [type]="showPassword ? 'text' : 'password'"
-                [(ngModel)]="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
                 class="entrada"
                 placeholder="Ingresar contraseña"
                 id="contrasena"
@@ -38,12 +52,38 @@
                 (click)="togglePasswordVisibility()"
                 aria-label="Mostrar u ocultar contraseña"
               >
-                <i [class]="showPassword ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+                <i [class]="showPassword() ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
               </button>
             </div>
           </div>
+
+          @if (!isLoginMode()) {
+            <div class="grupo-formulario">
+              <label for="confirmarContrasena">Confirmar Contraseña</label>
+              <div class="input-group eye-inside">
+                <input
+                  [type]="showPassword() ? 'text' : 'password'"
+                  formControlName="confirmPassword"
+                  class="entrada"
+                  placeholder="Repetir contraseña"
+                  id="confirmarContrasena"
+                  name="confirmarContrasena"
+                  required
+                />
+              </div>
+            </div>
+          }
+
+          @if (errorMessage()) {
+            <p class="error-msg" style="color: #ff4d4f; font-size: 0.875rem; text-align: center; margin-bottom: 16px;">
+              {{ errorMessage() }}
+            </p>
+          }
           <div class="botones-inicio">
-            <button type="submit" class="btn-utpl"> <i class="fa fa-lock"></i> Iniciar Sesion</button>
+            <button type="submit" class="btn-utpl"> <i class="fa fa-lock"></i> {{ isLoginMode() ? 'Iniciar Sesión' : 'Crear Cuenta' }}</button>
+            <button type="button" class="btn-toggle" (click)="toggleMode()">
+              {{ isLoginMode() ? 'Crear cuenta' : 'Ya tengo una cuenta' }}
+            </button>
           </div>
         </form>
       </section>

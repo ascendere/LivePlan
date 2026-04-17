@@ -1,11 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import jsPDF from 'jspdf';
-import {
-  FirebaseService,
-  SeccionData,
-  PlanNegocio,
-} from '../../core/services/firebase.service';
+import { FirebaseService, SeccionData, PlanNegocio } from '../../core/services/firebase.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
@@ -28,11 +24,12 @@ export class SeccionesPDFComponent implements OnInit {
   notaPosY = 0;
   planLogicoId = '';
   editandoTitulo: number | null = null;
+  nombrePlan: string = 'Plan sin título';
 
   constructor(
     private readonly firebaseService: FirebaseService,
     private readonly route: ActivatedRoute,
-    private readonly router: Router
+    private readonly router: Router,
   ) {}
 
   ngOnInit() {
@@ -48,6 +45,7 @@ export class SeccionesPDFComponent implements OnInit {
               .subscribe((plan) => {
                 if (plan) {
                   this.planId = plan.id!;
+                  this.nombrePlan = plan.nombre || 'Plan sin título';
                   this.secciones = this.normalizarSecciones(plan.secciones);
                 } else {
                   const nuevoPlan: PlanNegocio = {
@@ -59,12 +57,10 @@ export class SeccionesPDFComponent implements OnInit {
                     fechaActualizacion: new Date(),
                   };
 
-                  this.firebaseService
-                    .guardarPlan(nuevoPlan)
-                    .subscribe((res) => {
-                      this.planId = res.id;
-                      this.secciones = this.generarPlantillaSecciones();
-                    });
+                  this.firebaseService.guardarPlan(nuevoPlan).subscribe((res) => {
+                    this.planId = res.id;
+                    this.secciones = this.generarPlantillaSecciones();
+                  });
                 }
               });
           } else {
@@ -111,9 +107,7 @@ export class SeccionesPDFComponent implements OnInit {
     };
 
     try {
-      const result = await firstValueFrom(
-        this.firebaseService.guardarPlan(nuevoPlan)
-      );
+      const result = await firstValueFrom(this.firebaseService.guardarPlan(nuevoPlan));
       const realId = result.id;
       this.planId = realId;
 
@@ -131,10 +125,10 @@ export class SeccionesPDFComponent implements OnInit {
             ...seccion,
             imagenUrl: seccion.imagenPreview || '',
           })),
-        })
+        }),
       );
 
-      console.log('✅ Plan creado correctamente con ID:', this.planId);
+      // console.log('✅ Plan creado correctamente con ID:', this.planId);
       return this.planId;
     } catch (error) {
       console.error('❌ Error creando plan:', error);
@@ -149,7 +143,7 @@ export class SeccionesPDFComponent implements OnInit {
       id: this.planId,
       usuarioId: this.usuarioId,
       planLogicoId: this.planLogicoId,
-      nombre: 'Plan sin título',
+      nombre: this.nombrePlan,
       secciones: this.secciones,
       fechaActualizacion: new Date(),
     };
@@ -195,7 +189,7 @@ export class SeccionesPDFComponent implements OnInit {
     const planActualizado: PlanNegocio = {
       id: this.planId,
       usuarioId: this.usuarioId,
-      nombre: 'Plan sin título', // Adding required nombre property
+      nombre: this.nombrePlan, // Preservar nombre original
       secciones: this.secciones,
       fechaActualizacion: new Date(),
     };
@@ -218,13 +212,11 @@ export class SeccionesPDFComponent implements OnInit {
     if (!file || !this.secciones[index] || !this.planId) return;
 
     const seccionId = this.secciones[index].id || `temp-${Date.now()}`;
-    this.firebaseService
-      .subirImagenAlternativo(file, seccionId, this.planId)
-      .subscribe((url) => {
-        this.secciones[index].imagenUrl = url;
-        this.secciones[index].imagenNombre = file.name;
-        this.guardarSeccion(index);
-      });
+    this.firebaseService.subirImagenAlternativo(file, seccionId, this.planId).subscribe((url) => {
+      this.secciones[index].imagenUrl = url;
+      this.secciones[index].imagenNombre = file.name;
+      this.guardarSeccion(index);
+    });
   }
 
   onSeccionChange(index: number) {
@@ -252,7 +244,7 @@ export class SeccionesPDFComponent implements OnInit {
       id: this.planId,
       usuarioId: this.usuarioId,
       planLogicoId: this.planLogicoId,
-      nombre: 'Plan sin título',
+      nombre: this.nombrePlan,
       secciones: this.secciones,
       fechaActualizacion: new Date(),
     };
@@ -297,7 +289,7 @@ export class SeccionesPDFComponent implements OnInit {
       'Estrategia Comercial',
       'Producción y Recursos Humanos',
       'Análisis económico y Financiero',
-      'Análisis DAFO'
+      'Análisis DAFO',
     ];
     return titulosPrecargados.includes(seccion.titulo) && !!seccion.instruccion;
   }
@@ -335,8 +327,7 @@ export class SeccionesPDFComponent implements OnInit {
         descripcion: '',
         subsecciones: [
           {
-            pregunta:
-              '¿Cómo se te ocurrió la idea de crear este negocio? ¿Por qué?',
+            pregunta: '¿Cómo se te ocurrió la idea de crear este negocio? ¿Por qué?',
             descripcion: '',
           },
           {
@@ -344,8 +335,7 @@ export class SeccionesPDFComponent implements OnInit {
             descripcion: '',
           },
           {
-            pregunta:
-              '¿Qué pasos has dado y en qué situación se encuentra el proyecto?',
+            pregunta: '¿Qué pasos has dado y en qué situación se encuentra el proyecto?',
             descripcion: '',
           },
         ],
@@ -418,13 +408,11 @@ export class SeccionesPDFComponent implements OnInit {
             descripcion: '',
           },
           {
-            pregunta:
-              '¿Incorporas diseños que te diferencien? ¿Envases o etiquetas?',
+            pregunta: '¿Incorporas diseños que te diferencien? ¿Envases o etiquetas?',
             descripcion: '',
           },
           {
-            pregunta:
-              '¿Qué características técnicas tienen? ¿Qué tecnologías incorporas?',
+            pregunta: '¿Qué características técnicas tienen? ¿Qué tecnologías incorporas?',
             descripcion: '',
           },
           {
@@ -433,8 +421,7 @@ export class SeccionesPDFComponent implements OnInit {
             descripcion: '',
           },
           {
-            pregunta:
-              '¿Qué marca o nombre comercial vas a utilizar? Explica tu elección',
+            pregunta: '¿Qué marca o nombre comercial vas a utilizar? Explica tu elección',
             descripcion: '',
           },
         ],
@@ -460,8 +447,7 @@ export class SeccionesPDFComponent implements OnInit {
             descripcion: '',
           },
           {
-            pregunta:
-              '¿Y con alguna normativa en materia de seguridad e higiene?',
+            pregunta: '¿Y con alguna normativa en materia de seguridad e higiene?',
             descripcion: '',
           },
         ],
@@ -557,10 +543,7 @@ export class SeccionesPDFComponent implements OnInit {
         for (const sub of seccion.subsecciones) {
           pdf.setFontSize(12);
           pdf.setTextColor(0, 0, 0);
-          const preguntaLines = pdf.splitTextToSize(
-            `• ${sub.pregunta}`,
-            maxTextWidth
-          );
+          const preguntaLines = pdf.splitTextToSize(`• ${sub.pregunta}`, maxTextWidth);
           checkPageBreak(preguntaLines.length * lineHeight + 10);
           pdf.text(preguntaLines, margin, y);
           y += preguntaLines.length * lineHeight + 2;
@@ -568,10 +551,7 @@ export class SeccionesPDFComponent implements OnInit {
           if (sub.descripcion && sub.descripcion.trim() !== '') {
             pdf.setFontSize(11);
             pdf.setTextColor(60, 60, 60);
-            const descLines = pdf.splitTextToSize(
-              sub.descripcion,
-              maxTextWidth - 10
-            );
+            const descLines = pdf.splitTextToSize(sub.descripcion, maxTextWidth - 10);
             checkPageBreak(descLines.length * lineHeight + 5);
             pdf.text(descLines, margin + 5, y);
             y += descLines.length * lineHeight + 3;
@@ -586,10 +566,7 @@ export class SeccionesPDFComponent implements OnInit {
         ) {
           pdf.setFontSize(11);
           pdf.setTextColor(60, 60, 60);
-          const descLines = pdf.splitTextToSize(
-            seccion.descripcion,
-            maxTextWidth
-          );
+          const descLines = pdf.splitTextToSize(seccion.descripcion, maxTextWidth);
           checkPageBreak(descLines.length * lineHeight + 5);
           pdf.text(descLines, margin, y);
           y += descLines.length * lineHeight + 5;
@@ -599,9 +576,7 @@ export class SeccionesPDFComponent implements OnInit {
         if (seccion.imagenUrl) {
           try {
             checkPageBreak(maxImgHeight + 10);
-            const base64 = await this.convertirImagenUrlABase64(
-              seccion.imagenUrl
-            );
+            const base64 = await this.convertirImagenUrlABase64(seccion.imagenUrl);
 
             pdf.addImage(
               base64,
@@ -611,7 +586,7 @@ export class SeccionesPDFComponent implements OnInit {
               maxImgWidth,
               maxImgHeight,
               undefined,
-              'FAST'
+              'FAST',
             );
             y += maxImgHeight + 10;
           } catch (error) {
@@ -638,14 +613,12 @@ export class SeccionesPDFComponent implements OnInit {
     const raw = Array.isArray(seccionesData)
       ? seccionesData
       : typeof seccionesData === 'object' && seccionesData !== null
-      ? Object.values(seccionesData)
-      : [];
+        ? Object.values(seccionesData)
+        : [];
 
     return raw.map((seccion: any) => ({
       ...seccion,
-      subsecciones: Array.isArray(seccion.subsecciones)
-        ? seccion.subsecciones
-        : [],
+      subsecciones: Array.isArray(seccion.subsecciones) ? seccion.subsecciones : [],
       fechaCreacion: seccion.fechaCreacion || new Date(),
       fechaActualizacion: seccion.fechaActualizacion || new Date(),
     }));

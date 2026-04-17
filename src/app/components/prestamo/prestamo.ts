@@ -32,7 +32,7 @@ export class Prestamo implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Préstamo:', this.planId);
+      // console.log('ID del plan en Préstamo:', this.planId);
       if (this.planId > 0) {
         this.cargarDatosPrestamo();
         this.cargarCuotasPrestamo();
@@ -50,7 +50,7 @@ export class Prestamo implements OnInit {
           : (response || {});
         // Guardamos una copia de los datos originales
         this.datosOriginales = { ...this.datosPrestamo };
-        console.log('Datos de préstamo cargados:', this.datosPrestamo);
+        // console.log('Datos de préstamo cargados:', this.datosPrestamo);
         this.cargando = false;
         this.hayChangios = false;
       })
@@ -66,7 +66,7 @@ export class Prestamo implements OnInit {
       .then((response: any) => {
         this.cuotasPrestamo = Array.isArray(response) ? response : [];
         this.agruparPorAnio();
-        console.log('Cuotas de préstamo cargadas:', this.cuotasPrestamo);
+        // console.log('Cuotas de préstamo cargadas:', this.cuotasPrestamo);
         this.cargandoCuotas = false;
       })
       .catch((error) => {
@@ -115,7 +115,7 @@ export class Prestamo implements OnInit {
     }
 
     if (!this.hayChangios) {
-      console.log('No hay cambios para guardar');
+      // console.log('No hay cambios para guardar');
       return;
     }
 
@@ -128,7 +128,7 @@ export class Prestamo implements OnInit {
       recalc: true
     })
       .then((response) => {
-        console.log('Préstamo actualizado, respuesta del backend:', response);
+        // console.log('Préstamo actualizado, respuesta del backend:', response);
         
         // Actualizar datos del préstamo con la respuesta
         this.datosPrestamo = response;
@@ -168,7 +168,7 @@ export class Prestamo implements OnInit {
 
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**

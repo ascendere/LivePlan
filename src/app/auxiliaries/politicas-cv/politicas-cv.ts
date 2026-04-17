@@ -45,8 +45,18 @@ export class PoliticasCV implements OnInit, OnDestroy {
   politicasVentaModificadas: Set<number> = new Set();
 
   nombresMeses: string[] = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
   ];
 
   // Control de colapso por año
@@ -57,7 +67,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
 
   constructor(
     private readonly inversionService: InversionService,
-    private readonly datosStateService: DatosStateService
+    private readonly datosStateService: DatosStateService,
   ) {}
 
   ngOnInit(): void {
@@ -94,24 +104,24 @@ export class PoliticasCV implements OnInit, OnDestroy {
 
   cargarDatos(): void {
     this.cargando = true;
-    
+
     Promise.all([
       this.inversionService.getPoliticaCompra(this.planId),
-      this.inversionService.getPoliticaVenta(this.planId)
+      this.inversionService.getPoliticaVenta(this.planId),
     ])
       .then(([compraResponse, ventaResponse]) => {
-        console.log('Políticas de compra cargadas:', compraResponse);
-        console.log('Políticas de venta cargadas:', ventaResponse);
-        
+        // console.log('Políticas de compra cargadas:', compraResponse);
+        // console.log('Políticas de venta cargadas:', ventaResponse);
+
         this.politicasCompra = compraResponse;
         this.politicasVenta = ventaResponse;
-        
+
         this.guardarValoresOriginalesCompra();
         this.guardarValoresOriginalesVenta();
-        
+
         this.organizarCompraPorAnio();
         this.organizarVentaPorAnio();
-        
+
         this.cargando = false;
       })
       .catch((error) => {
@@ -129,7 +139,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
   private guardarValoresOriginalesCompra(): void {
     this.valoresOriginalesCompra.clear();
     this.politicasCompraModificadas.clear();
-    
+
     this.politicasCompra.forEach((politica) => {
       this.valoresOriginalesCompra.set(politica.id, {
         porcentaje_credito: politica.porcentaje_credito,
@@ -141,7 +151,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
   private esPoliticaCompraModificada(politica: politicaCompra): boolean {
     const original = this.valoresOriginalesCompra.get(politica.id);
     if (!original) return false;
-    
+
     return (
       original.porcentaje_credito !== politica.porcentaje_credito ||
       original.porcentaje_contado !== politica.porcentaje_contado
@@ -195,7 +205,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
 
   async guardarTodasCompra(): Promise<void> {
     const modificadas = this.obtenerPoliticasCompraModificadas();
-    
+
     if (modificadas.length === 0) {
       this.mensajeGuardado = 'No hay cambios de compra para guardar';
       setTimeout(() => {
@@ -204,7 +214,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
       return;
     }
 
-    console.log(`Guardando ${modificadas.length} políticas de compra modificadas...`);
+    // console.log(`Guardando ${modificadas.length} políticas de compra modificadas...`);
     this.guardando = true;
     this.mensajeGuardado = '';
 
@@ -212,11 +222,11 @@ export class PoliticasCV implements OnInit, OnDestroy {
       for (let i = 0; i < modificadas.length; i++) {
         const politica = modificadas[i];
         const esUltima = i === modificadas.length - 1;
-        
-        console.log(`Guardando política compra ${i + 1}/${modificadas.length}, recalc: ${esUltima}`);
-        
+
+        // console.log(`Guardando política compra ${i + 1}/${modificadas.length}, recalc: ${esUltima}`);
+
         await this.inversionService.actualizarPoliticaCompra(politica, esUltima);
-        
+
         this.valoresOriginalesCompra.set(politica.id, {
           porcentaje_credito: politica.porcentaje_credito,
           porcentaje_contado: politica.porcentaje_contado,
@@ -224,7 +234,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
         this.politicasCompraModificadas.delete(politica.id);
       }
 
-      console.log('Todas las políticas de compra guardadas');
+      // console.log('Todas las políticas de compra guardadas');
       this.mensajeGuardado = `${modificadas.length} política(s) de compra guardada(s)`;
       this.guardando = false;
 
@@ -250,7 +260,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
   private guardarValoresOriginalesVenta(): void {
     this.valoresOriginalesVenta.clear();
     this.politicasVentaModificadas.clear();
-    
+
     this.politicasVenta.forEach((politica) => {
       this.valoresOriginalesVenta.set(politica.id, {
         porcentaje_credito: politica.porcentaje_credito,
@@ -262,7 +272,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
   private esPoliticaVentaModificada(politica: PoliticasVenta): boolean {
     const original = this.valoresOriginalesVenta.get(politica.id);
     if (!original) return false;
-    
+
     return (
       original.porcentaje_credito !== politica.porcentaje_credito ||
       original.porcentaje_contado !== politica.porcentaje_contado
@@ -316,7 +326,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
 
   async guardarTodasVenta(): Promise<void> {
     const modificadas = this.obtenerPoliticasVentaModificadas();
-    
+
     if (modificadas.length === 0) {
       this.mensajeGuardado = 'No hay cambios de venta para guardar';
       setTimeout(() => {
@@ -325,7 +335,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
       return;
     }
 
-    console.log(`Guardando ${modificadas.length} políticas de venta modificadas...`);
+    // console.log(`Guardando ${modificadas.length} políticas de venta modificadas...`);
     this.guardando = true;
     this.mensajeGuardado = '';
 
@@ -333,11 +343,11 @@ export class PoliticasCV implements OnInit, OnDestroy {
       for (let i = 0; i < modificadas.length; i++) {
         const politica = modificadas[i];
         const esUltima = i === modificadas.length - 1;
-        
-        console.log(`Guardando política venta ${i + 1}/${modificadas.length}, recalc: ${esUltima}`);
-        
+
+        // console.log(`Guardando política venta ${i + 1}/${modificadas.length}, recalc: ${esUltima}`);
+
         await this.inversionService.actualizarPoliticaVenta(politica, esUltima);
-        
+
         this.valoresOriginalesVenta.set(politica.id, {
           porcentaje_credito: politica.porcentaje_credito,
           porcentaje_contado: politica.porcentaje_contado,
@@ -345,7 +355,7 @@ export class PoliticasCV implements OnInit, OnDestroy {
         this.politicasVentaModificadas.delete(politica.id);
       }
 
-      console.log('Todas las políticas de venta guardadas');
+      // console.log('Todas las políticas de venta guardadas');
       this.mensajeGuardado = `${modificadas.length} política(s) de venta guardada(s)`;
       this.guardando = false;
 
@@ -373,8 +383,8 @@ export class PoliticasCV implements OnInit, OnDestroy {
   }
 
   get cantidadModificadasActual(): number {
-    return this.pestanaActiva === 'compra' 
-      ? this.cantidadCompraModificadas 
+    return this.pestanaActiva === 'compra'
+      ? this.cantidadCompraModificadas
       : this.cantidadVentaModificadas;
   }
 

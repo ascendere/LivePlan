@@ -14,4 +14,5 @@ export interface Costos {
     costo_calc: number;
     producto_servicio: Producto;
     categoria_costo: CategoriaCosto;
+    recalc?: boolean;
 }

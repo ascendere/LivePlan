@@ -44,7 +44,7 @@ export class MateriasPrimas implements OnInit {
     // Captura el ID de la ruta
     this.route.paramMap.subscribe((params) => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Planificación:', this.planId);
+      // console.log('ID del plan en Planificación:', this.planId);
       
       if (this.planId > 0) {
         this.cargarMateriaPrima();
@@ -59,7 +59,7 @@ export class MateriasPrimas implements OnInit {
     this.cargando = true;
     this.inversionService.getMateriaPrima(this.planId)
       .then((response: MateriaPrima[]) => {
-        console.log('Materia prima cargada:', response);
+        // console.log('Materia prima cargada:', response);
         this.materiaPrima = response;
         this.procesarMateriaPrima();
       })
@@ -119,7 +119,7 @@ export class MateriasPrimas implements OnInit {
 
     // Convertir el Map a array
     this.productosMateriaPrima = Array.from(productosMap.values());
-    console.log('Productos procesados:', this.productosMateriaPrima);
+    // console.log('Productos procesados:', this.productosMateriaPrima);
   }
 
   /**
@@ -127,7 +127,7 @@ export class MateriasPrimas implements OnInit {
    */
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**

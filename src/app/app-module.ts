@@ -43,7 +43,6 @@ import { PoliticasCV } from './auxiliaries/politicas-cv/politicas-cv';
 @NgModule({
   declarations: [
     App,
-    Login,
     Header,
     Home,
     Sidebar,

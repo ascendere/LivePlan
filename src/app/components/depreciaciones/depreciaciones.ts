@@ -50,7 +50,7 @@ export class Depreciaciones implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Depreciaciones:', this.planId);
+      // console.log('ID del plan en Depreciaciones:', this.planId);
       if (this.planId) {
         this.cargarDepreciaciones();
         this.suscribirADepreciaciones();
@@ -69,7 +69,7 @@ export class Depreciaciones implements OnInit, OnDestroy {
   suscribirADepreciaciones(): void {
     const depreciacionesSub = this.datosStateService.depreciaciones$.subscribe(depreciaciones => {
       if (depreciaciones && depreciaciones.length > 0) {
-        console.log('Depreciaciones actualizadas desde el state:', depreciaciones);
+        // console.log('Depreciaciones actualizadas desde el state:', depreciaciones);
         this.depreciaciones = depreciaciones;
         this.agruparPorSeccion();
       }
@@ -82,7 +82,7 @@ export class Depreciaciones implements OnInit, OnDestroy {
     this.inversionService
       .getDepreciacionAnual(this.planId)
       .then((response) => {
-        console.log('Depreciaciones cargadas desde backend:', response);
+        // console.log('Depreciaciones cargadas desde backend:', response);
         
         // El backend devuelve un array directamente
         const depreciaciones = Array.isArray(response) ? response : [response];
@@ -90,7 +90,7 @@ export class Depreciaciones implements OnInit, OnDestroy {
         // Actualizar el estado
         this.datosStateService.setDepreciaciones(depreciaciones);
         
-        console.log('Total de depreciaciones:', depreciaciones.length);
+        // console.log('Total de depreciaciones:', depreciaciones.length);
         this.cargando = false;
       })
       .catch((error) => {
@@ -139,11 +139,11 @@ export class Depreciaciones implements OnInit, OnDestroy {
       }))
       .sort((a, b) => a.tipoId - b.tipoId); // Ordenar por tipo_id
     
-    console.log('Depreciaciones agrupadas por tipo y sección:', this.depreciacionesAgrupadas);
+    // console.log('Depreciaciones agrupadas por tipo y sección:', this.depreciacionesAgrupadas);
   }
 
   onVidaUtilChange(detalleId: number): void {
-    console.log('Vida útil modificada para detalle:', detalleId);
+    // console.log('Vida útil modificada para detalle:', detalleId);
     this.vidaUtilModificada.add(detalleId);
   }
 
@@ -153,12 +153,12 @@ export class Depreciaciones implements OnInit, OnDestroy {
 
   guardarVidaUtil(): void {
     if (this.vidaUtilModificada.size === 0) {
-      console.log('No hay cambios para guardar');
+      // console.log('No hay cambios para guardar');
       return;
     }
 
     this.guardando = true;
-    console.log('Guardando vida útil para detalles:', Array.from(this.vidaUtilModificada));
+    // console.log('Guardando vida útil para detalles:', Array.from(this.vidaUtilModificada));
 
     // Convertir Set a Array para trabajar con índices
     const detallesModificados = Array.from(this.vidaUtilModificada);
@@ -179,7 +179,7 @@ export class Depreciaciones implements OnInit, OnDestroy {
       const vidaUtil = depreciacion.detalle_inversion.vida_util;
       const esUltimo = index === totalDetalles - 1;
       
-      console.log(`Actualizando detalle ${detalleId} (${index + 1}/${totalDetalles}) con vida_util: ${vidaUtil}, recalc: ${esUltimo}`);
+      // console.log(`Actualizando detalle ${detalleId} (${index + 1}/${totalDetalles}) con vida_util: ${vidaUtil}, recalc: ${esUltimo}`);
 
       // Solo el último detalle dispara el recalc
       return this.inversionService.actualizarDetalleInversion(detalleId, {
@@ -191,7 +191,7 @@ export class Depreciaciones implements OnInit, OnDestroy {
     // Ejecutar todas las actualizaciones de forma secuencial
     Promise.all(promesas)
       .then(() => {
-        console.log('Todas las vidas útiles guardadas exitosamente');
+        // console.log('Todas las vidas útiles guardadas exitosamente');
         this.guardando = false;
         this.vidaUtilModificada.clear();
         

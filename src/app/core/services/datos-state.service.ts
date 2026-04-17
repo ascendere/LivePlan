@@ -39,7 +39,7 @@ export class DatosStateService {
   public depreciaciones$: Observable<DepreciacionAnual[]> = this.depreciacionesSubject.asObservable();
 
   constructor() {
-    console.log('DatosStateService inicializado');
+    // console.log('DatosStateService inicializado');
   }
 
   // ========== MÉTODOS PARA PRODUCTOS ==========
@@ -48,7 +48,7 @@ export class DatosStateService {
    * Actualiza la lista completa de productos
    */
   setProductos(productos: Producto[]): void {
-    console.log('Estado actualizado - Productos:', productos);
+    // console.log('Estado actualizado - Productos:', productos);
     this.productosSubject.next(productos);
   }
 
@@ -100,7 +100,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA SUPUESTOS ==========
   
   setSupuestos(supuestos: Supuestos): void {
-    console.log('Estado actualizado - Supuestos:', supuestos);
+    // console.log('Estado actualizado - Supuestos:', supuestos);
     this.supuestosSubject.next(supuestos);
   }
 
@@ -111,7 +111,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA VENTAS DIARIAS ==========
   
   setVentasDiarias(ventas: VentasDiarias[]): void {
-    console.log('Estado actualizado - Ventas Diarias:', ventas);
+    // console.log('Estado actualizado - Ventas Diarias:', ventas);
     this.ventasDiariasSubject.next(ventas);
   }
 
@@ -131,7 +131,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA VARIABLES DE SENSIBILIDAD ==========
   
   setVariablesSensibilidad(variables: VariablesSensibilidad): void {
-    console.log('Estado actualizado - Variables de Sensibilidad:', variables);
+    // console.log('Estado actualizado - Variables de Sensibilidad:', variables);
     this.variablesSensibilidadSubject.next(variables);
   }
 
@@ -142,7 +142,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA VARIACIÓN ANUAL ==========
   
   setVariacionAnual(variacion: VariacionAnual): void {
-    console.log('Estado actualizado - Variación Anual:', variacion);
+    // console.log('Estado actualizado - Variación Anual:', variacion);
     this.variacionAnualSubject.next(variacion);
   }
 
@@ -153,7 +153,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA MACROS ==========
   
   setMacros(macros: Macros): void {
-    console.log('Estado actualizado - Indicadores Macroeconómicos:', macros);
+    // console.log('Estado actualizado - Indicadores Macroeconómicos:', macros);
     this.macrosSubject.next(macros);
   }
 
@@ -164,7 +164,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA PRECIOS DE PRODUCTOS ==========
   
   setPreciosProducto(precios: PreciosProducto[]): void {
-    console.log('Estado actualizado - Precios de Productos:', precios);
+    // console.log('Estado actualizado - Precios de Productos:', precios);
     this.preciosProductoSubject.next(precios);
   }
 
@@ -184,7 +184,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA COSTOS DE PRODUCTOS ==========
   
   setCostosProducto(costos: Costos[]): void {
-    console.log('Estado actualizado - Costos de Productos:', costos);
+    // console.log('Estado actualizado - Costos de Productos:', costos);
     this.costosProductoSubject.next(costos);
   }
 
@@ -195,7 +195,7 @@ export class DatosStateService {
   // ========== MÉTODOS PARA DEPRECIACIONES ==========
   
   setDepreciaciones(depreciaciones: DepreciacionAnual[]): void {
-    console.log('Estado actualizado - Depreciaciones:', depreciaciones);
+    // console.log('Estado actualizado - Depreciaciones:', depreciaciones);
     this.depreciacionesSubject.next(depreciaciones);
   }
 
@@ -209,7 +209,7 @@ export class DatosStateService {
    * Actualiza la composición de financiamiento
    */
   setComposicionFinanciamiento(composicion: ComposicionFinanciamiento): void {
-    console.log('Estado actualizado - Composición Financiamiento:', composicion);
+    // console.log('Estado actualizado - Composición Financiamiento:', composicion);
     this.composicionFinanciamientoSubject.next(composicion);
   }
 
@@ -226,7 +226,7 @@ export class DatosStateService {
    * Limpia todo el estado (útil al cambiar de plan)
    */
   clearState(): void {
-    console.log('Estado limpiado');
+    // console.log('Estado limpiado');
     this.macrosSubject.next(null);
     this.productosSubject.next([]);
     this.supuestosSubject.next(null);
@@ -243,7 +243,7 @@ export class DatosStateService {
    * Recarga todos los datos desde el estado actual
    */
   reloadState(): void {
-    console.log('Estado recargado');
+    // console.log('Estado recargado');
     // Forzar emisión de los valores actuales
     this.macrosSubject.next(this.macrosSubject.value);
     this.productosSubject.next(this.productosSubject.value);

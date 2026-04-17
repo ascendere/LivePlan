@@ -29,7 +29,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Presupuesto de Venta:', this.planId);
+      // console.log('ID del plan en Presupuesto de Venta:', this.planId);
       if (this.planId) {
         this.suscribirseAlEstado();
         this.cargarPresupuestos();
@@ -48,7 +48,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
     // Suscribirse a cambios en ventas diarias (afectan al presupuesto)
     const ventasSub = this.datosStateService.ventasDiarias$.subscribe(ventas => {
       if (ventas && ventas.length > 0) {
-        console.log('Ventas diarias actualizadas, recargando presupuesto...');
+        // console.log('Ventas diarias actualizadas, recargando presupuesto...');
         this.cargarPresupuestos();
       }
     });
@@ -56,7 +56,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
     // Suscribirse a cambios en precios (afectan al presupuesto)
     const preciosSub = this.datosStateService.preciosProducto$.subscribe(precios => {
       if (precios && precios.length > 0) {
-        console.log('Precios actualizados, recargando presupuesto...');
+        // console.log('Precios actualizados, recargando presupuesto...');
         this.cargarPresupuestos();
       }
     });
@@ -64,7 +64,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
     // Suscribirse a cambios en variables de sensibilidad
     const variablesSub = this.datosStateService.variablesSensibilidad$.subscribe(variables => {
       if (variables) {
-        console.log('Variables de sensibilidad actualizadas, recargando presupuesto...');
+        // console.log('Variables de sensibilidad actualizadas, recargando presupuesto...');
         this.cargarPresupuestos();
       }
     });
@@ -80,10 +80,10 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
     this.inversionService
       .getPresupuestoVenta(this.planId)
       .then((response) => {
-        console.log('Presupuestos de venta cargados:', response);
+        // console.log('Presupuestos de venta cargados:', response);
         this.presupuestos = Array.isArray(response) ? response : [];
         this.agruparPorAnio();
-        console.log('Presupuestos agrupados por año:', this.presupuestosAgrupados);
+        // console.log('Presupuestos agrupados por año:', this.presupuestosAgrupados);
         this.cargando = false;
       })
       .catch((error) => {
@@ -126,7 +126,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
    */
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    console.log('Sección activa:', section);
+    // console.log('Sección activa:', section);
   }
 
   /**

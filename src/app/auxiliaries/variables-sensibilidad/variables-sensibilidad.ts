@@ -11,11 +11,11 @@ import { InversionService, DatosStateService } from '../../core/services';
 })
 export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
   @Input() planId: number = 0;
-  
+
   isOpen: boolean = false;
   guardando: boolean = false;
   mensajeGuardado: string = '';
-  
+
   variablesSensibilidad: VariablesSensibilidad = {
     id: 0,
     plan_negocio_id: 0,
@@ -28,15 +28,15 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly inversionService: InversionService,
-    private readonly datosStateService: DatosStateService
+    private readonly datosStateService: DatosStateService,
   ) {}
 
   ngOnInit(): void {
     // Suscribirse a cambios en el estado compartido
-    this.subscription = this.datosStateService.variablesSensibilidad$.subscribe(variables => {
+    this.subscription = this.datosStateService.variablesSensibilidad$.subscribe((variables) => {
       if (variables) {
         this.variablesSensibilidad = variables;
-        console.log('Variables actualizadas en componente flotante:', variables);
+        // console.log('Variables actualizadas en componente flotante:', variables);
       }
     });
 
@@ -72,10 +72,10 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
     this.inversionService
       .getVariablesSensibilidad(this.planId)
       .then((response) => {
-        console.log('Variables de sensibilidad cargadas:', response);
-        
+        // console.log('Variables de sensibilidad cargadas:', response);
+
         const variablesData = Array.isArray(response) ? response[0] : response;
-        
+
         if (variablesData) {
           const variables: VariablesSensibilidad = {
             id: variablesData.id || 0,
@@ -94,10 +94,10 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
   }
 
   guardarVariablesSensibilidad(): void {
-    console.log('Guardando variables de sensibilidad:', this.variablesSensibilidad);
+    // console.log('Guardando variables de sensibilidad:', this.variablesSensibilidad);
 
     if (!this.variablesSensibilidad.id) {
-      console.log('Error: No se puede actualizar. Primero debe existir un registro.');
+      // console.log('Error: No se puede actualizar. Primero debe existir un registro.');
       this.mensajeGuardado = 'Error: No existe un registro para actualizar';
       setTimeout(() => {
         this.mensajeGuardado = '';
@@ -111,17 +111,17 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
     this.inversionService
       .actualizarVariablesSensibilidad(this.variablesSensibilidad.id, this.variablesSensibilidad)
       .then((response) => {
-        console.log('Variables de sensibilidad guardadas exitosamente:', response);
-        
+        // console.log('Variables de sensibilidad guardadas exitosamente:', response);
+
         // Actualizar el estado compartido con la respuesta
         this.datosStateService.setVariablesSensibilidad(response);
-        
+
         // Recargar todos los datos que dependen del recalc
         this.recargarDatosDependientes();
-        
+
         this.mensajeGuardado = 'Variables guardadas correctamente. Recalculando datos...';
         this.guardando = false;
-        
+
         // Cerrar modal después de 2 segundos
         setTimeout(() => {
           this.mensajeGuardado = '';
@@ -142,13 +142,13 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
    * Recarga todos los datos que dependen del recalc de variables de sensibilidad
    */
   private recargarDatosDependientes(): void {
-    console.log('Recargando datos dependientes del recalc...');
+    // console.log('Recargando datos dependientes del recalc...');
 
     // Recargar precios de productos (afectados por precio)
     this.inversionService
       .getPreciosProductoServicio(this.planId)
       .then((precios) => {
-        console.log('Precios recargados después del recalc:', precios);
+        // console.log('Precios recargados después del recalc:', precios);
         this.datosStateService.setPreciosProducto(precios);
       })
       .catch((error) => console.error('Error al recargar precios:', error));
@@ -157,7 +157,7 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
     this.inversionService
       .getCostosProductoServicio(this.planId)
       .then((costos) => {
-        console.log('Costos recargados después del recalc:', costos);
+        // console.log('Costos recargados después del recalc:', costos);
         this.datosStateService.setCostosProducto(costos);
       })
       .catch((error) => console.error('Error al recargar costos:', error));
@@ -166,7 +166,7 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
     this.inversionService
       .getVentasDiarias(this.planId)
       .then((ventas) => {
-        console.log('Ventas diarias recargadas después del recalc:', ventas);
+        // console.log('Ventas diarias recargadas después del recalc:', ventas);
         this.datosStateService.setVentasDiarias(ventas);
       })
       .catch((error) => console.error('Error al recargar ventas diarias:', error));
@@ -175,12 +175,12 @@ export class VariablesSensibilidadComponent implements OnInit, OnDestroy {
     this.inversionService
       .getDepreciacionAnual(this.planId)
       .then((depreciaciones) => {
-        console.log('Depreciaciones recargadas después del recalc:', depreciaciones);
+        // console.log('Depreciaciones recargadas después del recalc:', depreciaciones);
         const deps = Array.isArray(depreciaciones) ? depreciaciones : [depreciaciones];
         this.datosStateService.setDepreciaciones(deps);
       })
       .catch((error) => console.error('Error al recargar depreciaciones:', error));
 
-    console.log('✅ Todos los datos dependientes han sido solicitados para recarga');
+    // console.log('✅ Todos los datos dependientes han sido solicitados para recarga');
   }
 }

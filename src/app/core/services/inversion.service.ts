@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { PlanNegocio } from '../../interfaces/planNegocio.interface';
+import { FirebaseService } from './firebase.service';
+import { AuthService } from './login.service';
 import {
   Supuestos,
   Producto,
@@ -25,7 +27,7 @@ import {
   GastosOperacion,
   FlujoEfectivo,
   politicaCompra,
-  PoliticasVenta
+  PoliticasVenta,
 } from '../../interfaces';
 
 @Injectable({
@@ -33,6 +35,10 @@ import {
 })
 export class InversionService {
   private readonly apiUrl = environment.backend.url;
+  private readonly firebaseService = inject(FirebaseService);
+  private readonly authService = inject(AuthService);
+
+  constructor() {}
 
   // Metodos Post
 
@@ -40,7 +46,7 @@ export class InversionService {
     planNegocioId: number,
     tipoId: number,
     seccion: string,
-    importe: number
+    importe: number,
   ): Promise<InversionGeneral> {
     const url = `${this.apiUrl}/inversiones`;
     return fetch(url, {
@@ -68,7 +74,7 @@ export class InversionService {
     tipoId: number,
     elemento: string,
     importe: number,
-    vidaUtil: number
+    vidaUtil: number,
   ): Promise<InversionDetalle> {
     const url = `${this.apiUrl}/detalles_inversion`;
     return fetch(url, {
@@ -105,6 +111,23 @@ export class InversionService {
         throw new Error('Error al crear el plan de negocio');
       }
       return response.json();
+    }).then((newPlan: PlanNegocio) => {
+      // Sincronizar con Firebase si tenemos el nombre y el usuario autenticado
+      if (newPlan.id && planNegocio.nombre) {
+        this.authService.user$.subscribe((user: any) => {
+          if (user?.email) {
+            this.firebaseService.crearPlanInicial(
+              planNegocio.nombre!, 
+              newPlan.id!.toString(), 
+              user.email
+            ).subscribe({
+              next: () => console.log('✅ Plan inicializado en Firebase'),
+              error: (err: any) => console.error('❌ Error al inicializar plan en Firebase:', err)
+            });
+          }
+        });
+      }
+      return newPlan;
     });
   }
 
@@ -432,10 +455,10 @@ export class InversionService {
 
   actualizarInversionGeneral(
     inversionId: number,
-    inversion: Partial<InversionGeneral>
+    inversion: Partial<InversionGeneral>,
   ): Promise<InversionGeneral> {
     const url = `${this.apiUrl}/inversiones/item/${encodeURIComponent(inversionId)}`;
-    console.log('Actualizando inversión general con ID:', inversionId, 'con datos:', inversion);
+    // console.log('Actualizando inversión general con ID:', inversionId, 'con datos:', inversion);
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -449,7 +472,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar inversión general: ${response.status} ${response.statusText}`
+          `Error al actualizar inversión general: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -458,10 +481,10 @@ export class InversionService {
 
   actualizarDetalleInversion(
     detalleId: number,
-    detalle: Partial<InversionDetalle>
+    detalle: Partial<InversionDetalle>,
   ): Promise<InversionDetalle> {
     const url = `${this.apiUrl}/detalles_inversion/item/${encodeURIComponent(detalleId)}`;
-    console.log('Actualizando detalle de inversión con ID:', detalleId, 'con datos:', detalle);
+    // console.log('Actualizando detalle de inversión con ID:', detalleId, 'con datos:', detalle);
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -476,7 +499,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar detalle de inversión: ${response.status} ${response.statusText}`
+          `Error al actualizar detalle de inversión: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -485,7 +508,7 @@ export class InversionService {
 
   actualizarProductoServicio(productoServicioId: number, nombre: string): Promise<Producto> {
     const url = `${this.apiUrl}/producto_servicio/item/${encodeURIComponent(productoServicioId)}`;
-    console.log('Actualizando producto con ID:', productoServicioId, 'nuevo nombre:', nombre);
+    // console.log('Actualizando producto con ID:', productoServicioId, 'nuevo nombre:', nombre);
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -505,7 +528,7 @@ export class InversionService {
 
   actualizarSupuestos(supuestosId: number, supuestos: Partial<Supuestos>): Promise<Supuestos> {
     const url = `${this.apiUrl}/supuestos/item/${encodeURIComponent(supuestosId)}`;
-    console.log('Actualizando supuestos con ID:', supuestosId, 'con datos:', supuestos);
+    // console.log('Actualizando supuestos con ID:', supuestosId, 'con datos:', supuestos);
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -529,17 +552,17 @@ export class InversionService {
   actualizarVentaDiaria(
     ventaDiariaId: number,
     ventaDia: number,
-    recalc: boolean = true
+    recalc: boolean = true,
   ): Promise<VentasDiarias> {
     const url = `${this.apiUrl}/ventas_diarias/item/${encodeURIComponent(ventaDiariaId)}`;
-    console.log(
+    /* console.log(
       'Actualizando venta diaria para producto:',
       ventaDiariaId,
       'con valor:',
       ventaDia,
       'recalc:',
       recalc
-    );
+    ); */
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -552,7 +575,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar venta diaria: ${response.status} ${response.statusText}`
+          `Error al actualizar venta diaria: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -561,15 +584,15 @@ export class InversionService {
 
   actualizarVariablesSensibilidad(
     variablesSenId: number,
-    variables: VariablesSensibilidad
+    variables: VariablesSensibilidad,
   ): Promise<VariablesSensibilidad> {
     const url = `${this.apiUrl}/variables_sensibilidad/item/${encodeURIComponent(variablesSenId)}`;
-    console.log(
+    /* console.log(
       'Actualizando variables de sensibilidad con ID:',
       variablesSenId,
       'con datos:',
       variables
-    );
+    ); */
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -584,7 +607,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar variables de sensibilidad: ${response.status} ${response.statusText}`
+          `Error al actualizar variables de sensibilidad: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -593,10 +616,10 @@ export class InversionService {
 
   actualizarVariacionAnual(
     variacionId: number,
-    variacionAnual: VariacionAnual
+    variacionAnual: VariacionAnual,
   ): Promise<VariacionAnual> {
     const url = `${this.apiUrl}/variacion_anual/item/${encodeURIComponent(variacionId)}`;
-    console.log('Actualizando variación anual con ID:', variacionId, 'con datos:', variacionAnual);
+    // console.log('Actualizando variación anual con ID:', variacionId, 'con datos:', variacionAnual);
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -613,7 +636,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar variación anual: ${response.status} ${response.statusText}`
+          `Error al actualizar variación anual: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -622,7 +645,7 @@ export class InversionService {
 
   actualizarMacros(macrosId: number, macros: Partial<Macros>): Promise<Macros> {
     const url = `${this.apiUrl}/indicadores_macro/item/${encodeURIComponent(macrosId)}`;
-    console.log('Actualizando macros con ID:', macrosId, 'con datos:', macros);
+    // console.log('Actualizando macros con ID:', macrosId, 'con datos:', macros);
 
     // Construir objeto con solo los campos presentes en el parámetro
     const body: any = { recalc: macros.recalc ?? true };
@@ -635,7 +658,7 @@ export class InversionService {
     if (macros.ptu !== undefined) body.ptu = macros.ptu;
     if (macros.diasxmes !== undefined) body.diasxmes = macros.diasxmes;
 
-    console.log('Body a enviar:', body);
+    // console.log('Body a enviar:', body);
 
     return fetch(url, {
       method: 'PATCH',
@@ -648,7 +671,7 @@ export class InversionService {
         throw new Error(`Error al actualizar macros: ${response.status} ${response.statusText}`);
       }
       return response.json().then((data) => {
-        console.log('Macros actualizados en backend:', data);
+        // console.log('Macros actualizados en backend:', data);
         return data;
       });
     });
@@ -656,15 +679,15 @@ export class InversionService {
 
   actualizarPreciosProductoServicio(
     precioId: number,
-    precio: Partial<PreciosProducto>
+    precio: Partial<PreciosProducto>,
   ): Promise<PreciosProducto> {
     const url = `${this.apiUrl}/precios_prodserv/item/${encodeURIComponent(precioId)}`;
-    console.log(
-      'Actualizando precios de producto/servicio con ID:',
-      precioId,
-      'con datos:',
-      precio
-    );
+    // console.log(
+    //   'Actualizando precios de producto/servicio con ID:',
+    //   precioId,
+    //   'con datos:',
+    //   precio,
+    // );
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -677,7 +700,62 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar precios de producto/servicio: ${response.status} ${response.statusText}`
+          `Error al actualizar precios de producto/servicio: ${response.status} ${response.statusText}`,
+        );
+      }
+      return response.json();
+    });
+  }
+
+  actualizarCostosProductoServicio(
+    costoId: number,
+    costo: Partial<Costos>,
+  ): Promise<Costos> {
+    const url = `${this.apiUrl}/costos_prodserv/item/${encodeURIComponent(costoId)}`;
+    return fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        costo: costo.costo,
+        recalc: costo.recalc ?? true,
+      }),
+    }).then((response) => {
+      if (!response.ok) {
+        throw new Error(
+          `Error al actualizar costos de producto/servicio: ${response.status} ${response.statusText}`,
+        );
+      }
+      return response.json();
+    });
+  }
+
+  getCostosMensuales(planNegocioId: number): Promise<any[]> {
+    const url = `${this.apiUrl}/costos_mensuales?plan_id=${encodeURIComponent(planNegocioId)}`;
+    return fetch(url).then((response) => {
+      if (!response.ok) {
+        throw new Error('Error al obtener costos mensuales');
+      }
+      return response.json();
+    });
+  }
+
+  actualizarCostosMensualesLote(planNegocioId: number, updates: {id: number, costo: number}[]): Promise<any> {
+    const url = `${this.apiUrl}/costos_mensuales`;
+    return fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        plan_negocio_id: planNegocioId,
+        updates: updates
+      }),
+    }).then((response) => {
+      if (!response.ok) {
+        throw new Error(
+          `Error al actualizar costos mensuales en lote: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -686,17 +764,17 @@ export class InversionService {
 
   actualizarComposicionFinanciamiento(
     composicionId: number,
-    composicion: Partial<ComposicionFinanciamiento>
+    composicion: Partial<ComposicionFinanciamiento>,
   ): Promise<ComposicionFinanciamiento> {
     const url = `${this.apiUrl}/composicion_financiamiento/item/${encodeURIComponent(
-      composicionId
+      composicionId,
     )}`;
-    console.log(
+    /* console.log(
       'Actualizando composición de financiamiento con ID:',
       composicionId,
       'con datos:',
       composicion
-    );
+    ); */
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -711,7 +789,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar composición de financiamiento: ${response.status} ${response.statusText}`
+          `Error al actualizar composición de financiamiento: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -720,10 +798,10 @@ export class InversionService {
 
   actualizarDatosPrestamo(
     prestamoId: number,
-    prestamo: Partial<DatosPrestamo>
+    prestamo: Partial<DatosPrestamo>,
   ): Promise<DatosPrestamo> {
     const url = `${this.apiUrl}/prestamos/item/${encodeURIComponent(prestamoId)}`;
-    console.log('Actualizando datos de préstamo con ID:', prestamoId, 'con datos:', prestamo);
+    // console.log('Actualizando datos de préstamo con ID:', prestamoId, 'con datos:', prestamo);
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -737,7 +815,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar datos de préstamo: ${response.status} ${response.statusText}`
+          `Error al actualizar datos de préstamo: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -747,17 +825,17 @@ export class InversionService {
   actualizarGastosOperacion(
     gastosOperacionId: number,
     mensual: number,
-    recalc: boolean
+    recalc: boolean,
   ): Promise<any> {
     const url = `${this.apiUrl}/gastos_operacion/item/${encodeURIComponent(gastosOperacionId)}`;
-    console.log(
+    /* console.log(
       'Actualizando gastos de operación con ID:',
       gastosOperacionId,
       'mensual:',
       mensual,
       'recalc:',
       recalc
-    );
+    ); */
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -770,23 +848,26 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar gastos de operación: ${response.status} ${response.statusText}`
+          `Error al actualizar gastos de operación: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
     });
   }
 
-  actualizarPoliticaCompra(politicaCompra: Partial<politicaCompra>, recalc: boolean): Promise<politicaCompra> {
+  actualizarPoliticaCompra(
+    politicaCompra: Partial<politicaCompra>,
+    recalc: boolean,
+  ): Promise<politicaCompra> {
     const url = `${this.apiUrl}/politicas_compra/item/${encodeURIComponent(politicaCompra.id!)}`;
-    console.log(
+    /* console.log(
       'Actualizando política de compra con ID:',
       politicaCompra.id,
       'con datos:',
       politicaCompra,
       'recalc:',
       recalc
-    );
+    ); */
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -800,23 +881,26 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar política de compra: ${response.status} ${response.statusText}`
+          `Error al actualizar política de compra: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
     });
   }
 
-  actualizarPoliticaVenta(politicaVenta: Partial<PoliticasVenta>, recalc: boolean): Promise<PoliticasVenta> {
+  actualizarPoliticaVenta(
+    politicaVenta: Partial<PoliticasVenta>,
+    recalc: boolean,
+  ): Promise<PoliticasVenta> {
     const url = `${this.apiUrl}/politicas_venta/item/${encodeURIComponent(politicaVenta.id!)}`;
-    console.log(
+    /* console.log(
       'Actualizando política de venta con ID:',
       politicaVenta.id,
       'con datos:',
       politicaVenta,
       'recalc:',
       recalc
-    );
+    ); */
     return fetch(url, {
       method: 'PATCH',
       headers: {
@@ -830,7 +914,7 @@ export class InversionService {
     }).then((response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al actualizar política de venta: ${response.status} ${response.statusText}`
+          `Error al actualizar política de venta: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -840,14 +924,14 @@ export class InversionService {
   // Metodos Del
 
   eliminarInversionGeneral(inversionId: number): Promise<{ success: boolean }> {
-    const url = `${this.apiUrl}/inversion_general/item/${encodeURIComponent(inversionId)}`;
-    console.log('Eliminando inversión general con ID:', inversionId);
+    const url = `${this.apiUrl}/inversiones/item/${encodeURIComponent(inversionId)}`;
+    // console.log('Eliminando inversión general con ID:', inversionId);
     return fetch(url, {
       method: 'DELETE',
     }).then(async (response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al eliminar inversión general: ${response.status} ${response.statusText}`
+          `Error al eliminar inversión general: ${response.status} ${response.statusText}`,
         );
       }
       const text = await response.text();
@@ -857,13 +941,13 @@ export class InversionService {
 
   eliminarDetalleInversion(detalleId: number): Promise<{ success: boolean }> {
     const url = `${this.apiUrl}/detalles_inversion/item/${encodeURIComponent(detalleId)}`;
-    console.log('Eliminando detalle de inversión con ID:', detalleId);
+    // console.log('Eliminando detalle de inversión con ID:', detalleId);
     return fetch(url, {
       method: 'DELETE',
     }).then(async (response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al eliminar detalle de inversión: ${response.status} ${response.statusText}`
+          `Error al eliminar detalle de inversión: ${response.status} ${response.statusText}`,
         );
       }
       const text = await response.text();
@@ -873,7 +957,7 @@ export class InversionService {
 
   eliminarProductoServicio(productoServicioId: number): Promise<{ success: boolean }> {
     const url = `${this.apiUrl}/producto_servicio/item/${encodeURIComponent(productoServicioId)}`;
-    console.log('Eliminando producto con ID:', productoServicioId);
+    // console.log('Eliminando producto con ID:', productoServicioId);
     return fetch(url, {
       method: 'DELETE',
     }).then(async (response) => {
@@ -887,9 +971,11 @@ export class InversionService {
 
   // Métodos para Análisis de Sensibilidad
 
-  getAnalisisSensibilidadStatus(planId: number): Promise<{ id: number; plan_negocio_id: number; status: boolean }> {
+  getAnalisisSensibilidadStatus(
+    planId: number,
+  ): Promise<{ id: number; plan_negocio_id: number; status: boolean }> {
     const url = `${this.apiUrl}/analisis_sensibilidad_status/${encodeURIComponent(planId)}`;
-    console.log('Obteniendo status de análisis de sensibilidad para plan:', planId);
+    // console.log('Obteniendo status de análisis de sensibilidad para plan:', planId);
     return fetch(url, {
       method: 'GET',
       headers: {
@@ -898,7 +984,7 @@ export class InversionService {
     }).then(async (response) => {
       if (!response.ok) {
         throw new Error(
-          `Error al obtener status de análisis de sensibilidad: ${response.status} ${response.statusText}`
+          `Error al obtener status de análisis de sensibilidad: ${response.status} ${response.statusText}`,
         );
       }
       return response.json();
@@ -907,7 +993,7 @@ export class InversionService {
 
   ejecutarRecalcular2(planId: number): Promise<{ message: string }> {
     const url = `${this.apiUrl}/recalcular2/${encodeURIComponent(planId)}`;
-    console.log('Ejecutando recalcular2 para plan:', planId);
+    // console.log('Ejecutando recalcular2 para plan:', planId);
     return fetch(url, {
       method: 'POST',
       headers: {
@@ -915,9 +1001,7 @@ export class InversionService {
       },
     }).then(async (response) => {
       if (!response.ok) {
-        throw new Error(
-          `Error al ejecutar recalcular2: ${response.status} ${response.statusText}`
-        );
+        throw new Error(`Error al ejecutar recalcular2: ${response.status} ${response.statusText}`);
       }
       return response.json();
     });

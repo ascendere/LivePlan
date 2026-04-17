@@ -2,7 +2,17 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
-import { Producto, Supuestos, VariablesSensibilidad, VentasDiarias, VariacionAnual, Macros, PreciosProducto, Costos, ComposicionFinanciamiento } from '../../interfaces/';
+import {
+  Producto,
+  Supuestos,
+  VariablesSensibilidad,
+  VentasDiarias,
+  VariacionAnual,
+  Macros,
+  PreciosProducto,
+  Costos,
+  ComposicionFinanciamiento,
+} from '../../interfaces/';
 import { AuthService, InversionService, DatosStateService } from '../../core/services';
 
 @Component({
@@ -29,33 +39,36 @@ export class DatosIniciales implements OnInit, OnDestroy {
     // { id: 6, titulo: 'Variables de Sensibilidad', tipo: 'formulario' },
     { id: 6, titulo: 'Variación Anual', tipo: 'tabla' },
     { id: 7, titulo: 'Precio base y precio sensibilizado', tipo: 'tabla' },
-    { id: 8, titulo: 'Costos de Productos/Servicios', tipo: 'tabla' }
+    { id: 8, titulo: 'Costos de Productos/Servicios', tipo: 'tabla' },
   ];
 
   // ========== ESTADOS DE GUARDADO ==========
   estadoGuardadoMacros: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorMacros: string = '';
-  
+
   estadoGuardadoComposicion: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorComposicion: string = '';
-  
+
   estadoGuardadoProductos: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorProductos: string = '';
-  
+
   estadoGuardadoSupuestos: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorSupuestos: string = '';
-  
+
   estadoGuardadoVentas: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorVentas: string = '';
-  
+
   estadoGuardadoVariables: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorVariables: string = '';
-  
+
   estadoGuardadoVariacion: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorVariacion: string = '';
-  
+
   estadoGuardadoPrecios: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
   mensajeErrorPrecios: string = '';
+
+  estadoGuardadoCostos: 'idle' | 'guardando' | 'exito' | 'error' = 'idle';
+  mensajeErrorCostos: string = '';
 
   // ========== MACROS ==========
   macros: Macros = {
@@ -67,7 +80,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     tasa_impuesto: 0,
     ptu: 0,
     diasxmes: 0,
-    recalc: true
+    recalc: true,
   };
   camposMacrosModificados: Set<string> = new Set(); // Campos modificados
 
@@ -75,10 +88,9 @@ export class DatosIniciales implements OnInit, OnDestroy {
   composicionFinanciamiento: ComposicionFinanciamiento = {
     capital_porcentaje: 0,
     deuda_porcentaje: 0,
-    total_porcentaje: 0
+    total_porcentaje: 0,
   };
   composicionModificada: boolean = false; // Flag para detectar cambios
-
 
   // ========== PRODUCTOS ==========
   productos: Producto[] = [];
@@ -92,7 +104,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     variacion_porcen_ventas: 0,
     ptu: 0,
     isr: 0,
-    recalc: true
+    recalc: true,
   };
 
   // ========== VENTAS DIARIAS ==========
@@ -106,7 +118,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     cantidad_volumen: 0,
     precio: 0,
     costo: 0,
-    recalc: true
+    recalc: true,
   };
 
   // ========== Variación Anual ==========
@@ -118,7 +130,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     anio3: 0,
     anio4: 0,
     anio5: 0,
-    recalc: true
+    recalc: true,
   };
 
   // ========== Precios de Productos/Servicios ==========
@@ -127,26 +139,28 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
   // ========== Costos de Productos/Servicios ==========
   costosProducto: Costos[] = [];
+  costosModificados: Set<number> = new Set(); // IDs de costos modificados
+  productosConCostosCache: Array<{ productoId: number; producto: string; costos: Costos[] }> = [];
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private inversionService: InversionService,
     private authService: AuthService,
-    private datosStateService: DatosStateService
+    private datosStateService: DatosStateService,
   ) {}
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Datos Iniciales:', this.planId);
-      
+      // console.log('ID del plan en Datos Iniciales:', this.planId);
+
       // Limpiar estado anterior al cambiar de plan
       this.datosStateService.clearState();
-      
+
       // Cargar datos desde backend
       this.cargarDatos();
-      
+
       // Suscribirse a cambios en el estado
       this.setupSubscriptions();
     });
@@ -154,7 +168,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     // Limpiar todas las suscripciones
-    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
   /**
@@ -162,81 +176,94 @@ export class DatosIniciales implements OnInit, OnDestroy {
    */
   private setupSubscriptions(): void {
     // Suscribirse a cambios en macros
-    const macrosSub = this.datosStateService.macros$.subscribe(macros => {
+    const macrosSub = this.datosStateService.macros$.subscribe((macros) => {
       if (macros) {
         this.macros = macros;
-        console.log('Macros actualizados desde estado:', macros);
+        // console.log('Macros actualizados desde estado:', macros);
       }
     });
 
     // Suscribirse a cambios en productos
-    const productosSub = this.datosStateService.productos$.subscribe(productos => {
+    const productosSub = this.datosStateService.productos$.subscribe((productos) => {
       this.productos = productos;
-      console.log('Productos actualizados desde estado:', productos);
+      // console.log('Productos actualizados desde estado:', productos);
     });
 
     // Suscribirse a cambios en supuestos
-    const supuestosSub = this.datosStateService.supuestos$.subscribe(supuestos => {
+    const supuestosSub = this.datosStateService.supuestos$.subscribe((supuestos) => {
       if (supuestos) {
         this.supuestos = supuestos;
-        console.log('Supuestos actualizados desde estado:', supuestos);
+        // console.log('Supuestos actualizados desde estado:', supuestos);
       }
     });
 
     // Suscribirse a cambios en ventas diarias
-    const ventasSub = this.datosStateService.ventasDiarias$.subscribe(ventas => {
+    const ventasSub = this.datosStateService.ventasDiarias$.subscribe((ventas) => {
       this.ventasDiarias = ventas;
-      console.log('Ventas diarias actualizadas desde estado:', ventas);
+      // console.log('Ventas diarias actualizadas desde estado:', ventas);
     });
 
     // Suscribirse a cambios en variables de sensibilidad
-    const variablesSub = this.datosStateService.variablesSensibilidad$.subscribe(variables => {
+    const variablesSub = this.datosStateService.variablesSensibilidad$.subscribe((variables) => {
       if (variables) {
         this.variablesSensibilidad = variables;
-        console.log('Variables de sensibilidad actualizadas desde estado:', variables);
+        // console.log('Variables de sensibilidad actualizadas desde estado:', variables);
       }
     });
 
     // Suscribirse a cambios en variación anual
-    const variacionSub = this.datosStateService.variacionAnual$.subscribe(variacion => {
+    const variacionSub = this.datosStateService.variacionAnual$.subscribe((variacion) => {
       if (variacion) {
         this.variacionAnual = variacion;
-        console.log('Variación anual actualizada desde estado:', variacion);
+        // console.log('Variación anual actualizada desde estado:', variacion);
       }
     });
 
     // Suscribirse a cambios en precios de productos
-    const preciosSub = this.datosStateService.preciosProducto$.subscribe(precios => {
+    const preciosSub = this.datosStateService.preciosProducto$.subscribe((precios) => {
       this.preciosProducto = precios;
-      console.log('Precios de productos actualizados desde estado:', precios);
+      // console.log('Precios de productos actualizados desde estado:', precios);
     });
 
     // Suscribirse a cambios en costos de productos
-    const costosSub = this.datosStateService.costosProducto$.subscribe(costos => {
+    const costosSub = this.datosStateService.costosProducto$.subscribe((costos) => {
       this.costosProducto = costos;
-      console.log('Costos de productos actualizados desde estado:', costos);
+      this.actualizarCacheCostos();
+      // console.log('Costos de productos actualizados desde estado:', costos);
     });
 
     // Suscribirse a cambios en composición de financiamiento
-    const composicionSub = this.datosStateService.composicionFinanciamiento$.subscribe(composicion => {
-      if (composicion) {
-        this.composicionFinanciamiento = composicion;
-        console.log('Composición de financiamiento actualizada desde estado:', composicion);
-      }
-    });
+    const composicionSub = this.datosStateService.composicionFinanciamiento$.subscribe(
+      (composicion) => {
+        if (composicion) {
+          this.composicionFinanciamiento = composicion;
+          // console.log('Composición de financiamiento actualizada desde estado:', composicion);
+        }
+      },
+    );
 
     // Guardar suscripciones para limpiar después
-    this.subscriptions.push(macrosSub, productosSub, supuestosSub, ventasSub, variablesSub, variacionSub, preciosSub, costosSub, composicionSub);
+    this.subscriptions.push(
+      macrosSub,
+      productosSub,
+      supuestosSub,
+      ventasSub,
+      variablesSub,
+      variacionSub,
+      preciosSub,
+      costosSub,
+      composicionSub,
+    );
   }
 
   // ========== MÉTODOS PARA MACROS ==========
-  
+
   /**
    * Marca un campo de macros como modificado
    */
   onMacroFieldChange(fieldName: string): void {
     this.camposMacrosModificados.add(fieldName);
-    console.log('Campo macro modificado:', fieldName, 'Total modificados:', this.camposMacrosModificados.size);
+    // console.log('Campo macro modificado:', fieldName, 'Total modificados:', this.camposMacrosModificados.size);
   }
 
   /**
@@ -247,12 +274,12 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   // ========== MÉTODOS HELPER PARA ESTADOS DE GUARDADO ==========
-  
+
   /**
    * Resetea todos los estados de una sección
    */
   private resetearEstado(seccion: string): void {
-    switch(seccion) {
+    switch (seccion) {
       case 'macros':
         this.estadoGuardadoMacros = 'idle';
         this.mensajeErrorMacros = '';
@@ -292,38 +319,42 @@ export class DatosIniciales implements OnInit, OnDestroy {
    * Muestra mensaje de éxito y lo oculta después de 3 segundos
    */
   private mostrarExito(seccion: string): void {
-    switch(seccion) {
+    switch (seccion) {
       case 'macros':
         this.estadoGuardadoMacros = 'exito';
-        setTimeout(() => this.estadoGuardadoMacros = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoMacros = 'idle'), 3000);
         break;
       case 'composicion':
         this.estadoGuardadoComposicion = 'exito';
-        setTimeout(() => this.estadoGuardadoComposicion = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoComposicion = 'idle'), 3000);
         break;
       case 'productos':
         this.estadoGuardadoProductos = 'exito';
-        setTimeout(() => this.estadoGuardadoProductos = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoProductos = 'idle'), 3000);
         break;
       case 'supuestos':
         this.estadoGuardadoSupuestos = 'exito';
-        setTimeout(() => this.estadoGuardadoSupuestos = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoSupuestos = 'idle'), 3000);
         break;
       case 'ventas':
         this.estadoGuardadoVentas = 'exito';
-        setTimeout(() => this.estadoGuardadoVentas = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoVentas = 'idle'), 3000);
         break;
       case 'variables':
         this.estadoGuardadoVariables = 'exito';
-        setTimeout(() => this.estadoGuardadoVariables = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoVariables = 'idle'), 3000);
         break;
       case 'variacion':
         this.estadoGuardadoVariacion = 'exito';
-        setTimeout(() => this.estadoGuardadoVariacion = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoVariacion = 'idle'), 3000);
         break;
       case 'precios':
         this.estadoGuardadoPrecios = 'exito';
-        setTimeout(() => this.estadoGuardadoPrecios = 'idle', 3000);
+        setTimeout(() => (this.estadoGuardadoPrecios = 'idle'), 3000);
+        break;
+      case 'costos':
+        this.estadoGuardadoCostos = 'exito';
+        setTimeout(() => (this.estadoGuardadoCostos = 'idle'), 3000);
         break;
     }
   }
@@ -332,7 +363,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
    * Muestra mensaje de error y lo oculta después de 5 segundos
    */
   private mostrarError(seccion: string, mensaje: string): void {
-    switch(seccion) {
+    switch (seccion) {
       case 'macros':
         this.estadoGuardadoMacros = 'error';
         this.mensajeErrorMacros = mensaje;
@@ -397,6 +428,14 @@ export class DatosIniciales implements OnInit, OnDestroy {
           this.mensajeErrorPrecios = '';
         }, 5000);
         break;
+      case 'costos':
+        this.estadoGuardadoCostos = 'error';
+        this.mensajeErrorCostos = mensaje;
+        setTimeout(() => {
+          this.estadoGuardadoCostos = 'idle';
+          this.mensajeErrorCostos = '';
+        }, 5000);
+        break;
     }
   }
 
@@ -404,25 +443,28 @@ export class DatosIniciales implements OnInit, OnDestroy {
    * Guarda los indicadores macroeconómicos
    */
   guardarMacros(): void {
-    console.log('Guardando indicadores macroeconómicos:', this.macros);
+    // console.log('Guardando indicadores macroeconómicos:', this.macros);
 
     // Validar que tenga ID antes de actualizar
     if (!this.macros.id) {
-      this.mostrarError('macros', 'No se puede actualizar. Primero debe existir un registro de macros.');
+      this.mostrarError(
+        'macros',
+        'No se puede actualizar. Primero debe existir un registro de macros.',
+      );
       console.error('Error: No se puede actualizar. Primero debe existir un registro de macros.');
       return;
     }
 
     // Construir objeto con solo los campos modificados
     const macrosParaActualizar: Partial<Macros> = { recalc: true };
-    
-    this.camposMacrosModificados.forEach(campo => {
+
+    this.camposMacrosModificados.forEach((campo) => {
       if (campo in this.macros) {
         (macrosParaActualizar as any)[campo] = (this.macros as any)[campo];
       }
     });
 
-    console.log('Campos a actualizar:', macrosParaActualizar);
+    // console.log('Campos a actualizar:', macrosParaActualizar);
 
     // Marcar como guardando
     this.estadoGuardadoMacros = 'guardando';
@@ -430,12 +472,12 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .actualizarMacros(this.macros.id, macrosParaActualizar as Macros)
       .then((response) => {
-        console.log('Indicadores macroeconómicos guardados exitosamente:', response);
+        // console.log('Indicadores macroeconómicos guardados exitosamente:', response);
         // Actualizar el estado compartido
         this.datosStateService.setMacros(response);
         // Limpiar el Set de campos modificados
         this.camposMacrosModificados.clear();
-        console.log('Set de campos modificados limpiado');
+        // console.log('Set de campos modificados limpiado');
         // Mostrar éxito
         this.mostrarExito('macros');
       })
@@ -481,13 +523,13 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   // ========== MÉTODOS PARA VENTAS DIARIAS ==========
-  
+
   /**
    * Marca una venta como modificada cuando el usuario edita el valor
    */
   onVentaDiariaChange(productoServicioId: number): void {
     this.ventasDiariasModificadas.add(productoServicioId);
-    console.log('Venta marcada como modificada:', productoServicioId, 'Total modificadas:', this.ventasDiariasModificadas.size);
+    // console.log('Venta marcada como modificada:', productoServicioId, 'Total modificadas:', this.ventasDiariasModificadas.size);
   }
 
   /**
@@ -498,24 +540,25 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   guardarVentasDiarias(): void {
-    console.log('Guardando ventas diarias...');
-    console.log('Total de ventas modificadas:', this.ventasDiariasModificadas.size);
+    // console.log('Guardando ventas diarias...');
+    // console.log('Total de ventas modificadas:', this.ventasDiariasModificadas.size);
 
     // Filtrar solo las ventas que fueron realmente modificadas
     const ventasParaActualizar = this.ventasDiarias
       .map((venta, index) => ({ venta, index }))
-      .filter(({ venta }) => 
-        this.ventasDiariasModificadas.has(venta.producto_servicio_id) &&
-        venta.venta_dia !== null && 
-        venta.venta_dia !== undefined
+      .filter(
+        ({ venta }) =>
+          this.ventasDiariasModificadas.has(venta.producto_servicio_id) &&
+          venta.venta_dia !== null &&
+          venta.venta_dia !== undefined,
       );
 
     if (ventasParaActualizar.length === 0) {
-      console.log('No hay ventas modificadas para actualizar');
+      // console.log('No hay ventas modificadas para actualizar');
       return;
     }
 
-    console.log(`Actualizando ${ventasParaActualizar.length} venta(s) modificada(s)`);
+    // console.log(`Actualizando ${ventasParaActualizar.length} venta(s) modificada(s)`);
 
     // Marcar como guardando
     this.estadoGuardadoVentas = 'guardando';
@@ -526,12 +569,12 @@ export class DatosIniciales implements OnInit, OnDestroy {
       const esUltimo = arrayIndex === ventasParaActualizar.length - 1;
       const recalc = esUltimo;
 
-      console.log(`[${arrayIndex + 1}/${ventasParaActualizar.length}] Producto: ${venta.producto_servicio?.nombre || 'Sin nombre'}, ID: ${venta.producto_servicio_id}, Valor: ${venta.venta_dia}, recalc: ${recalc}`);
+      // console.log(`[${arrayIndex + 1}/${ventasParaActualizar.length}] Producto: ${venta.producto_servicio?.nombre || 'Sin nombre'}, ID: ${venta.producto_servicio_id}, Valor: ${venta.venta_dia}, recalc: ${recalc}`);
 
       return this.inversionService
         .actualizarVentaDiaria(venta.id, venta.venta_dia, recalc)
         .then((response) => {
-          console.log('✓ Venta actualizada:', response);
+          // console.log('✓ Venta actualizada:', response);
           // Actualizar solo el campo venta_dia, manteniendo el resto de la información
           this.ventasDiarias[index] = {
             ...this.ventasDiarias[index],
@@ -544,16 +587,16 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
     Promise.all(promesas)
       .then((responses) => {
-        console.log('✓ Todas las ventas actualizadas exitosamente:', responses.length);
-        console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
-        
+        // console.log('✓ Todas las ventas actualizadas exitosamente:', responses.length);
+        // console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
+
         // Limpiar el Set de modificadas después de guardar
         this.ventasDiariasModificadas.clear();
-        console.log('Set de ventas modificadas limpiado');
-        
+        // console.log('Set de ventas modificadas limpiado');
+
         // Recargar costos después de actualizar ventas (el backend puede recalcular)
         this.recargarCostosProducto();
-        
+
         // Mostrar éxito
         this.mostrarExito('ventas');
       })
@@ -567,18 +610,21 @@ export class DatosIniciales implements OnInit, OnDestroy {
   resetProducto(): Producto {
     return {
       nombre: '',
-      recalc: false
+      recalc: false,
     };
   }
 
   // ========== MÉTODOS PARA SUPUESTOS ==========
   guardarSupuestos(): void {
-    console.log('Guardando supuestos:', this.supuestos);
+    // console.log('Guardando supuestos:', this.supuestos);
 
     // Validar que tenga ID antes de actualizar
     if (!this.supuestos.id) {
-      this.mostrarError('supuestos', 'No se puede actualizar. Primero debe existir un registro de supuestos.');
-      console.log('Error: No se puede actualizar. Primero debe existir un registro de supuestos.');
+      this.mostrarError(
+        'supuestos',
+        'No se puede actualizar. Primero debe existir un registro de supuestos.',
+      );
+      // console.log('Error: No se puede actualizar. Primero debe existir un registro de supuestos.');
       return;
     }
 
@@ -588,7 +634,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .actualizarSupuestos(this.supuestos.id, this.supuestos)
       .then((response) => {
-        console.log('Supuestos guardados exitosamente:', response);
+        // console.log('Supuestos guardados exitosamente:', response);
         // Actualizar el estado compartido
         this.datosStateService.setSupuestos(response);
         // Mostrar éxito
@@ -608,9 +654,9 @@ export class DatosIniciales implements OnInit, OnDestroy {
       // Agregar al estado compartido
       this.datosStateService.addProducto(nuevoProducto);
       this.nuevoProducto = this.resetProducto();
-      console.log('Producto agregado a la lista');
+      // console.log('Producto agregado a la lista');
     } else {
-      console.log('Por favor completa el nombre del producto');
+      // console.log('Por favor completa el nombre del producto');
     }
   }
 
@@ -631,21 +677,21 @@ export class DatosIniciales implements OnInit, OnDestroy {
         this.inversionService
           .actualizarProductoServicio(productoEditado.id, productoEditado.nombre)
           .then((response) => {
-            console.log('Producto actualizado en backend:', response);
+            // console.log('Producto actualizado en backend:', response);
             // Actualizar en el estado compartido
             this.datosStateService.updateProducto(index, response);
-            
+
             // Recargar ventas diarias para reflejar el cambio de nombre
             this.recargarVentasDiarias();
-            
+
             // Recargar precios para reflejar el cambio de nombre
             this.recargarPreciosProducto();
-            
+
             this.cancelarEdicion();
           })
           .catch((error) => {
             console.error('Error al actualizar producto:', error);
-            console.log('Error al actualizar el producto. Por favor, intenta de nuevo.');
+            // console.log('Error al actualizar el producto. Por favor, intenta de nuevo.');
           });
       } else {
         // Si no tiene ID, solo actualizar en el estado
@@ -653,7 +699,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
         this.cancelarEdicion();
       }
     } else {
-      console.log('Por favor completa el nombre del producto');
+      // console.log('Por favor completa el nombre del producto');
     }
   }
 
@@ -670,15 +716,18 @@ export class DatosIniciales implements OnInit, OnDestroy {
         this.inversionService
           .eliminarProductoServicio(producto.id)
           .then((response) => {
-            console.log('Producto eliminado del backend:', response);
+            // console.log('Producto eliminado del backend:', response);
             // Actualizar el estado compartido
             this.datosStateService.removeProducto(index);
-            
+
             // Recargar ventas diarias para eliminar la fila del producto eliminado
             this.recargarVentasDiarias();
-            
+
             // Recargar precios para eliminar el precio del producto eliminado
             this.recargarPreciosProducto();
+
+            // Recargar la página para limpiar todos los estados y asegurar consistencia visual
+            window.location.reload();
           })
           .catch((error) => {
             console.error('Error al eliminar producto:', error);
@@ -699,7 +748,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('Guardando productos:', this.productos);
+    // console.log('Guardando productos:', this.productos);
 
     // Filtrar solo productos sin ID (nuevos productos que no están en el backend)
     const productosNuevos = this.productos.filter((p) => !p.id);
@@ -713,43 +762,43 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
     // Guardar cada producto nuevo individualmente
     const promesas = productosNuevos.map((producto) =>
-      this.inversionService.addProductoServicio(this.planId, producto.nombre)
+      this.inversionService.addProductoServicio(this.planId, producto.nombre),
     );
 
     Promise.all(promesas)
       .then((responses) => {
-        console.log('Productos guardados exitosamente:', responses);
+        // console.log('Productos guardados exitosamente:', responses);
 
         // Actualizar los productos en el estado con los IDs devueltos
         const productosActualizados = [...this.productos];
         for (let i = 0; i < responses.length; i++) {
           const response = responses[i];
           const productoNuevo = productosNuevos[i];
-          
+
           if (response.id) {
             const productoIndex = productosActualizados.findIndex(
-              (p) => p.nombre === productoNuevo.nombre && !p.id
+              (p) => p.nombre === productoNuevo.nombre && !p.id,
             );
             if (productoIndex !== -1) {
               productosActualizados[productoIndex] = response;
             }
           }
         }
-        
+
         // Actualizar el estado compartido con los productos que ahora tienen ID
         this.datosStateService.setProductos(productosActualizados);
-        
+
         // Recargar ventas diarias para incluir los nuevos productos
         this.recargarVentasDiarias();
-        
+
         // Recargar precios para incluir los nuevos productos
         this.recargarPreciosProducto();
-        
+
         // Recargar costos para incluir los nuevos productos
         this.recargarCostosProducto();
-        
-        console.log('Recargando ventas, precios y costos para incluir nuevos productos...');
-        
+
+        // console.log('Recargando ventas, precios y costos para incluir nuevos productos...');
+
         // Mostrar éxito
         this.mostrarExito('productos');
       })
@@ -766,7 +815,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getVentasDiarias(this.planId)
       .then((ventas) => {
-        console.log('Ventas diarias recargadas:', ventas);
+        // console.log('Ventas diarias recargadas:', ventas);
         this.datosStateService.setVentasDiarias(ventas);
         // Limpiar el set de modificadas al recargar datos frescos
         this.ventasDiariasModificadas.clear();
@@ -783,7 +832,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getPreciosProductoServicio(this.planId)
       .then((precios) => {
-        console.log('Precios de productos recargados:', precios);
+        // console.log('Precios de productos recargados:', precios);
         this.datosStateService.setPreciosProducto(precios);
         // Limpiar el set de modificados al recargar datos frescos
         this.preciosModificados.clear();
@@ -807,7 +856,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getMacros(this.planId)
       .then((response) => {
-        console.log('Indicadores macroeconómicos cargados desde backend:', response);
+        // console.log('Indicadores macroeconómicos cargados desde backend:', response);
 
         // Manejar si la respuesta es un array (tomar el primer elemento)
         const macrosData = Array.isArray(response) ? response[0] : response;
@@ -824,7 +873,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
             ptu: macrosData.ptu ?? 0,
             diasxmes: macrosData.diasxmes ?? 0,
           };
-          console.log('Macros procesados:', macros);
+          // console.log('Macros procesados:', macros);
           // Actualizar el estado compartido
           this.datosStateService.setMacros(macros);
           // Limpiar el set de modificados al cargar datos frescos
@@ -842,7 +891,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getProductosServicios(this.planId)
       .then((productos) => {
-        console.log('Productos cargados:', productos);
+        // console.log('Productos cargados:', productos);
         // Actualizar el estado compartido
         this.datosStateService.setProductos(productos);
       })
@@ -857,7 +906,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getSupuestos(this.planId)
       .then((response) => {
-        console.log('Supuestos cargados:', response);
+        // console.log('Supuestos cargados:', response);
 
         const supuestosData = Array.isArray(response) ? response[0] : response;
 
@@ -885,7 +934,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getVentasDiarias(this.planId)
       .then((ventas) => {
-        console.log('Ventas diarias cargadas:', ventas);
+        // console.log('Ventas diarias cargadas:', ventas);
         // Actualizar el estado compartido
         this.datosStateService.setVentasDiarias(ventas);
         // Limpiar el set de modificadas al cargar datos frescos
@@ -902,10 +951,10 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getVariablesSensibilidad(this.planId)
       .then((response) => {
-        console.log('Variables de sensibilidad cargadas:', response);
-        
+        // console.log('Variables de sensibilidad cargadas:', response);
+
         const variablesData = Array.isArray(response) ? response[0] : response;
-        
+
         if (variablesData) {
           const variables: VariablesSensibilidad = {
             id: variablesData.id || 0,
@@ -929,10 +978,10 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getVariacionAnual(this.planId)
       .then((response) => {
-        console.log('Variación anual cargada:', response);
-        
+        // console.log('Variación anual cargada:', response);
+
         const variacionData = Array.isArray(response) ? response[0] : response;
-        
+
         if (variacionData) {
           const variacion: VariacionAnual = {
             id: variacionData.id || 0,
@@ -958,7 +1007,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getPreciosProductoServicio(this.planId)
       .then((precios) => {
-        console.log('Precios de productos cargados desde backend:', precios);
+        // console.log('Precios de productos cargados desde backend:', precios);
         // Actualizar el estado compartido
         this.datosStateService.setPreciosProducto(precios);
         // Limpiar el set de modificados al cargar datos frescos
@@ -975,9 +1024,11 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getCostosProductoServicio(this.planId)
       .then((costos) => {
-        console.log('Costos de productos cargados desde backend:', costos);
+        // console.log('Costos de productos cargados desde backend:', costos);
         // Actualizar el estado compartido
         this.datosStateService.setCostosProducto(costos);
+        // Limpiar modificados
+        this.costosModificados.clear();
       })
       .catch((error) => {
         console.error('Error al cargar costos de productos:', error);
@@ -990,11 +1041,11 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .getComposicionFinanciamiento(this.planId)
       .then((response) => {
-        console.log('Composición de financiamiento cargada desde backend:', response);
-        
+        // console.log('Composición de financiamiento cargada desde backend:', response);
+
         // Manejar si la respuesta es un array (tomar el primer elemento)
         const composicionData = Array.isArray(response) ? response[0] : response;
-        
+
         if (composicionData) {
           const composicionCompleta: ComposicionFinanciamiento = {
             id: composicionData.id,
@@ -1002,14 +1053,14 @@ export class DatosIniciales implements OnInit, OnDestroy {
             capital_porcentaje: composicionData.capital_porcentaje ?? 0,
             deuda_porcentaje: composicionData.deuda_porcentaje ?? 0,
             total_porcentaje: composicionData.total_porcentaje ?? 0,
-            total_inversion: composicionData.total_inversion ?? 0
+            total_inversion: composicionData.total_inversion ?? 0,
           };
-          
-          console.log('Composición procesada:', composicionCompleta);
-          
+
+          // console.log('Composición procesada:', composicionCompleta);
+
           // Actualizar el estado compartido
           this.datosStateService.setComposicionFinanciamiento(composicionCompleta);
-          
+
           // Limpiar flag de modificado
           this.composicionModificada = false;
         }
@@ -1024,12 +1075,12 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
   // ========== MÉTODOS PARA VARIABLES DE SENSIBILIDAD ==========
   guardarVariablesSensibilidad(): void {
-    console.log('Guardando variables de sensibilidad:', this.variablesSensibilidad);
+    // console.log('Guardando variables de sensibilidad:', this.variablesSensibilidad);
 
     // Validar que tenga ID antes de actualizar
     if (!this.variablesSensibilidad.id) {
       this.mostrarError('variables', 'No se puede actualizar. Primero debe existir un registro.');
-      console.log('Error: No se puede actualizar. Primero debe existir un registro.');
+      // console.log('Error: No se puede actualizar. Primero debe existir un registro.');
       return;
     }
 
@@ -1039,7 +1090,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .actualizarVariablesSensibilidad(this.variablesSensibilidad.id, this.variablesSensibilidad)
       .then((response) => {
-        console.log('Variables de sensibilidad guardadas exitosamente:', response);
+        // console.log('Variables de sensibilidad guardadas exitosamente:', response);
         // Actualizar el objeto local con la respuesta
         this.variablesSensibilidad = response;
         // Mostrar éxito
@@ -1053,12 +1104,12 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
   // ========== MÉTODOS PARA VARIACIÓN ANUAL ==========
   guardarVariacionAnual(): void {
-    console.log('Guardando variación anual:', this.variacionAnual);
+    // console.log('Guardando variación anual:', this.variacionAnual);
 
     // Validar que tenga ID antes de actualizar
     if (!this.variacionAnual.id) {
       this.mostrarError('variacion', 'No se puede actualizar. Primero debe existir un registro.');
-      console.log('Error: No se puede actualizar. Primero debe existir un registro.');
+      // console.log('Error: No se puede actualizar. Primero debe existir un registro.');
       return;
     }
 
@@ -1068,7 +1119,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .actualizarVariacionAnual(this.variacionAnual.id, this.variacionAnual)
       .then((response) => {
-        console.log('Variación anual guardada exitosamente:', response);
+        // console.log('Variación anual guardada exitosamente:', response);
         // Actualizar el objeto local con la respuesta
         this.variacionAnual = response;
         // Mostrar éxito
@@ -1081,13 +1132,13 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   // ========== MÉTODOS PARA PRECIOS DE PRODUCTOS ==========
-  
+
   /**
    * Marca un precio como modificado cuando el usuario edita el valor
    */
   onPrecioChange(precioId: number): void {
     this.preciosModificados.add(precioId);
-    console.log('Precio marcado como modificado:', precioId, 'Total modificados:', this.preciosModificados.size);
+    // console.log('Precio marcado como modificado:', precioId, 'Total modificados:', this.preciosModificados.size);
   }
 
   /**
@@ -1098,32 +1149,46 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   // ========== MÉTODOS PARA COSTOS DE PRODUCTOS ==========
-  
+
+  /**
+   * Marca un costo como modificado cuando el usuario edita el valor
+   */
+  onCostoChange(costoId: number): void {
+    this.costosModificados.add(costoId);
+  }
+
+  /**
+   * Verifica si hay costos modificados
+   */
+  hayCostosModificados(): boolean {
+    return this.costosModificados.size > 0;
+  }
+
   /**
    * Agrupa los costos por producto/servicio
    * Retorna un mapa donde la clave es el producto_servicio_id
    */
   getCostosPorProducto(): Map<number, { producto: string; costos: Costos[] }> {
     const costosAgrupados = new Map<number, { producto: string; costos: Costos[] }>();
-    
-    this.costosProducto.forEach(costo => {
+
+    this.costosProducto.forEach((costo) => {
       const productoId = costo.producto_servicio_id;
-      
+
       if (!costosAgrupados.has(productoId)) {
         costosAgrupados.set(productoId, {
           producto: costo.producto_servicio?.nombre || 'Sin nombre',
-          costos: []
+          costos: [],
         });
       }
-      
+
       costosAgrupados.get(productoId)!.costos.push(costo);
     });
-    
+
     // Ordenar costos por categoría dentro de cada producto
-    costosAgrupados.forEach(grupo => {
+    costosAgrupados.forEach((grupo) => {
       grupo.costos.sort((a, b) => a.categoria_costo_id - b.categoria_costo_id);
     });
-    
+
     return costosAgrupados;
   }
 
@@ -1132,11 +1197,15 @@ export class DatosIniciales implements OnInit, OnDestroy {
    * Para usar con *ngFor en el template
    */
   getProductosConCostos(): Array<{ productoId: number; producto: string; costos: Costos[] }> {
+    return this.productosConCostosCache;
+  }
+
+  private actualizarCacheCostos(): void {
     const costosAgrupados = this.getCostosPorProducto();
-    return Array.from(costosAgrupados.entries()).map(([productoId, data]) => ({
+    this.productosConCostosCache = Array.from(costosAgrupados.entries()).map(([productoId, data]) => ({
       productoId,
       producto: data.producto,
-      costos: data.costos
+      costos: data.costos,
     }));
   }
 
@@ -1158,25 +1227,26 @@ export class DatosIniciales implements OnInit, OnDestroy {
    * Guarda los precios de productos modificados
    */
   guardarPreciosProducto(): void {
-    console.log('Guardando precios de productos...');
-    console.log('Total de precios modificados:', this.preciosModificados.size);
+    // console.log('Guardando precios de productos...');
+    // console.log('Total de precios modificados:', this.preciosModificados.size);
 
     // Filtrar solo los precios que fueron realmente modificados
     const preciosParaActualizar = this.preciosProducto
       .map((precio, index) => ({ precio, index }))
-      .filter(({ precio }) => 
-        precio.id && 
-        this.preciosModificados.has(precio.id) &&
-        precio.precio !== null && 
-        precio.precio !== undefined
+      .filter(
+        ({ precio }) =>
+          precio.id &&
+          this.preciosModificados.has(precio.id) &&
+          precio.precio !== null &&
+          precio.precio !== undefined,
       );
 
     if (preciosParaActualizar.length === 0) {
-      console.log('No hay precios modificados para actualizar');
+      // console.log('No hay precios modificados para actualizar');
       return;
     }
 
-    console.log(`Actualizando ${preciosParaActualizar.length} precio(s) modificado(s)`);
+    // console.log(`Actualizando ${preciosParaActualizar.length} precio(s) modificado(s)`);
 
     // Marcar como guardando
     this.estadoGuardadoPrecios = 'guardando';
@@ -1189,15 +1259,15 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
       const precioParaEnviar: Partial<PreciosProducto> = {
         precio: precio.precio,
-        recalc: recalc
+        recalc: recalc,
       };
 
-      console.log(`[${arrayIndex + 1}/${preciosParaActualizar.length}] Producto: ${precio.producto_servicio?.nombre || 'Sin nombre'}, ID: ${precio.id}, Precio: ${precio.precio}, recalc: ${recalc}`);
+      // console.log(`[${arrayIndex + 1}/${preciosParaActualizar.length}] Producto: ${precio.producto_servicio?.nombre || 'Sin nombre'}, ID: ${precio.id}, Precio: ${precio.precio}, recalc: ${recalc}`);
 
       return this.inversionService
         .actualizarPreciosProductoServicio(precio.id!, precioParaEnviar)
         .then((response) => {
-          console.log('Precio actualizado:', response);
+          // console.log('Precio actualizado:', response);
           // Actualizar el precio en el estado manteniendo la información completa
           this.preciosProducto[index] = {
             ...this.preciosProducto[index],
@@ -1210,15 +1280,15 @@ export class DatosIniciales implements OnInit, OnDestroy {
 
     Promise.all(promesas)
       .then((responses) => {
-        console.log('Todos los precios actualizados exitosamente:', responses.length);
-        console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
-        
+        // console.log('Todos los precios actualizados exitosamente:', responses.length);
+        // console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
+
         // Recargar precios y costos para obtener valores calculados
         this.recargarPreciosProducto();
         this.recargarCostosProducto();
-        
-        console.log('Recargando precios y costos desde backend para obtener valores calculados...');
-        
+
+        // console.log('Recargando precios y costos desde backend para obtener valores calculados...');
+
         // Mostrar éxito
         this.mostrarExito('precios');
       })
@@ -1229,14 +1299,76 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   /**
+   * Guarda los costos de productos modificados
+   */
+  guardarCostosProducto(): void {
+    // Filtrar solo los costos que fueron realmente modificados
+    const costosParaActualizar = this.costosProducto
+      .map((costo, index) => ({ costo, index }))
+      .filter(
+        ({ costo }) =>
+          costo.id &&
+          this.costosModificados.has(costo.id) &&
+          costo.costo !== null &&
+          costo.costo !== undefined,
+      );
+
+    if (costosParaActualizar.length === 0) {
+      return;
+    }
+
+    // Marcar como guardando
+    this.estadoGuardadoCostos = 'guardando';
+
+    // Crear promesas con lógica de recalc optimizada
+    const promesas = costosParaActualizar.map(({ costo, index }, arrayIndex) => {
+      // Solo el último elemento debe tener recalc: true
+      const esUltimo = arrayIndex === costosParaActualizar.length - 1;
+      const recalc = esUltimo;
+
+      const costoParaEnviar: Partial<Costos> = {
+        costo: costo.costo,
+        recalc: recalc,
+      };
+
+      return this.inversionService
+        .actualizarCostosProductoServicio(costo.id!, costoParaEnviar)
+        .then((response) => {
+          // Actualizar el costo en el estado
+          this.costosProducto[index] = {
+            ...this.costosProducto[index],
+            costo: response.costo,
+            costo_calc: response.costo_calc,
+          };
+          return response;
+        });
+    });
+
+    Promise.all(promesas)
+      .then(() => {
+        // Recargar precios y costos
+        this.recargarPreciosProducto();
+        this.recargarCostosProducto();
+
+        // Mostrar éxito
+        this.mostrarExito('costos');
+      })
+      .catch((error) => {
+        console.error('Error al guardar costos:', error);
+        this.mostrarError('costos', error.message || 'Error al guardar');
+      });
+  }
+
+  /**
    * Recarga los costos de productos desde el backend y actualiza el estado
    */
   private recargarCostosProducto(): void {
     this.inversionService
       .getCostosProductoServicio(this.planId)
       .then((costos) => {
-        console.log('Costos de productos recargados:', costos);
+        // console.log('Costos de productos recargados:', costos);
         this.datosStateService.setCostosProducto(costos);
+        this.costosModificados.clear();
       })
       .catch((error) => {
         console.error('Error al recargar costos de productos:', error);
@@ -1259,16 +1391,17 @@ export class DatosIniciales implements OnInit, OnDestroy {
     }
 
     // Calcular automáticamente el porcentaje de deuda (complemento de capital)
-    this.composicionFinanciamiento.deuda_porcentaje = 100 - (this.composicionFinanciamiento.capital_porcentaje || 0);
-    
+    this.composicionFinanciamiento.deuda_porcentaje =
+      100 - (this.composicionFinanciamiento.capital_porcentaje || 0);
+
     // Calcular el total basado en el total_inversion del backend
     this.calcularTotalComposicion();
 
     // Marcar como modificado
     this.composicionModificada = true;
-    
-    console.log('Capital modificado:', this.composicionFinanciamiento.capital_porcentaje);
-    console.log('Deuda calculada:', this.composicionFinanciamiento.deuda_porcentaje);
+
+    // console.log('Capital modificado:', this.composicionFinanciamiento.capital_porcentaje);
+    // console.log('Deuda calculada:', this.composicionFinanciamiento.deuda_porcentaje);
   }
 
   /**
@@ -1277,8 +1410,8 @@ export class DatosIniciales implements OnInit, OnDestroy {
   private calcularTotalComposicion(): void {
     // Este método no es necesario si total_porcentaje siempre es 100
     // Pero lo dejamos por si se necesita calcular el total en términos monetarios
-    this.composicionFinanciamiento.total_porcentaje = 
-      (this.composicionFinanciamiento.capital_porcentaje || 0) + 
+    this.composicionFinanciamiento.total_porcentaje =
+      (this.composicionFinanciamiento.capital_porcentaje || 0) +
       (this.composicionFinanciamiento.deuda_porcentaje || 0);
   }
 
@@ -1311,12 +1444,12 @@ export class DatosIniciales implements OnInit, OnDestroy {
    * Guarda la composición de financiamiento
    */
   guardarComposicionFinanciamiento(): void {
-    console.log('Guardando composición de financiamiento:', this.composicionFinanciamiento);
+    // console.log('Guardando composición de financiamiento:', this.composicionFinanciamiento);
 
     // Validar que tenga ID antes de actualizar
     if (!this.composicionFinanciamiento.id) {
       this.mostrarError('composicion', 'No se puede actualizar. Primero debe existir un registro.');
-      console.log('Error: No se puede actualizar. Primero debe existir un registro.');
+      // console.log('Error: No se puede actualizar. Primero debe existir un registro.');
       return;
     }
 
@@ -1324,7 +1457,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
     const composicionParaEnviar: Partial<ComposicionFinanciamiento> = {
       capital_porcentaje: this.composicionFinanciamiento.capital_porcentaje,
       deuda_porcentaje: this.composicionFinanciamiento.deuda_porcentaje,
-      recalc: true
+      recalc: true,
     };
 
     // Marcar como guardando
@@ -1333,14 +1466,14 @@ export class DatosIniciales implements OnInit, OnDestroy {
     this.inversionService
       .actualizarComposicionFinanciamiento(this.composicionFinanciamiento.id, composicionParaEnviar)
       .then((response) => {
-        console.log('Composición de financiamiento guardada exitosamente:', response);
-        
+        // console.log('Composición de financiamiento guardada exitosamente:', response);
+
         // Actualizar el estado con la respuesta del backend
         this.datosStateService.setComposicionFinanciamiento(response);
-        
+
         // Limpiar flag de modificado
         this.composicionModificada = false;
-        
+
         // Mostrar éxito
         this.mostrarExito('composicion');
       })

@@ -32,7 +32,7 @@ export class Inversion implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      console.log('ID del plan en Inversión:', this.planId);
+      // console.log('ID del plan en Inversión:', this.planId);
       this.cargarDatos();
     });
   }
@@ -45,15 +45,15 @@ export class Inversion implements OnInit {
     try {
       // Cargar catálogo de tipos (siempre los mismos 3)
       const tipos = await this.inversionService.getCatalogosSistema();
-      console.log('Tipos de inversión:', tipos);
+      // console.log('Tipos de inversión:', tipos);
 
       // Cargar inversiones generales del plan
       const inversionesGenerales = await this.inversionService.getInversionesGenerales(this.planId);
-      console.log('Inversiones generales:', inversionesGenerales);
+      // console.log('Inversiones generales:', inversionesGenerales);
 
       // Cargar detalles de inversión del plan
       const detalles = await this.inversionService.getDetallesInversion(this.planId);
-      console.log('Detalles de inversión:', detalles);
+      // console.log('Detalles de inversión:', detalles);
 
       // Construir estructura jerárquica
       this.construirEstructura(tipos, inversionesGenerales, detalles);
@@ -92,7 +92,7 @@ export class Inversion implements OnInit {
       };
     });
 
-    console.log('Estructura construida:', this.tiposInversion);
+    // console.log('Estructura construida:', this.tiposInversion);
   }
 
   /**
@@ -117,7 +117,7 @@ export class Inversion implements OnInit {
    */
   async guardarNuevaInversionGeneral(inversion: InversionGeneral, tipo: TipoConInversiones): Promise<void> {
     if (!inversion.seccion || inversion.seccion.trim() === '') {
-      console.log('Por favor ingrese un nombre para la sección');
+      // console.log('Por favor ingrese un nombre para la sección');
       return;
     }
 
@@ -128,7 +128,7 @@ export class Inversion implements OnInit {
         inversion.seccion,
         0
       );
-      console.log('Inversión general creada:', response);
+      // console.log('Inversión general creada:', response);
 
       // Actualizar el objeto temporal con el ID del backend
       inversion.id = response.id;
@@ -143,7 +143,7 @@ export class Inversion implements OnInit {
    */
   agregarDetalle(inversion: InversionGeneral): void {
     if (!inversion.id) {
-      console.log('Primero debe guardar la sección antes de agregar elementos');
+      // console.log('Primero debe guardar la sección antes de agregar elementos');
       return;
     }
 
@@ -169,7 +169,7 @@ export class Inversion implements OnInit {
    */
   async guardarNuevoDetalle(detalle: InversionDetalle, inversion: InversionGeneral): Promise<void> {
     if (!detalle.elemento || detalle.elemento.trim() === '') {
-      console.log('Por favor ingrese un nombre para el elemento');
+      // console.log('Por favor ingrese un nombre para el elemento');
       return;
     }
 
@@ -182,7 +182,7 @@ export class Inversion implements OnInit {
         detalle.importe || 0,
         detalle.vida_util || 0
       );
-      console.log('Detalle de inversión creado:', response);
+      // console.log('Detalle de inversión creado:', response);
 
       // Actualizar el objeto temporal con el ID del backend
       detalle.id = response.id;
@@ -197,7 +197,7 @@ export class Inversion implements OnInit {
   onDetalleImporteChange(detalle: InversionDetalle): void {
     if (detalle.id) {
       this.detallesModificados.add(detalle.id);
-      console.log('Detalle marcado como modificado:', detalle.id);
+      // console.log('Detalle marcado como modificado:', detalle.id);
     }
   }
 
@@ -218,7 +218,7 @@ export class Inversion implements OnInit {
    */
   async guardarInversionGeneral(inversion: InversionGeneral): Promise<void> {
     if (!inversion.id) {
-      console.log('Esta inversión aún no tiene ID');
+      // console.log('Esta inversión aún no tiene ID');
       return;
     }
 
@@ -231,7 +231,7 @@ export class Inversion implements OnInit {
         importe: inversion.importe,
         recalc: true
       });
-      console.log('Inversión general actualizada:', response);
+      // console.log('Inversión general actualizada:', response);
     } catch (error) {
       console.error('Error al actualizar inversión general:', error);
     }
@@ -257,11 +257,11 @@ export class Inversion implements OnInit {
     });
 
     if (todosLosDetallesModificados.length === 0) {
-      console.log('No hay detalles modificados para guardar');
+      // console.log('No hay detalles modificados para guardar');
       return;
     }
 
-    console.log(`Guardando ${todosLosDetallesModificados.length} detalle(s) modificado(s) en total`);
+    // console.log(`Guardando ${todosLosDetallesModificados.length} detalle(s) modificado(s) en total`);
 
     try {
       // Crear promesas con lógica de recalc optimizada
@@ -270,7 +270,7 @@ export class Inversion implements OnInit {
         const esUltimo = index === todosLosDetallesModificados.length - 1;
         const recalc = esUltimo;
 
-        console.log(`[${index + 1}/${todosLosDetallesModificados.length}] Elemento: ${item.detalle.elemento}, ID: ${item.detalle.id}, Importe: ${item.detalle.importe}, recalc: ${recalc}`);
+        // console.log(`[${index + 1}/${todosLosDetallesModificados.length}] Elemento: ${item.detalle.elemento}, ID: ${item.detalle.id}, Importe: ${item.detalle.importe}, recalc: ${recalc}`);
 
         return this.inversionService.actualizarDetalleInversion(item.detalle.id!, {
           elemento: item.detalle.elemento,
@@ -281,8 +281,8 @@ export class Inversion implements OnInit {
       });
 
       const responses = await Promise.all(promesas);
-      console.log('✓ Todos los detalles actualizados:', responses);
-      console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
+      // console.log('✓ Todos los detalles actualizados:', responses);
+      // console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
 
       // Limpiar el set de modificados
       this.detallesModificados.clear();
@@ -298,10 +298,10 @@ export class Inversion implements OnInit {
       // Recargar datos para reflejar cambios del backend
       await this.cargarDatos();
 
-      console.log('Cambios guardados correctamente');
+      // console.log('Cambios guardados correctamente');
     } catch (error) {
       console.error('Error al guardar detalles:', error);
-      console.log('Error al guardar los cambios. Por favor, intenta de nuevo.');
+      // console.log('Error al guardar los cambios. Por favor, intenta de nuevo.');
     }
   }
 
@@ -317,7 +317,7 @@ export class Inversion implements OnInit {
    */
   async guardarDetalles(inversion: InversionGeneral): Promise<void> {
     if (!inversion.detalles || inversion.detalles.length === 0) {
-      console.log('No hay detalles para guardar');
+      // console.log('No hay detalles para guardar');
       return;
     }
 
@@ -327,11 +327,11 @@ export class Inversion implements OnInit {
     );
 
     if (detallesParaActualizar.length === 0) {
-      console.log('No hay detalles modificados para guardar');
+      // console.log('No hay detalles modificados para guardar');
       return;
     }
 
-    console.log(`Guardando ${detallesParaActualizar.length} detalle(s) modificado(s)`);
+    // console.log(`Guardando ${detallesParaActualizar.length} detalle(s) modificado(s)`);
 
     try {
       // Crear promesas con lógica de recalc optimizada
@@ -340,7 +340,7 @@ export class Inversion implements OnInit {
         const esUltimo = index === detallesParaActualizar.length - 1;
         const recalc = esUltimo;
 
-        console.log(`[${index + 1}/${detallesParaActualizar.length}] Elemento: ${detalle.elemento}, ID: ${detalle.id}, Importe: ${detalle.importe}, recalc: ${recalc}`);
+        // console.log(`[${index + 1}/${detallesParaActualizar.length}] Elemento: ${detalle.elemento}, ID: ${detalle.id}, Importe: ${detalle.importe}, recalc: ${recalc}`);
 
         return this.inversionService.actualizarDetalleInversion(detalle.id!, {
           elemento: detalle.elemento,
@@ -351,8 +351,8 @@ export class Inversion implements OnInit {
       });
 
       const responses = await Promise.all(promesas);
-      console.log('✓ Todos los detalles actualizados:', responses);
-      console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
+      // console.log('✓ Todos los detalles actualizados:', responses);
+      // console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
 
       // Limpiar el set de modificados
       detallesParaActualizar.forEach(det => this.detallesModificados.delete(det.id!));
@@ -364,7 +364,7 @@ export class Inversion implements OnInit {
       await this.cargarDatos();
     } catch (error) {
       console.error('Error al guardar detalles:', error);
-      console.log('Error al guardar los elementos. Por favor, intenta de nuevo.');
+      // console.log('Error al guardar los elementos. Por favor, intenta de nuevo.');
     }
   }
 
@@ -386,11 +386,11 @@ export class Inversion implements OnInit {
 
     try {
       await this.inversionService.eliminarInversionGeneral(inversion.id);
-      console.log('Inversión general eliminada:', inversion.id);
+      // console.log('Inversión general eliminada:', inversion.id);
       tipo.inversiones.splice(index, 1);
     } catch (error) {
       console.error('Error al eliminar inversión general:', error);
-      console.log('Error al eliminar la sección. Por favor, intenta de nuevo.');
+      // console.log('Error al eliminar la sección. Por favor, intenta de nuevo.');
     }
   }
 
@@ -414,17 +414,17 @@ export class Inversion implements OnInit {
 
     try {
       await this.inversionService.eliminarDetalleInversion(detalle.id);
-      console.log('Detalle eliminado:', detalle.id);
+      // console.log('Detalle eliminado:', detalle.id);
       inversion.detalles.splice(index, 1);
 
       // Remover del set si estaba marcado como modificado
       this.detallesModificados.delete(detalle.id);
 
-      // Recalcular importe de la inversión general
-      this.recalcularImporteInversion(inversion);
+      // Recalcular e informar al backend del nuevo importe de la inversión general
+      await this.guardarInversionGeneral(inversion);
     } catch (error) {
       console.error('Error al eliminar detalle:', error);
-      console.log('Error al eliminar el elemento. Por favor, intenta de nuevo.');
+      // console.log('Error al eliminar el elemento. Por favor, intenta de nuevo.');
     }
   }
 
