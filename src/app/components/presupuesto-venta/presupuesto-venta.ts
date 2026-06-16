@@ -17,6 +17,10 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   presupuestos: PresupuestoVenta[] = [];
   presupuestosAgrupados: { anio: number; items: PresupuestoVenta[] }[] = [];
   cargando: boolean = false;
+  modoEdicion = false;
+  guardandoCambios = false;
+  editValues: Map<number, number[]> = new Map();
+  cambiosPendientes: Set<number> = new Set();
 
   private subscriptions: Subscription[] = [];
 
@@ -75,15 +79,13 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   /**
    * Carga los presupuestos de venta desde el backend
    */
-  cargarPresupuestos(): void {
+  cargarPresupuestos(): Promise<void> {
     this.cargando = true;
-    this.inversionService
+    return this.inversionService
       .getPresupuestoVenta(this.planId)
       .then((response) => {
-        // console.log('Presupuestos de venta cargados:', response);
         this.presupuestos = Array.isArray(response) ? response : [];
         this.agruparPorAnio();
-        // console.log('Presupuestos agrupados por año:', this.presupuestosAgrupados);
         this.cargando = false;
       })
       .catch((error) => {
@@ -99,7 +101,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
    */
   agruparPorAnio(): void {
     const aniosMap = new Map<number, PresupuestoVenta[]>();
-    
+
     for (const presupuesto of this.presupuestos) {
       const anio = presupuesto.anio || 0;
       if (!aniosMap.has(anio)) {
@@ -107,18 +109,92 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
       }
       aniosMap.get(anio)!.push(presupuesto);
     }
-    
+
     // Convertir a array y ordenar por año
     this.presupuestosAgrupados = Array.from(aniosMap.entries())
       .map(([anio, items]) => ({ anio, items }))
       .sort((a, b) => a.anio - b.anio);
   }
 
-  /**
-   * Genera array con los 12 meses repitiendo el valor mensual
-   */
-  getMeses(mensual: number): number[] {
-    return new Array(12).fill(mensual);
+  getMesesValores(presupuesto: PresupuestoVenta): number[] {
+    const base = presupuesto.mensual ?? 0;
+    return [
+      presupuesto.mes1, presupuesto.mes2, presupuesto.mes3,
+      presupuesto.mes4, presupuesto.mes5, presupuesto.mes6,
+      presupuesto.mes7, presupuesto.mes8, presupuesto.mes9,
+      presupuesto.mes10, presupuesto.mes11, presupuesto.mes12,
+    ].map(v => v ?? base);
+  }
+
+  toggleEdicion(): void {
+    this.modoEdicion = !this.modoEdicion;
+    if (this.modoEdicion) {
+      this.inicializarEditValues();
+    } else {
+      this.cambiosPendientes.clear();
+      this.editValues.clear();
+    }
+  }
+
+  private inicializarEditValues(): void {
+    this.editValues.clear();
+    this.cambiosPendientes.clear();
+    for (const grupo of this.presupuestosAgrupados) {
+      for (const p of grupo.items) {
+        this.editValues.set(p.id!, [...this.getMesesValores(p)]);
+      }
+    }
+  }
+
+  getEditVal(presupuesto: PresupuestoVenta, index: number): number {
+    return this.editValues.get(presupuesto.id!)?.[index] ?? 0;
+  }
+
+  onMesInput(presupuesto: PresupuestoVenta, index: number, valor: number): void {
+    const vals = this.editValues.get(presupuesto.id!) ?? [...this.getMesesValores(presupuesto)];
+    vals[index] = isNaN(valor) ? 0 : valor;
+    this.editValues.set(presupuesto.id!, vals);
+    this.cambiosPendientes.add(presupuesto.id!);
+  }
+
+  getAnualEditado(presupuesto: PresupuestoVenta): number {
+    const vals = this.editValues.get(presupuesto.id!);
+    return vals ? vals.reduce((a, b) => a + b, 0) : (presupuesto.anual ?? 0);
+  }
+
+  get hayPendientes(): boolean {
+    return this.cambiosPendientes.size > 0;
+  }
+
+  async guardarTodosCambios(): Promise<void> {
+    if (!this.hayPendientes || this.guardandoCambios) return;
+    this.guardandoCambios = true;
+    try {
+      const promesas = Array.from(this.cambiosPendientes).map(id => {
+        const vals = this.editValues.get(id)!;
+        const body: Partial<PresupuestoVenta> = { manual_override: true };
+        vals.forEach((v, i) => { (body as any)[`mes${i + 1}`] = v; });
+        body.anual = vals.reduce((a, b) => a + b, 0);
+        return this.inversionService.patchPresupuestoVenta(id, body);
+      });
+      await Promise.all(promesas);
+      this.cambiosPendientes.clear();
+      await this.cargarPresupuestos();
+      this.modoEdicion = false;
+    } catch (error) {
+      console.error('Error guardando cambios:', error);
+    } finally {
+      this.guardandoCambios = false;
+    }
+  }
+
+  async quitarOverride(presupuesto: PresupuestoVenta): Promise<void> {
+    const limpiar: Partial<PresupuestoVenta> = { manual_override: false };
+    for (let i = 1; i <= 12; i++) (limpiar as any)[`mes${i}`] = null;
+    await this.inversionService.patchPresupuestoVenta(presupuesto.id!, limpiar);
+    presupuesto.manual_override = false;
+    this.cambiosPendientes.delete(presupuesto.id!);
+    this.cargarPresupuestos();
   }
 
   /**

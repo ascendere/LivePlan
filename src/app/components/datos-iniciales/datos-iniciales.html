@@ -2,12 +2,12 @@
 
 <div class="layout" [class.sidebar-collapsed]="isSidebarCollapsed">
   <app-sidebar [planId]="planId" (onCollapsedChange)="handleSidebarCollapse($event)"></app-sidebar>
-  
+
   <!-- Componente flotante de Variables de Sensibilidad -->
   <app-variables-sensibilidad [planId]="planId"></app-variables-sensibilidad>
 
   <!-- Componente flotante de Políticas de Compra/Venta -->
-  <app-politicas-cv [planId]="planId"></app-politicas-cv>  
+  <app-politicas-cv [planId]="planId"></app-politicas-cv>
 
   <main class="main-content">
     <div class="content-container">
@@ -58,7 +58,7 @@
             <div class="section-header">
               <h2>{{ seccionActiva.titulo }}</h2>
             </div>
-            
+
             <!-- ========== SECCIÓN 1: INDICADORES MACROECONÓMICOS ========== -->
             <div *ngIf="seccionActual === 0" class="form-section">
               <form class="data-form">
@@ -77,7 +77,7 @@
                     />
                   </div>
                   <div class="form-field">
-                    <label for="inflacion">Inflación (%) *</label>
+                    <label for="inflacion">Inflación Anual (%) *</label>
                     <input
                       type="number"
                       id="inflacion"
@@ -91,7 +91,7 @@
                     />
                   </div>
                   <div class="form-field">
-                    <label for="tasaDeuda">Tasa de Deuda (%) *</label>
+                    <label for="tasaDeuda">Tasa de Interés para Deuda (%) *</label>
                     <input
                       type="number"
                       id="tasaDeuda"
@@ -105,7 +105,7 @@
                     />
                   </div>
                   <div class="form-field">
-                    <label for="tasaInteres">Tasa de Interés (%) *</label>
+                    <label for="tasaInteres">Tasa de Interés para Inversiones Libre de Riesgo (%) *</label>
                     <input
                       type="number"
                       id="tasaInteres"
@@ -119,7 +119,7 @@
                     />
                   </div>
                   <div class="form-field">
-                    <label for="tasaImpuesto">Tasa de Impuesto (%) *</label>
+                    <label for="tasaImpuesto">Tasa de Impuesto Sobre la Renta (%) *</label>
                     <input
                       type="number"
                       id="tasaImpuesto"
@@ -147,7 +147,7 @@
                     />
                   </div>
                   <div class="form-field">
-                    <label for="diasxmes">Días por Mes *</label>
+                    <label for="diasxmes">Días por Mes Promedio*</label>
                     <input
                       type="number"
                       id="diasxmes"
@@ -162,9 +162,9 @@
                   </div>
                 </div>
                 <div class="form-actions" *ngIf="hayMacrosModificados()">
-                  <button 
-                    type="button" 
-                    class="btn-primary" 
+                  <button
+                    type="button"
+                    class="btn-primary"
                     (click)="guardarMacros()"
                     [disabled]="estadoGuardadoMacros === 'guardando'"
                   >
@@ -175,7 +175,7 @@
                     </svg>
                     Guardar Indicadores ({{ camposMacrosModificados.size }})
                   </button>
-                  
+
                   <!-- Mensaje de estado -->
                   <span *ngIf="estadoGuardadoMacros === 'guardando'" class="mensaje-estado guardando">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -210,7 +210,7 @@
 
                 <!-- Mostrar total de inversión (siempre visible para debug) -->
                 <div class="info-box">
-                  <strong>Total de Inversión:</strong> 
+                  <strong>Total de Inversión:</strong>
                   <span *ngIf="composicionFinanciamiento.total_inversion !== undefined && composicionFinanciamiento.total_inversion !== null">
                     {{ composicionFinanciamiento.total_inversion | number:'1.2-2' }}
                   </span>
@@ -218,7 +218,7 @@
                     Cargando...
                   </span>
                 </div>
-                
+
                 <div class="form-grid">
                   <div class="form-field">
                     <label for="capitalPorcentaje">Capital (%) *</label>
@@ -235,7 +235,7 @@
                     />
                     <small class="field-info">Monto: {{ getMontoCapital() | number:'1.2-2' }}</small>
                   </div>
-                  
+
                   <div class="form-field">
                     <label for="deudaPorcentaje">Deuda (%) *</label>
                     <input
@@ -249,7 +249,7 @@
                     />
                     <small class="field-info">Monto: {{ getMontoDeuda() | number:'1.2-2' }}</small>
                   </div>
-                  
+
                   <div class="form-field">
                     <label for="totalPorcentaje">Total (%) *</label>
                     <input
@@ -266,9 +266,9 @@
                 </div>
 
                 <div class="form-actions" *ngIf="hayComposicionModificada()">
-                  <button 
-                    type="button" 
-                    class="btn-primary" 
+                  <button
+                    type="button"
+                    class="btn-primary"
                     (click)="guardarComposicionFinanciamiento()"
                     [disabled]="estadoGuardadoComposicion === 'guardando'"
                   >
@@ -279,7 +279,7 @@
                     </svg>
                     Guardar Composición
                   </button>
-                  
+
                   <!-- Mensaje de estado -->
                   <span *ngIf="estadoGuardadoComposicion === 'guardando'" class="mensaje-estado guardando">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -455,7 +455,7 @@
                   Guardar Productos
                   <span *ngIf="hayProductosNuevos()">({{ contarProductosNuevos() }})</span>
                 </button>
-                
+
                 <!-- Mensaje de estado -->
                 <span *ngIf="estadoGuardadoProductos === 'guardando'" class="mensaje-estado guardando">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -511,7 +511,7 @@
                     />
                   </div> -->
                   <div class="form-field">
-                    <label for="ptu">PTU - Participación de Trabajadores en Utilidades (%) *</label>
+                    <label for="ptu">PTU - Participación de Trabajadores (%) *</label>
                     <input
                       type="number"
                       id="ptu"
@@ -521,6 +521,7 @@
                       max="100"
                       step="0.01"
                       placeholder="0"
+                      readonly
                     />
                   </div>
                   <div class="form-field">
@@ -534,19 +535,20 @@
                       max="100"
                       step="0.01"
                       placeholder="0"
+                      readonly
                     />
                   </div>
                 </div>
                 <div class="form-actions">
-                  <button 
-                    type="button" 
-                    class="btn-primary" 
+                  <button
+                    type="button"
+                    class="btn-primary"
                     (click)="guardarSupuestos()"
                     [disabled]="estadoGuardadoSupuestos === 'guardando'"
                   >
                     Guardar Supuestos
                   </button>
-                  
+
                   <!-- Mensaje de estado -->
                   <span *ngIf="estadoGuardadoSupuestos === 'guardando'" class="mensaje-estado guardando">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -610,8 +612,8 @@
                 </div>
 
                 <div class="form-actions" *ngIf="ventasDiarias.length > 0">
-                  <button 
-                    class="btn btn-primary" 
+                  <button
+                    class="btn btn-primary"
                     (click)="guardarVentasDiarias()"
                     [disabled]="!hayVentasDiariasModificadas() || estadoGuardadoVentas === 'guardando'"
                     [class.disabled]="!hayVentasDiariasModificadas()"
@@ -619,7 +621,7 @@
                     Guardar Ventas por Día
                     <span *ngIf="hayVentasDiariasModificadas()">({{ ventasDiariasModificadas.size }})</span>
                   </button>
-                  
+
                   <!-- Mensaje de estado -->
                   <span *ngIf="estadoGuardadoVentas === 'guardando'" class="mensaje-estado guardando">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -695,7 +697,7 @@
                   >
                     Guardar
                   </button> -->
-                  
+
                   <!-- Mensaje de estado -->
                   <!-- <span *ngIf="estadoGuardadoVariables === 'guardando'" class="mensaje-estado guardando">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -792,15 +794,15 @@
                     </div>
                   </div>
                   <div class="form-actions">
-                    <button 
-                      type="button" 
-                      class="btn-primary" 
+                    <button
+                      type="button"
+                      class="btn-primary"
                       (click)="guardarVariacionAnual()"
                       [disabled]="estadoGuardadoVariacion === 'guardando'"
                     >
                       Guardar Variación Anual
                     </button>
-                    
+
                     <!-- Mensaje de estado -->
                     <span *ngIf="estadoGuardadoVariacion === 'guardando'" class="mensaje-estado guardando">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -871,8 +873,8 @@
 
                 <!-- Botón guardar solo visible cuando hay cambios -->
                 <div class="form-actions" *ngIf="hayPreciosModificados()">
-                  <button 
-                    class="btn btn-primary" 
+                  <button
+                    class="btn btn-primary"
                     (click)="guardarPreciosProducto()"
                     [disabled]="estadoGuardadoPrecios === 'guardando'"
                   >
@@ -883,7 +885,7 @@
                     </svg>
                     Guardar Precios ({{ preciosModificados.size }} modificado{{ preciosModificados.size !== 1 ? 's' : '' }})
                   </button>
-                  
+
                   <!-- Mensaje de estado -->
                   <span *ngIf="estadoGuardadoPrecios === 'guardando'" class="mensaje-estado guardando">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -914,7 +916,7 @@
               <!-- Tabla de costos de productos/servicios -->
               <div class="table-container">
                 <p class="info-text">
-                  Visualice los costos por categoría para cada producto/servicio
+                  Visualice los costos por categoría para cada producto/servicio en base al precio del producto y un porcentaje asignado (puedes editar los valores según tus necesidades); guarda los cambios al final de la tabla con "Guardar Costos"
                 </p>
                 <p class="info-note">
                   <strong>Importante:</strong> estos datos son independientes del precio de los productos/servicios, se deben actualizar manualmente.
@@ -926,7 +928,7 @@
                   <!-- Iterar por cada producto -->
                   <div *ngFor="let grupo of getProductosConCostos(); let isLast = last" class="producto-grupo">
                     <h4 class="producto-nombre">{{ grupo.producto }}</h4>
-                    
+
                     <table class="data-table">
                       <thead>
                         <tr>
@@ -965,8 +967,8 @@
 
                 <!-- Botón guardar solo visible cuando hay cambios -->
                 <div class="form-actions" *ngIf="hayCostosModificados()">
-                  <button 
-                    class="btn btn-primary" 
+                  <button
+                    class="btn btn-primary"
                     (click)="guardarCostosProducto()"
                     [disabled]="estadoGuardadoCostos === 'guardando'"
                   >
@@ -977,7 +979,7 @@
                     </svg>
                     Guardar Costos ({{ costosModificados.size }} modificado{{ costosModificados.size !== 1 ? 's' : '' }})
                   </button>
-                  
+
                   <!-- Mensaje de estado -->
                   <span *ngIf="estadoGuardadoCostos === 'guardando'" class="mensaje-estado guardando">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

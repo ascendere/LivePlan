@@ -293,3 +293,89 @@
     font-size: 1.1rem;
   }
 }
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.acciones-edicion {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn-guardar {
+  padding: 8px 22px;
+  border-radius: 8px;
+  border: none;
+  background: #16a34a;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-guardar:hover:not(:disabled) { background: #15803d; }
+.btn-guardar:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.fila-pendiente { background-color: #eff6ff !important; }
+
+.btn-toggle-edicion {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 2px solid #004271;
+  background: white;
+  color: #004271;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-toggle-edicion.activo {
+  background: #004271;
+  color: white;
+}
+
+.btn-toggle-edicion:hover {
+  opacity: 0.85;
+}
+
+.fila-manual { background-color: #fff8e1 !important; }
+
+.badge-manual {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: #f59e0b;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.edit-cell { padding: 2px !important; }
+
+.input-edit {
+  width: 100%;
+  padding: 3px 4px;
+  border: 1px solid #004271;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  text-align: right;
+  font-family: 'Courier New', monospace;
+  box-sizing: border-box;
+}
+
+.input-edit:focus {
+  outline: none;
+  border-color: #0056a3;
+  box-shadow: 0 0 0 2px rgba(0, 66, 113, 0.15);
+}

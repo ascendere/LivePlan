@@ -292,6 +292,18 @@ export class InversionService {
     });
   }
 
+  patchPresupuestoVenta(id: number, body: Partial<PresupuestoVenta>): Promise<PresupuestoVenta> {
+    const url = `${this.apiUrl}/presupuestos_venta/item/${encodeURIComponent(id)}`;
+    return fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then((response) => {
+      if (!response.ok) throw new Error(`Error al actualizar presupuesto de venta: ${response.status} ${response.statusText}`);
+      return response.json();
+    });
+  }
+
   getPresupuestoVenta(planNegocioId: number): Promise<PresupuestoVenta[]> {
     const url = `${this.apiUrl}/presupuestos_venta/${encodeURIComponent(planNegocioId)}`;
     return fetch(url).then((response) => {

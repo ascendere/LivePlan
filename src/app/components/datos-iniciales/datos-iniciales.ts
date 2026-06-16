@@ -179,6 +179,8 @@ export class DatosIniciales implements OnInit, OnDestroy {
     const macrosSub = this.datosStateService.macros$.subscribe((macros) => {
       if (macros) {
         this.macros = macros;
+        this.supuestos.ptu = macros.ptu;
+        this.supuestos.isr = macros.tasa_impuesto;
         // console.log('Macros actualizados desde estado:', macros);
       }
     });
@@ -193,6 +195,8 @@ export class DatosIniciales implements OnInit, OnDestroy {
     const supuestosSub = this.datosStateService.supuestos$.subscribe((supuestos) => {
       if (supuestos) {
         this.supuestos = supuestos;
+        this.supuestos.ptu = this.macros.ptu;
+        this.supuestos.isr = this.macros.tasa_impuesto;
         // console.log('Supuestos actualizados desde estado:', supuestos);
       }
     });
