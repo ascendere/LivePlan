@@ -1,7 +1,7 @@
-import { Component, Input} from '@angular/core';
-import { VentaMes } from '../../interfaces/ventasMes.interface';
-
-
+import { Component, Input } from '@angular/core';
+import { AnioVentas } from '../../interfaces/ventasMes.interface';
+ 
+ 
 @Component({
   selector: 'app-ventas-pdf-table',
   standalone: false,
@@ -9,16 +9,13 @@ import { VentaMes } from '../../interfaces/ventasMes.interface';
   styleUrl: './ventas-pdf-table.css',
 })
 export class VentasPdfTable {
-  @Input() ventasAgrupadas!: { producto: string; anios: Map<number, VentaMes> }[];
+  @Input() ventasAgrupadas!: { producto: string; anios: Map<number, AnioVentas> }[];
   @Input() anioSeleccionado!: number;
-
-  getVenta(grupo: any): VentaMes | null {
+ 
+  getVenta(grupo: any): AnioVentas | null {
     // Convertir a número porque el select puede pasar string
     const anio = Number(this.anioSeleccionado);
     return grupo.anios.get(anio) || null;
   }
-
-  getMeses(valor: number): number[] {
-    return new Array(12).fill(valor);
-  }
 }
+ 

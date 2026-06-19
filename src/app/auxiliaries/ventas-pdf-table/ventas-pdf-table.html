@@ -19,7 +19,7 @@
         <td class="producto-col">{{ grupo.producto }}</td>
 
         <ng-container *ngIf="getVenta(grupo) as venta; else sinDatos">
-          <td *ngFor="let mes of getMeses(venta.mensual ?? 0)" class="number-col">
+          <td *ngFor="let mes of venta.meses" class="number-col">
             {{ mes | number:'1.2-2' }}
           </td>
           <td class="total-col">{{ venta.anual | number:'1.2-2' }}</td>

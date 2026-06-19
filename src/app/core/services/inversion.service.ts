@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments/environment.example';
 import { PlanNegocio } from '../../interfaces/planNegocio.interface';
 import { FirebaseService } from './firebase.service';
 import { AuthService } from './login.service';
@@ -1004,6 +1004,77 @@ export class InversionService {
         throw new Error(`Error al ejecutar recalcular2: ${response.status} ${response.statusText}`);
       }
       return response.json();
+    });
+  }
+  /**
+   * Reemplaza los 12 meses (estacionalidad) de una fila de presupuesto.
+   * recalc=false: solo guarda. El recálculo se dispara aparte con
+   * ejecutarRecalcular2() una sola vez para todas las filas modificadas.
+   */
+  actualizarPresupuestoVentaMeses(
+    presupuestoId: number,
+    meses: { mes: number; valor: number }[],
+    recalc: boolean = false,
+  ): Promise<any> {
+    const url = `${this.apiUrl}/presupuestos_venta/meses/${encodeURIComponent(presupuestoId)}`;
+    return fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meses, recalc }),
+    }).then((response) => {
+      if (!response.ok) {
+        throw new Error(
+          `Error al actualizar meses del presupuesto: ${response.status} ${response.statusText}`,
+        );
+      }
+      return response.json();
+    });
+  }
+ 
+  /** Vuelve una fila a distribución automática (borra sus meses) y recalcula. */
+  limpiarPresupuestoVentaMeses(presupuestoId: number): Promise<void> {
+    const url = `${this.apiUrl}/presupuestos_venta/meses/${encodeURIComponent(presupuestoId)}`;
+    return fetch(url, { method: 'DELETE' }).then((response) => {
+      if (!response.ok) {
+        throw new Error(
+          `Error al limpiar meses del presupuesto: ${response.status} ${response.statusText}`,
+        );
+      }
+    });
+  }
+   /** Estacionalidad (12 meses) de un producto. Vacío = uniforme. */
+  getEstacionalidadProducto(
+    productoId: number,
+  ): Promise<{ mes: number; valor: number }[]> {
+    const url = `${this.apiUrl}/estacionalidad/${encodeURIComponent(productoId)}`;
+    return fetch(url).then((r) => {
+      if (!r.ok) throw new Error('Error al obtener estacionalidad');
+      return r.json();
+    });
+  }
+
+   /** Reemplaza los 12 meses de estacionalidad de un producto y recalcula. */
+  actualizarEstacionalidadProducto(
+    productoId: number,
+    meses: { mes: number; valor: number }[],
+    recalc: boolean = true,
+  ): Promise<any> {
+    const url = `${this.apiUrl}/estacionalidad/${encodeURIComponent(productoId)}`;
+    return fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meses, recalc }),
+    }).then((r) => {
+      if (!r.ok) throw new Error(`Error al guardar estacionalidad: ${r.status}`);
+      return r.json();
+    });
+  }
+ 
+  /** Quita la estacionalidad de un producto (vuelve a uniforme) y recalcula. */
+  limpiarEstacionalidadProducto(productoId: number): Promise<void> {
+    const url = `${this.apiUrl}/estacionalidad/${encodeURIComponent(productoId)}`;
+    return fetch(url, { method: 'DELETE' }).then((r) => {
+      if (!r.ok) throw new Error(`Error al quitar estacionalidad: ${r.status}`);
     });
   }
 }

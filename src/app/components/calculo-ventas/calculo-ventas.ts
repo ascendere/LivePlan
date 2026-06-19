@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { InversionService } from '../../core/services/inversion.service';
-import { VentaMes } from '../../interfaces/ventasMes.interface';
+import { VentaMes, AnioVentas } from '../../interfaces/ventasMes.interface';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -17,7 +17,7 @@ export class CalculoVentas implements OnInit {
   planId: number = 0;
   isSidebarCollapsed = false;
   ventas: VentaMes[] = [];
-  ventasAgrupadas: { producto: string; anios: Map<number, VentaMes> }[] = [];
+  ventasAgrupadas: { producto: string; anios: Map<number, AnioVentas> }[] = [];
   cargando: boolean = false;
   anioExportar: number = 1;
 
@@ -29,7 +29,6 @@ export class CalculoVentas implements OnInit {
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      // console.log('ID del plan en Cálculo de Ventas:', this.planId);
       if (this.planId) {
         this.cargarVentas();
       }
@@ -50,43 +49,51 @@ export class CalculoVentas implements OnInit {
       });
   }
 
+  /**
+   * Agrupa por producto y año, conservando los 12 meses reales.
+   * Antes se guardaba un solo VentaMes por año (last-write-wins) y luego se
+   * repetía su valor en los 12 meses; eso ocultaba la estacionalidad.
+   */
   agruparPorProducto(): void {
-    const productosMap = new Map<number, { producto: string; anios: Map<number, VentaMes> }>();
-    
+    const productosMap = new Map<number, { producto: string; anios: Map<number, AnioVentas> }>();
+
     for (const venta of this.ventas) {
       const productoId = venta.producto_id || 0;
       const productoNombre = venta.producto?.nombre || 'Sin nombre';
       const anio = venta.anio || 0;
-      
+      const mes = venta.mes || 0;
+
       if (!productosMap.has(productoId)) {
         productosMap.set(productoId, {
           producto: productoNombre,
-          anios: new Map<number, VentaMes>()
+          anios: new Map<number, AnioVentas>()
         });
       }
-      
-      productosMap.get(productoId)!.anios.set(anio, venta);
+
+      const grupo = productosMap.get(productoId)!;
+      if (!grupo.anios.has(anio)) {
+        grupo.anios.set(anio, { meses: new Array(12).fill(0), anual: 0 });
+      }
+      const av = grupo.anios.get(anio)!;
+
+      if (mes >= 1 && mes <= 12) {
+        av.meses[mes - 1] = venta.mensual ?? 0;
+      }
+      // El total del año es la suma de los 12 meses (coherente con lo que se muestra)
+      av.anual = av.meses.reduce((s, v) => s + v, 0);
     }
-    
+
     this.ventasAgrupadas = Array.from(productosMap.values());
   }
 
-  getMeses(mensual: number): number[] {
-    return new Array(12).fill(mensual);
-  }
-
-  getVentaParaAnio(anios: Map<number, VentaMes>, anio: number): VentaMes | null {
+  getVentaParaAnio(anios: Map<number, AnioVentas>, anio: number): AnioVentas | null {
     return anios.get(anio) || null;
   }
 
   handleSidebarChange(section: string): void {
     this.activeSection = section;
-    // console.log('Sección activa:', section);
   }
 
-  /**
-   * Maneja el cambio de estado collapsed del sidebar
-   */
   handleSidebarCollapse(collapsed: boolean): void {
     this.isSidebarCollapsed = collapsed;
   }
@@ -98,7 +105,6 @@ export class CalculoVentas implements OnInit {
       return;
     }
 
-    // Hacer visible temporalmente el elemento para capturarlo
     const hostElement = element.closest('app-ventas-pdf-table') as HTMLElement;
     if (hostElement) {
       hostElement.style.position = 'fixed';
@@ -107,13 +113,12 @@ export class CalculoVentas implements OnInit {
       hostElement.style.zIndex = '-1';
     }
 
-    html2canvas(element, { 
+    html2canvas(element, {
       scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff'
     }).then(canvas => {
-      // Restaurar el elemento
       if (hostElement) {
         hostElement.style.position = 'absolute';
         hostElement.style.left = '-9999px';
@@ -127,7 +132,6 @@ export class CalculoVentas implements OnInit {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // Si la imagen es más alta que la página, ajustar
       if (pdfHeight > pageHeight - 20) {
         const adjustedWidth = (pageHeight - 20) * canvas.width / canvas.height;
         const xOffset = (pdfWidth - adjustedWidth) / 2;
@@ -139,7 +143,6 @@ export class CalculoVentas implements OnInit {
       pdf.save(`proyeccion-ventas-anio-${this.anioExportar}.pdf`);
     }).catch(error => {
       console.error('Error al generar PDF:', error);
-      // Restaurar el elemento en caso de error
       if (hostElement) {
         hostElement.style.position = 'absolute';
         hostElement.style.left = '-9999px';

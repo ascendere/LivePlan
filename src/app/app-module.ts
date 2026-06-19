@@ -33,7 +33,7 @@ import {
 
 import { AngularFireModule } from '@angular/fire/compat';
 import { AngularFireAuthModule } from '@angular/fire/compat/auth';
-import { environment } from '../environments/environment';
+import { environment } from '../environments/environment.example';
 import { Depreciaciones } from './components/depreciaciones/depreciaciones';
 import { CommonModule } from '@angular/common';
 import { CostoVentas } from './components/costo-ventas/costo-ventas';

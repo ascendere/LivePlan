@@ -18,6 +18,16 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   presupuestosAgrupados: { anio: number; items: PresupuestoVenta[] }[] = [];
   cargando: boolean = false;
 
+  // Valores calculados por mes: { [productoId]: { [anio]: number[12] } }
+  private ventasPorMes: { [id: number]: { [anio: number]: number[] } } = {};
+
+  // --- Edición del AÑO 1 ---
+  modoEdicion: boolean = false;
+  guardando: boolean = false;
+  // valores editables por producto: { [productoId]: number[12] }
+  mesesEdit: { [id: number]: number[] } = {};
+  private mesesOriginal: { [id: number]: number[] } = {};
+
   private subscriptions: Subscription[] = [];
 
   constructor(
@@ -29,10 +39,9 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
       this.planId = Number(params.get('id')) || 0;
-      // console.log('ID del plan en Presupuesto de Venta:', this.planId);
       if (this.planId) {
         this.suscribirseAlEstado();
-        this.cargarPresupuestos();
+        this.cargarTodo();
       }
     });
   }
@@ -41,98 +50,156 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
 
-  /**
-   * Se suscribe a los cambios en el estado que afectan al presupuesto de venta
-   */
   private suscribirseAlEstado(): void {
-    // Suscribirse a cambios en ventas diarias (afectan al presupuesto)
-    const ventasSub = this.datosStateService.ventasDiarias$.subscribe(ventas => {
-      if (ventas && ventas.length > 0) {
-        // console.log('Ventas diarias actualizadas, recargando presupuesto...');
-        this.cargarPresupuestos();
-      }
-    });
-
-    // Suscribirse a cambios en precios (afectan al presupuesto)
-    const preciosSub = this.datosStateService.preciosProducto$.subscribe(precios => {
-      if (precios && precios.length > 0) {
-        // console.log('Precios actualizados, recargando presupuesto...');
-        this.cargarPresupuestos();
-      }
-    });
-
-    // Suscribirse a cambios en variables de sensibilidad
-    const variablesSub = this.datosStateService.variablesSensibilidad$.subscribe(variables => {
-      if (variables) {
-        // console.log('Variables de sensibilidad actualizadas, recargando presupuesto...');
-        this.cargarPresupuestos();
-      }
-    });
-
-    this.subscriptions.push(ventasSub, preciosSub, variablesSub);
+    const recargar = () => { if (!this.modoEdicion) this.cargarTodo(); };
+    const s1 = this.datosStateService.ventasDiarias$.subscribe(v => { if (v && v.length) recargar(); });
+    const s2 = this.datosStateService.preciosProducto$.subscribe(p => { if (p && p.length) recargar(); });
+    const s3 = this.datosStateService.variablesSensibilidad$.subscribe(va => { if (va) recargar(); });
+    this.subscriptions.push(s1, s2, s3);
   }
 
-  /**
-   * Carga los presupuestos de venta desde el backend
-   */
-  cargarPresupuestos(): void {
+  cargarTodo(): void {
     this.cargando = true;
-    this.inversionService
-      .getPresupuestoVenta(this.planId)
-      .then((response) => {
-        // console.log('Presupuestos de venta cargados:', response);
-        this.presupuestos = Array.isArray(response) ? response : [];
+    Promise.all([
+      this.inversionService.getPresupuestoVenta(this.planId),
+      this.inversionService.getVentasPorMes(this.planId),
+    ])
+      .then(([presup, ventas]) => {
+        this.presupuestos = Array.isArray(presup) ? presup : [];
         this.agruparPorAnio();
-        // console.log('Presupuestos agrupados por año:', this.presupuestosAgrupados);
+        this.construirVentasPorMes(Array.isArray(ventas) ? ventas : []);
         this.cargando = false;
       })
       .catch((error) => {
-        console.error('Error al cargar presupuestos de venta:', error);
+        console.error('Error al cargar presupuesto de venta:', error);
         this.presupuestos = [];
         this.presupuestosAgrupados = [];
         this.cargando = false;
       });
   }
 
-  /**
-   * Agrupa los presupuestos por año
-   */
-  agruparPorAnio(): void {
+  private agruparPorAnio(): void {
     const aniosMap = new Map<number, PresupuestoVenta[]>();
-    
-    for (const presupuesto of this.presupuestos) {
-      const anio = presupuesto.anio || 0;
-      if (!aniosMap.has(anio)) {
-        aniosMap.set(anio, []);
-      }
-      aniosMap.get(anio)!.push(presupuesto);
+    for (const p of this.presupuestos) {
+      const anio = p.anio || 0;
+      if (!aniosMap.has(anio)) aniosMap.set(anio, []);
+      aniosMap.get(anio)!.push(p);
     }
-    
-    // Convertir a array y ordenar por año
     this.presupuestosAgrupados = Array.from(aniosMap.entries())
       .map(([anio, items]) => ({ anio, items }))
       .sort((a, b) => a.anio - b.anio);
   }
 
-  /**
-   * Genera array con los 12 meses repitiendo el valor mensual
-   */
-  getMeses(mensual: number): number[] {
-    return new Array(12).fill(mensual);
+  private construirVentasPorMes(ventas: any[]): void {
+    this.ventasPorMes = {};
+    for (const v of ventas) {
+      const pid = v.producto_id, anio = v.anio, mes = v.mes;
+      if (pid == null || anio == null || mes == null || mes < 1 || mes > 12) continue;
+      if (!this.ventasPorMes[pid]) this.ventasPorMes[pid] = {};
+      if (!this.ventasPorMes[pid][anio]) this.ventasPorMes[pid][anio] = new Array(12).fill(0);
+      this.ventasPorMes[pid][anio][mes - 1] = v.mensual ?? 0;
+    }
   }
 
-  /**
-   * Maneja el cambio de sección desde el sidebar
-   */
-  handleSidebarChange(section: string): void {
-    this.activeSection = section;
-    // console.log('Sección activa:', section);
+  // ============================================================
+  //  DISPLAY
+  // ============================================================
+
+  /** Valor por mes para una fila. En edición, el año 1 muestra lo editable. */
+  getValorMes(p: PresupuestoVenta, mes: number): number {
+    if (p.producto_id == null || p.anio == null) return 0;
+    const porAnio = this.ventasPorMes[p.producto_id];
+    if (!porAnio || !porAnio[p.anio]) return 0;
+    return porAnio[p.anio][mes - 1] ?? 0;
   }
 
-  /**
-   * Maneja el cambio de estado collapsed del sidebar
-   */
-  handleSidebarCollapse(collapsed: boolean): void {
-    this.isSidebarCollapsed = collapsed;
+  /** Total anual a mostrar. En edición (año 1) usa la suma en vivo de lo editado. */
+  getTotalAnual(p: PresupuestoVenta): number {
+    if (this.modoEdicion && p.anio === 1 && p.producto_id != null && this.mesesEdit[p.producto_id]) {
+      return this.mesesEdit[p.producto_id].reduce((s, v) => s + (v || 0), 0);
+    }
+    return p.anual ?? 0;
   }
+
+  esAnio1(anio: number): boolean { return anio === 1; }
+
+  // ============================================================
+  //  EDICIÓN DEL AÑO 1 (cantidades reales por producto)
+  // ============================================================
+
+  activarEdicion(): void {
+    this.mesesEdit = {};
+    this.mesesOriginal = {};
+    const grupo1 = this.presupuestosAgrupados.find(g => g.anio === 1);
+    if (grupo1) {
+      for (const p of grupo1.items) {
+        if (p.producto_id == null) continue;
+        const arr = this.getMesesAnio1(p.producto_id).map(v => this.redondear2(v));
+        this.mesesEdit[p.producto_id] = arr;
+        this.mesesOriginal[p.producto_id] = [...arr];
+      }
+    }
+    this.modoEdicion = true;
+  }
+
+  private getMesesAnio1(productoId: number): number[] {
+    if (this.ventasPorMes[productoId] && this.ventasPorMes[productoId][1]) {
+      return [...this.ventasPorMes[productoId][1]];
+    }
+    return new Array(12).fill(0);
+  }
+
+  cancelarEdicion(): void {
+    this.modoEdicion = false;
+    this.mesesEdit = {};
+    this.mesesOriginal = {};
+  }
+
+  onMesChange(productoId: number, indice: number, valor: string | number): void {
+    const num = typeof valor === 'number' ? valor : parseFloat(valor);
+    if (!this.mesesEdit[productoId]) return;
+    this.mesesEdit[productoId][indice] = isNaN(num) || num < 0 ? 0 : num;
+  }
+
+  private filaCambiada(productoId: number): boolean {
+    const a = this.mesesEdit[productoId], b = this.mesesOriginal[productoId];
+    if (!a || !b) return false;
+    for (let i = 0; i < 12; i++) {
+      if (this.redondear2(a[i]) !== this.redondear2(b[i])) return true;
+    }
+    return false;
+  }
+
+  get hayCambios(): boolean {
+    return Object.keys(this.mesesEdit).some(k => this.filaCambiada(Number(k)));
+  }
+
+  async confirmarCambios(): Promise<void> {
+    const cambiados = Object.keys(this.mesesEdit).map(Number).filter(pid => this.filaCambiada(pid));
+    if (cambiados.length === 0) { this.modoEdicion = false; return; }
+
+    this.guardando = true;
+    try {
+      // Guarda cada producto modificado (sin recalcular fila por fila)
+      for (const pid of cambiados) {
+        const meses = this.mesesEdit[pid].map((valor, i) => ({ mes: i + 1, valor }));
+        await this.inversionService.actualizarEstacionalidadProducto(pid, meses, false);
+      }
+      // Un solo recálculo de toda la cadena
+      await this.inversionService.ejecutarRecalcular2(this.planId);
+      this.modoEdicion = false;
+      this.cargarTodo();
+    } catch (error) {
+      console.error('Error al guardar cantidades del año 1:', error);
+    } finally {
+      this.guardando = false;
+    }
+  }
+
+  private redondear2(n: number): number {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+  }
+
+  handleSidebarChange(section: string): void { this.activeSection = section; }
+  handleSidebarCollapse(collapsed: boolean): void { this.isSidebarCollapsed = collapsed; }
 }
