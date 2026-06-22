@@ -22,8 +22,8 @@
 
     <!-- Pestañas -->
     <div class="tabs-container">
-      <button 
-        class="tab-btn" 
+      <button
+        class="tab-btn"
         [class.active]="pestanaActiva === 'compra'"
         (click)="cambiarPestana('compra')"
       >
@@ -35,8 +35,8 @@
         Compra
         <span *ngIf="cantidadCompraModificadas > 0" class="badge">{{ cantidadCompraModificadas }}</span>
       </button>
-      <button 
-        class="tab-btn" 
+      <button
+        class="tab-btn"
         [class.active]="pestanaActiva === 'venta'"
         (click)="cambiarPestana('venta')"
       >
@@ -51,7 +51,7 @@
 
     <div class="modal-body">
       <p class="info-text">
-        Configura los porcentajes de crédito y contado para cada mes. 
+        Configura los porcentajes de crédito y contado para cada mes.
         Los porcentajes deben sumar 100%.
       </p>
 
@@ -81,14 +81,14 @@
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </div>
-            
+
             <div class="anio-content" [class.collapsed]="isAnioCompraCollapsed(grupo.anio)">
               <table class="politicas-table">
               <thead>
                 <tr>
                   <th>Mes</th>
-                  <th>% Crédito</th>
                   <th>% Contado</th>
+                  <th>% Crédito</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,7 +160,7 @@
                 <polyline points="6 9 12 15 18 9"></polyline>
               </svg>
             </div>
-            
+
             <div class="anio-content" [class.collapsed]="isAnioVentaCollapsed(grupo.anio)">
               <table class="politicas-table">
               <thead>

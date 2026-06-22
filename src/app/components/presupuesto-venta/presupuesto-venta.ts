@@ -17,6 +17,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   presupuestos: PresupuestoVenta[] = [];
   presupuestosAgrupados: { anio: number; items: PresupuestoVenta[] }[] = [];
   cargando: boolean = false;
+  diasxmes: number = 30;
 
   // Valores calculados por mes: { [productoId]: { [anio]: number[12] } }
   private ventasPorMes: { [id: number]: { [anio: number]: number[] } } = {};
@@ -63,9 +64,12 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
     Promise.all([
       this.inversionService.getPresupuestoVenta(this.planId),
       this.inversionService.getVentasPorMes(this.planId),
+      this.inversionService.getMacros(this.planId),
     ])
-      .then(([presup, ventas]) => {
+      .then(([presup, ventas, macros]) => {
         this.presupuestos = Array.isArray(presup) ? presup : [];
+        const dm = macros && (macros as any).diasxmes ? Number((macros as any).diasxmes) : 30;
+        this.diasxmes = dm > 0 ? dm : 30;
         this.agruparPorAnio();
         this.construirVentasPorMes(Array.isArray(ventas) ? ventas : []);
         this.cargando = false;
@@ -110,13 +114,15 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
     if (p.producto_id == null || p.anio == null) return 0;
     const porAnio = this.ventasPorMes[p.producto_id];
     if (!porAnio || !porAnio[p.anio]) return 0;
-    return porAnio[p.anio][mes - 1] ?? 0;
+    const mensual = porAnio[p.anio][mes - 1] ?? 0;
+    return this.diasxmes > 0 ? mensual / this.diasxmes : mensual; // mostrar POR DÍA
   }
 
   /** Total anual a mostrar. En edición (año 1) usa la suma en vivo de lo editado. */
   getTotalAnual(p: PresupuestoVenta): number {
     if (this.modoEdicion && p.anio === 1 && p.producto_id != null && this.mesesEdit[p.producto_id]) {
-      return this.mesesEdit[p.producto_id].reduce((s, v) => s + (v || 0), 0);
+      const sumaDia = this.mesesEdit[p.producto_id].reduce((s, v) => s + (v || 0), 0);
+      return sumaDia * this.diasxmes; // mesesEdit son tasas POR DÍA
     }
     return p.anual ?? 0;
   }
@@ -144,7 +150,8 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
 
   private getMesesAnio1(productoId: number): number[] {
     if (this.ventasPorMes[productoId] && this.ventasPorMes[productoId][1]) {
-      return [...this.ventasPorMes[productoId][1]];
+      const dm = this.diasxmes > 0 ? this.diasxmes : 1;
+      return this.ventasPorMes[productoId][1].map(v => (v || 0) / dm); // a POR DÍA
     }
     return new Array(12).fill(0);
   }
