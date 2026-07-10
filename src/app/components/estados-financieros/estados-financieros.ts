@@ -221,7 +221,7 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
       concepto: this.humanizeKey(k),
       key: k,
       tipo: undefined,
-      anio1: this.crearConceptoVacio(),
+      anio1: this.crearConceptoVacioFlujoAnio1(),
       anio2: this.crearConceptoVacio(),
       anio3: this.crearConceptoVacio(),
       totalAnio4: 0,
@@ -229,18 +229,27 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     }));
 
     for (const item of items) {
-      if (item.mes === 0) continue; // balance normalmente no tiene mes 0, pero respetamos si viene
       const anioKey = item.anio === 1 ? 'anio1' : item.anio === 2 ? 'anio2' : item.anio === 3 ? 'anio3' : null;
       if (!anioKey) continue;
 
-      const mes = Number(item.mes);
-      if (mes < 1 || mes > 12) continue;
-      const mesIndex = mes - 1;
-
-      for (let i = 0; i < keys.length; i++) {
-        const k = keys[i];
-        const value = Number(item[k]) || 0;
-        conceptos[i][anioKey].meses[mesIndex] = value;
+      if (item.anio === 1) {
+        // Año 1 del balance incluye el mes 0 (foto inicial): índice = mes (0..12)
+        const mesIndex = Number(item.mes);
+        if (mesIndex < 0 || mesIndex > 12) continue;
+        for (let i = 0; i < keys.length; i++) {
+          const k = keys[i];
+          const value = Number(item[k]) || 0;
+          conceptos[i].anio1.meses[mesIndex] = value;
+        }
+      } else {
+        const mes = Number(item.mes);
+        if (mes < 1 || mes > 12) continue;
+        const mesIndex = mes - 1;
+        for (let i = 0; i < keys.length; i++) {
+          const k = keys[i];
+          const value = Number(item[k]) || 0;
+          conceptos[i][anioKey].meses[mesIndex] = value;
+        }
       }
     }
 
