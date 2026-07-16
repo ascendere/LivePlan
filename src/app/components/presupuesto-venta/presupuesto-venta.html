@@ -93,4 +93,14 @@
       </div>
     </div>
   </main>
+
+  <!-- Modal de carga: se muestra mientras se recalcula -->
+  <div class="recalc-overlay" *ngIf="guardando">
+    <div class="recalc-modal">
+      <div class="recalc-spinner"></div>
+      <p class="recalc-title">Recalculando…</p>
+      <p class="recalc-subtitle">Estamos procesando los cambios y actualizando todos los estados financieros. Esto puede tardar unos segundos, por favor espera.</p>
+    </div>
+  
+</div>
 </div>

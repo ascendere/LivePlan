@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { InversionService, DatosStateService } from '../../core/services';
@@ -50,7 +50,13 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
   }
-
+  @HostListener('window:beforeunload', ['$event'])
+avisarSiRecalculando(event: BeforeUnloadEvent): void {
+  if (this.guardando) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+}
   private suscribirseAlEstado(): void {
     const recargar = () => { if (!this.modoEdicion) this.cargarTodo(); };
     const s1 = this.datosStateService.ventasDiarias$.subscribe(v => { if (v && v.length) recargar(); });
@@ -206,7 +212,7 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   private redondear2(n: number): number {
     return Math.round((n + Number.EPSILON) * 100) / 100;
   }
-
+  
   handleSidebarChange(section: string): void { this.activeSection = section; }
   handleSidebarCollapse(collapsed: boolean): void { this.isSidebarCollapsed = collapsed; }
 }

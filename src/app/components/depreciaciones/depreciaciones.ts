@@ -151,68 +151,48 @@ export class Depreciaciones implements OnInit, OnDestroy {
     return this.vidaUtilModificada.size > 0;
   }
 
-  guardarVidaUtil(): void {
+  async guardarVidaUtil(): Promise<void> {
     if (this.vidaUtilModificada.size === 0) {
-      // console.log('No hay cambios para guardar');
       return;
     }
 
     this.guardando = true;
-    // console.log('Guardando vida útil para detalles:', Array.from(this.vidaUtilModificada));
-
-    // Convertir Set a Array para trabajar con índices
     const detallesModificados = Array.from(this.vidaUtilModificada);
-    const totalDetalles = detallesModificados.length;
 
-    // Crear array de promesas, solo el último tendrá recalc: true
-    const promesas = detallesModificados.map((detalleId, index) => {
-      // Encontrar la depreciación correspondiente
-      const depreciacion = this.depreciaciones.find(
-        (d) => d.detalle_inversion?.id === detalleId
-      );
-
-      if (!depreciacion || !depreciacion.detalle_inversion) {
-        console.error('No se encontró la depreciación o detalle para ID:', detalleId);
-        return Promise.resolve();
+    try {
+      // 1) Guardar TODOS los detalles primero, SIN recalcular (recalc: false),
+      //    esperando a que cada uno termine antes de seguir.
+      for (const detalleId of detallesModificados) {
+        const depreciacion = this.depreciaciones.find(
+          (d) => d.detalle_inversion?.id === detalleId
+        );
+        if (!depreciacion || !depreciacion.detalle_inversion) {
+          console.error('No se encontró la depreciación o detalle para ID:', detalleId);
+          continue;
+        }
+        const vidaUtil = depreciacion.detalle_inversion.vida_util;
+        await this.inversionService.actualizarDetalleInversion(detalleId, {
+          vida_util: vidaUtil,
+          recalc: false
+        });
       }
 
-      const vidaUtil = depreciacion.detalle_inversion.vida_util;
-      const esUltimo = index === totalDetalles - 1;
-      
-      // console.log(`Actualizando detalle ${detalleId} (${index + 1}/${totalDetalles}) con vida_util: ${vidaUtil}, recalc: ${esUltimo}`);
+      // 2) Una vez guardado TODO, disparar UN SOLO recálculo de toda la cadena.
+      await this.inversionService.ejecutarRecalcular2(this.planId);
 
-      // Solo el último detalle dispara el recalc
-      return this.inversionService.actualizarDetalleInversion(detalleId, {
-        vida_util: vidaUtil,
-        recalc: esUltimo // Solo true en el último
-      });
-    });
+      this.guardando = false;
+      this.vidaUtilModificada.clear();
+      this.mensajeGuardado = 'Cambios guardados correctamente';
+      setTimeout(() => { this.mensajeGuardado = ''; }, 3000);
 
-    // Ejecutar todas las actualizaciones de forma secuencial
-    Promise.all(promesas)
-      .then(() => {
-        // console.log('Todas las vidas útiles guardadas exitosamente');
-        this.guardando = false;
-        this.vidaUtilModificada.clear();
-        
-        // Mostrar mensaje de éxito
-        this.mensajeGuardado = 'Cambios guardados correctamente';
-        setTimeout(() => {
-          this.mensajeGuardado = '';
-        }, 3000);
-        
-        // Recargar datos para reflejar cálculos del backend
-        // Esto actualizará el state y todos los componentes suscritos
-        this.cargarDepreciaciones();
-      })
-      .catch((error) => {
-        console.error('Error al guardar vidas útiles:', error);
-        this.guardando = false;
-        this.mensajeGuardado = 'Error al guardar los cambios';
-        setTimeout(() => {
-          this.mensajeGuardado = '';
-        }, 3000);
-      });
+      // Recargar datos para reflejar los cálculos del backend
+      this.cargarDepreciaciones();
+    } catch (error) {
+      console.error('Error al guardar vidas útiles:', error);
+      this.guardando = false;
+      this.mensajeGuardado = 'Error al guardar los cambios';
+      setTimeout(() => { this.mensajeGuardado = ''; }, 3000);
+    }
   }
 
   getElementoNombre(depreciacion: DepreciacionAnual): string {
