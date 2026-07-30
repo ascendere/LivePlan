@@ -421,6 +421,27 @@ export class InversionService {
   }
 
   /**
+   * Actualiza la TREMA de la evaluación. El backend recalcula únicamente la
+   * hoja de Evaluación (VAN, TIR y valores actuales) con la nueva tasa; no
+   * toca precios, ventas, estado de resultados, flujo ni balance.
+   */
+  actualizarTrema(evaluacionProyectoId: number, trema: number): Promise<any> {
+    const url = `${this.apiUrl}/evaluacion_proyecto/item/${encodeURIComponent(evaluacionProyectoId)}`;
+    return fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ trema }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Error al actualizar TREMA: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    });
+  }
+
+  /**
    * Obtiene el análisis de sensibilidad (matriz volumen x costo)
    */
   getAnalisisSensibilidad(planNegocioId: number): Promise<any> {

@@ -72,11 +72,35 @@
                     </tr>
                     <tr>
                       <td class="col-concepto">TIR</td>
-                      <td class="col-total-mensual">{{ formatPercent(evaluacionProyecto.tir) }}</td>
+                      <td class="col-total-mensual">{{ formatTir(evaluacionProyecto.tir) }}</td>
                     </tr>
                     <tr>
                       <td class="col-concepto">TREMA</td>
-                      <td class="col-valor">{{ formatPercent(evaluacionProyecto.trema) }}</td>
+                      <td class="col-valor">
+                        <span *ngIf="!editandoTrema" class="trema-display">
+                          {{ formatPercent(evaluacionProyecto.trema) }}
+                          <button class="btn-editar-trema" (click)="iniciarEdicionTrema()" title="Editar TREMA">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                          </button>
+                        </span>
+                        <span *ngIf="editandoTrema" class="trema-edit">
+                          <input
+                            type="number"
+                            step="0.01"
+                            class="trema-input"
+                            [(ngModel)]="tremaInput"
+                            [disabled]="guardandoTrema"
+                          />
+                          <button class="btn-guardar-trema" (click)="guardarTrema()" [disabled]="guardandoTrema" title="Guardar">
+                            {{ guardandoTrema ? '...' : '✓' }}
+                          </button>
+                          <button class="btn-cancelar-trema" (click)="cancelarEdicionTrema()" [disabled]="guardandoTrema" title="Cancelar">✕</button>
+                        </span>
+                        <span *ngIf="errorTrema" class="trema-error">{{ errorTrema }}</span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>

@@ -18,7 +18,10 @@ interface ConceptoEvaluacion {
     id: number;
     plan_negocio_id: number;
     van: number;
-    tir: number;
+    // null cuando la TIR no existe matemáticamente (p.ej. flujos siempre
+    // negativos, sin ninguna tasa que haga el VAN cero) — igual que Excel
+    // muestra #N¡NUM! en vez de un número inventado.
+    tir: number | null;
     trema: number;
   }
 
@@ -57,6 +60,12 @@ export class Evaluacion implements OnInit, OnDestroy {
   cargandoStatus: boolean = false;
   cargandoRecalcular: boolean = false;
   mostrarModalConfirmacion: boolean = false;
+
+  // Estado para edición de TREMA
+  editandoTrema: boolean = false;
+  tremaInput: number = 0;
+  guardandoTrema: boolean = false;
+  errorTrema: string = '';
 
   private subscriptions: Subscription[] = [];
 
@@ -165,12 +174,66 @@ export class Evaluacion implements OnInit, OnDestroy {
             id: Number(data.id),
             plan_negocio_id: Number(data.plan_negocio_id),
             van: Number(data.van) || 0,
-            tir: Number(data.tir) || 0,
+            tir: this.parseTir(data.tir),
             trema: Number(data.trema) || 0
           } : null;
         }
       })
       .catch(err => console.error('Error al cargar evaluacionProyecto:', err));
+  }
+
+  /**
+   * Habilita la edición de la TREMA, precargando el valor actual.
+   */
+  iniciarEdicionTrema(): void {
+    if (!this.evaluacionProyecto) return;
+    this.tremaInput = this.evaluacionProyecto.trema;
+    this.errorTrema = '';
+    this.editandoTrema = true;
+  }
+
+  cancelarEdicionTrema(): void {
+    this.editandoTrema = false;
+    this.errorTrema = '';
+  }
+
+  /**
+   * Guarda la nueva TREMA. El backend solo recalcula la hoja de Evaluación
+   * (VAN, TIR, valores actuales); no afecta Estados Financieros, Flujo de
+   * Efectivo ni Balance General. La matriz de sensibilidad queda marcada
+   * como pendiente porque fue calculada con la TREMA anterior; el usuario
+   * la actualiza con el botón "Recalcular" ya existente.
+   */
+  async guardarTrema(): Promise<void> {
+    if (!this.evaluacionProyecto) return;
+
+    if (this.tremaInput === null || this.tremaInput === undefined || isNaN(this.tremaInput)) {
+      this.errorTrema = 'Ingresa un valor numérico válido';
+      return;
+    }
+
+    this.guardandoTrema = true;
+    this.errorTrema = '';
+    try {
+      const data = await this.inversionService.actualizarTrema(this.evaluacionProyecto.id, this.tremaInput);
+      this.evaluacionProyecto = {
+        id: Number(data.id),
+        plan_negocio_id: Number(data.plan_negocio_id),
+        van: Number(data.van) || 0,
+        tir: this.parseTir(data.tir),
+        trema: Number(data.trema) || 0
+      };
+      this.editandoTrema = false;
+      // La TREMA afecta los valores actuales de los flujos: recargar la tabla de conceptos.
+      this.cargarConceptosEvaluacion();
+      // La matriz de sensibilidad quedó desactualizada; reflejar el estado pendiente.
+      this.statusAnalisis = false;
+    } catch (error: any) {
+      console.error('Error al actualizar TREMA:', error);
+      this.errorTrema = 'No se pudo actualizar la TREMA. Intenta de nuevo.';
+    } finally {
+      this.guardandoTrema = false;
+    }
   }
 
   /** Carga análisis de sensibilidad y construye matriz */
@@ -209,7 +272,9 @@ export class Evaluacion implements OnInit, OnDestroy {
       volumenSet.add(r.volumen);
     }
 
-    this.analisisCostos = Array.from(costosSet).sort((a,b)=>a-b);
+    // Orden descendente (15%, 10%, ... -15%) para que coincida visualmente
+    // con la tabla de Excel de la que viene este análisis.
+    this.analisisCostos = Array.from(costosSet).sort((a,b)=>b-a);
     this.analisisVolumenes = Array.from(volumenSet).sort((a,b)=>a-b);
 
     // Build matrix rows: each row starts with costo label, then values for each volumen in analisisVolumenes
@@ -232,6 +297,22 @@ export class Evaluacion implements OnInit, OnDestroy {
   formatPercent(value: string | number): string {
     const n = Number(value) || 0;
     return `${n.toFixed(2)}%`;
+  }
+
+  /** El backend manda tir=null cuando no existe una tasa que anule el VAN
+   * (flujos siempre negativos, etc.) — igual que Excel muestra #N¡NUM! en
+   * vez de un número. No convertir ese null a 0: hay que preservarlo. */
+  private parseTir(value: unknown): number | null {
+    return value === null || value === undefined ? null : Number(value);
+  }
+
+  /** Formatea la TIR mostrando "No aplica" cuando el backend indicó que no
+   * existe (ver parseTir). */
+  formatTir(value: number | null): string {
+    if (value === null || value === undefined || isNaN(value)) {
+      return 'No aplica';
+    }
+    return this.formatPercent(value);
   }
 
   /** Construye una matriz de filas donde cada fila es un concepto y columnas son años 0..5 */
