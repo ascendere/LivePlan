@@ -607,6 +607,13 @@
 }
 
 /* === Filas Especiales === */
+.detalle-row .col-concepto {
+  padding-left: 28px;
+  font-style: italic;
+  color: #5a6b7a;
+  font-weight: 400;
+}
+
 .subtotal-row td {
   background: #f0f8ff !important;
   font-weight: 700;

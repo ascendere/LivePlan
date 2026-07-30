@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { EstadoResultados, Items, SumasAnuales } from '../../interfaces';
+import { EstadoResultados, Items, SumasAnuales, Gasto } from '../../interfaces';
 import { InversionService, DatosStateService } from '../../core/services';
 
 interface Tab {
@@ -47,6 +47,11 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
   // Datos del Estado de Resultados
   estadoResultados: EstadoResultados | null = null;
   conceptosEstado: ConceptoEstadoResultados[] = [];
+  // Renglones individuales de "Gastos de Venta y Administración" (sueldos,
+  // uniformes, publicidad, etc.), para mostrarlos desagrupados como en el
+  // Excel en vez de un solo total. El monto de cada uno es constante mes a
+  // mes y año a año (así los calcula el backend).
+  gastosOperacionItems: Gasto[] = [];
   // Datos del Flujo de Efectivo
   flujoEfectivo: any = null;
   conceptosFlujo: ConceptoEstadoResultados[] = [];
@@ -149,10 +154,17 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
    */
   cargarEstadoResultados(): void {
     this.cargando = true;
-    
-    this.inversionService.getEstadoResultados(this.planId)
-      .then((response) => {
-        this.estadoResultados = response;
+
+    Promise.all([
+      this.inversionService.getEstadoResultados(this.planId),
+      this.inversionService.getGastosOperacion(this.planId).catch((error) => {
+        console.error('Error al cargar gastos de operación:', error);
+        return null;
+      })
+    ])
+      .then(([estadoResultados, gastosOperacion]) => {
+        this.estadoResultados = estadoResultados;
+        this.gastosOperacionItems = gastosOperacion?.gastos ?? [];
         // console.log('Estado de Resultados cargado:', this.estadoResultados);
         this.procesarEstadoResultados();
         this.cargando = false;
@@ -344,7 +356,12 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
       }
     }
 
-    this.conceptosFlujo = conceptos;
+    this.conceptosFlujo = this.desagruparEnConceptos(
+      conceptos,
+      c => c.key === 'egresos_gastos_operacion',
+      'Total Egresos Gastos Operación',
+      true
+    );
   }
 
   /** Convierte una key_snake_case a un label humano */
@@ -371,17 +388,17 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     const conceptos: ConceptoEstadoResultados[] = [
       { concepto: 'Ventas', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
       { concepto: 'Costos de Ventas', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
-      { concepto: 'Utilidad Bruta', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
+      { concepto: 'Utilidad Bruta', tipo: 'subtotal', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
       { concepto: 'Gastos de Venta y Administración', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
       { concepto: 'Depreciación', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
       { concepto: 'Amortización', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
-      { concepto: 'Utilidad Previo Int. e Imp.', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
+      { concepto: 'Utilidad Previo Int. e Imp.', tipo: 'subtotal', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
       { concepto: 'Gastos Financieros', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
-      { concepto: 'Utilidad Antes de PTU', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
+      { concepto: 'Utilidad Antes de PTU', tipo: 'subtotal', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
       { concepto: 'PTU', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
-      { concepto: 'Utilidad Antes de Impuestos', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
+      { concepto: 'Utilidad Antes de Impuestos', tipo: 'subtotal', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
       { concepto: 'ISR', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 },
-      { concepto: 'Utilidad Neta', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 }
+      { concepto: 'Utilidad Neta', tipo: 'total', anio1: this.crearConceptoVacio(), anio2: this.crearConceptoVacio(), anio3: this.crearConceptoVacio(), totalAnio4: 0, totalAnio5: 0 }
     ];
 
     // Procesar items mensuales (años 1-3)
@@ -410,7 +427,61 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
       }
     }
 
-    this.conceptosEstado = conceptos;
+    this.conceptosEstado = this.desagruparEnConceptos(
+      conceptos,
+      c => c.concepto === 'Gastos de Venta y Administración',
+      'Total Gastos de Venta y Administración',
+      false
+    );
+  }
+
+  /**
+   * Reemplaza un renglón agregado (p.ej. "Gastos de Venta y Administración" en
+   * Estado de Resultados, o "Egresos Gastos Operación" en Flujo de Efectivo)
+   * por sus renglones individuales (sueldos, uniformes, publicidad, etc.)
+   * seguidos de un subtotal, tal como se muestra en el Excel. El renglón
+   * agregado original ya trae los montos reales calculados por el backend,
+   * así que se conserva como fila de subtotal en vez de recalcularlo.
+   *
+   * @param anio1ConMes0 true para tablas donde Año 1 incluye el mes 0 (Flujo
+   * de Efectivo, 13 columnas); false donde Año 1 solo tiene meses 1-12.
+   */
+  private desagruparEnConceptos(
+    conceptos: ConceptoEstadoResultados[],
+    matchFn: (c: ConceptoEstadoResultados) => boolean,
+    labelSubtotal: string,
+    anio1ConMes0: boolean
+  ): ConceptoEstadoResultados[] {
+    if (!this.gastosOperacionItems || this.gastosOperacionItems.length === 0) {
+      return conceptos;
+    }
+
+    const indice = conceptos.findIndex(matchFn);
+    if (indice === -1) {
+      return conceptos;
+    }
+
+    const itemsDesagrupados: ConceptoEstadoResultados[] = this.gastosOperacionItems.map(item => ({
+      concepto: item.descripcion,
+      tipo: 'detalle',
+      anio1: anio1ConMes0
+        ? { meses: [0, ...new Array(12).fill(item.mensual)], totalAnio: item.anual }
+        : { meses: new Array(12).fill(item.mensual), totalAnio: item.anual },
+      anio2: { meses: new Array(12).fill(item.mensual), totalAnio: item.anual },
+      anio3: { meses: new Array(12).fill(item.mensual), totalAnio: item.anual },
+      totalAnio4: item.anual,
+      totalAnio5: item.anual
+    }));
+
+    const subtotal: ConceptoEstadoResultados = {
+      ...conceptos[indice],
+      concepto: labelSubtotal,
+      tipo: 'subtotal'
+    };
+
+    const resultado = [...conceptos];
+    resultado.splice(indice, 1, ...itemsDesagrupados, subtotal);
+    return resultado;
   }
 
   private crearConceptoVacio(): ConceptoMensual {

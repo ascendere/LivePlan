@@ -91,9 +91,10 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let concepto of conceptosEstado; let i = index" 
-                        [class.subtotal-row]="i === 2 || i === 6 || i === 8 || i === 10"
-                        [class.total-row]="i === 12">
+                    <tr *ngFor="let concepto of conceptosEstado"
+                        [class.detalle-row]="concepto.tipo === 'detalle'"
+                        [class.subtotal-row]="concepto.tipo === 'subtotal'"
+                        [class.total-row]="concepto.tipo === 'total'">
                       <!-- Columna Concepto (sticky) -->
                       <td class="sticky-col col-concepto">{{ concepto.concepto }}</td>
                       
@@ -248,7 +249,9 @@
                           [class.ingresos-row]="concepto.tipo === 'ingreso'"
                           [class.egresos-row]="concepto.tipo === 'egreso'"
                           [class.flujo-row]="concepto.tipo === 'flujo'"
-                          [class.efectivo-row]="concepto.tipo === 'efectivo'">
+                          [class.efectivo-row]="concepto.tipo === 'efectivo'"
+                          [class.detalle-row]="concepto.tipo === 'detalle'"
+                          [class.subtotal-row]="concepto.tipo === 'subtotal'">
                         <td class="sticky-col col-concepto">{{ concepto.concepto }}</td>
 
                         <!-- Año 1 (incluye mes 0..12) -->
