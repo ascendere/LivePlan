@@ -364,8 +364,58 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
     );
   }
 
-  /** Convierte una key_snake_case a un label humano */
+  /** Nombres de renglón tal como aparecen en el Excel de referencia, por clave
+   * del backend. Si una clave no está aquí, se cae a humanizeKey() como respaldo. */
+  private readonly ETIQUETAS_EXCEL: Record<string, string> = {
+    // Flujo de Efectivo
+    ingresos_venta_contado: 'Ventas al Contado',
+    ingresos_cobros_ventas_credito: 'Cobro de Ventas a Crédito',
+    ingresos_otros_ingresos: 'Otros Ingresos',
+    ingresos_prestamos: 'Préstamos',
+    ingresos_aportes_capital: 'Aportaciones de Capital',
+    ingresos: 'Total Ingresos',
+    egresos_compras_costos_contado: 'Compras y Costos al Contado',
+    egresos_compras_costos_credito: 'Pago de Compras y Costos a Crédito',
+    egresos_gastos_operacion: 'Gastos de Venta y Administración',
+    egresos_intereses: 'Intereses',
+    egresos_pagos_prestamos: 'Pagos de Préstamos',
+    egresos_pagos_sri: 'Pagos al SRI',
+    egresos_pago_ptu: 'Pago de PTU',
+    egresos: 'Total Egresos',
+    aumento_inventarios: 'Aumento en Inventarios',
+    flujo_caja: 'Flujo de Caja',
+    efectivo_inicial: 'Efectivo al Inicio',
+    efectivo_final: 'Efectivo al Final',
+    // Balance General
+    corrientes_efectivo: 'Efectivo',
+    corrientes_cuentasx_cobrar: 'Cuentas por Cobrar (Clientes)',
+    corrientes_inventarios: 'Inventarios',
+    corrientes_otros: 'Otros',
+    corrientes_suma: 'Suma de Activo Corriente',
+    no_corrientes_suma: 'Suma de Activo No Corriente',
+    total_activo: 'Total del Activo',
+    pasivo_proveedores_corto_plazo: 'Proveedores',
+    pasivo_prestamos_corto_plazo: 'Préstamos Bancarios',
+    pasivo_cuentasx_pagar_corto_plazo: 'Cuentas por Pagar (SRI)',
+    pasivo_otros_corto_plazo: 'Otros (PTU)',
+    pasivo_corto_plazo_suma: 'Suma de Pasivo Corto Plazo',
+    pasivo_prestamos_largo_plazo: 'Préstamos Bancarios',
+    pasivo_otros_largo_plazo: 'Otros',
+    pasivo_largo_plazo_suma: 'Suma de Pasivo de Largo Plazo',
+    total_pasivo: 'Total del Pasivo',
+    capital_social: 'Capital Social',
+    capital_adicional: 'Capital Adicional (Superávit)',
+    utilidades_retenidas: 'Utilidades Retenidas',
+    utilidad_del_ejercicio: 'Utilidad del Ejercicio',
+    total_capital_contable: 'Total de Capital Contable'
+  };
+
+  /** Nombre de renglón para mostrar: usa el texto real del Excel si existe,
+   * o cae a una versión humanizada de la clave (key_snake_case -> Key Snake Case). */
   private humanizeKey(key: string): string {
+    if (this.ETIQUETAS_EXCEL[key]) {
+      return this.ETIQUETAS_EXCEL[key];
+    }
     return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
