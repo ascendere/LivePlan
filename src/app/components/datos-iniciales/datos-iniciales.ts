@@ -1228,6 +1228,31 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   /**
+   * Ejecuta una promesa por cada item, EN SECUENCIA (una espera a que la
+   * anterior termine antes de mandar la siguiente). Se usa para guardar
+   * precios/costos: si se mandan todas las peticiones en paralelo
+   * (Promise.all) y solo la última lleva recalc:true, el backend puede
+   * disparar el recálculo antes de que las demás peticiones (p.ej. el
+   * costo de materia prima) hayan terminado de guardarse en la base de
+   * datos -- el recálculo entonces trata ese costo como "sin valor" y lo
+   * sobreescribe con un cálculo de respaldo, perdiendo lo que el usuario
+   * escribió. Mandarlas en secuencia garantiza que cada una ya quedó
+   * persistida antes de que se dispare el recálculo en la última.
+   */
+  private ejecutarEnSecuencia<T, R>(items: T[], fn: (item: T, esUltimo: boolean) => Promise<R>): Promise<R[]> {
+    const resultados: R[] = [];
+    return items
+      .reduce(
+        (previa, item, index) =>
+          previa.then(() => fn(item, index === items.length - 1)).then((r) => {
+            resultados.push(r);
+          }),
+        Promise.resolve(),
+      )
+      .then(() => resultados);
+  }
+
+  /**
    * Guarda los precios de productos modificados
    */
   guardarPreciosProducto(): void {
@@ -1255,23 +1280,19 @@ export class DatosIniciales implements OnInit, OnDestroy {
     // Marcar como guardando
     this.estadoGuardadoPrecios = 'guardando';
 
-    // Crear promesas con lógica de recalc optimizada (solo el último con true)
-    const promesas = preciosParaActualizar.map(({ precio, index }, arrayIndex) => {
-      // Solo el último elemento debe tener recalc: true
-      const esUltimo = arrayIndex === preciosParaActualizar.length - 1;
-      const recalc = esUltimo;
-
+    // Se mandan EN SECUENCIA (no Promise.all): cada precio debe quedar
+    // persistido antes de que se dispare el recalc del último, para que el
+    // recálculo lea todos los valores ya actualizados y no unos a medio
+    // guardar. Ver ejecutarEnSecuencia().
+    this.ejecutarEnSecuencia(preciosParaActualizar, ({ precio, index }, esUltimo) => {
       const precioParaEnviar: Partial<PreciosProducto> = {
         precio: precio.precio,
-        recalc: recalc,
+        recalc: esUltimo,
       };
-
-      // console.log(`[${arrayIndex + 1}/${preciosParaActualizar.length}] Producto: ${precio.producto_servicio?.nombre || 'Sin nombre'}, ID: ${precio.id}, Precio: ${precio.precio}, recalc: ${recalc}`);
 
       return this.inversionService
         .actualizarPreciosProductoServicio(precio.id!, precioParaEnviar)
         .then((response) => {
-          // console.log('Precio actualizado:', response);
           // Actualizar el precio en el estado manteniendo la información completa
           this.preciosProducto[index] = {
             ...this.preciosProducto[index],
@@ -1280,13 +1301,8 @@ export class DatosIniciales implements OnInit, OnDestroy {
           };
           return response;
         });
-    });
-
-    Promise.all(promesas)
-      .then((responses) => {
-        // console.log('Todos los precios actualizados exitosamente:', responses.length);
-        // console.log(`Optimización: recalc ejecutado 1 vez (último de ${responses.length} actualizaciones)`);
-
+    })
+      .then(() => {
         // Recargar precios y costos para obtener valores calculados
         this.recargarPreciosProducto();
         this.recargarCostosProducto();
@@ -1324,15 +1340,15 @@ export class DatosIniciales implements OnInit, OnDestroy {
     // Marcar como guardando
     this.estadoGuardadoCostos = 'guardando';
 
-    // Crear promesas con lógica de recalc optimizada
-    const promesas = costosParaActualizar.map(({ costo, index }, arrayIndex) => {
-      // Solo el último elemento debe tener recalc: true
-      const esUltimo = arrayIndex === costosParaActualizar.length - 1;
-      const recalc = esUltimo;
-
+    // Se mandan EN SECUENCIA (no Promise.all) por la misma razón que en
+    // guardarPreciosProducto(): evitar que el recalc del último dispare
+    // antes de que un costo anterior (p.ej. materia prima) haya terminado
+    // de guardarse, lo que hacía que el backend lo tratara como "sin
+    // valor" y lo sobreescribiera con un cálculo de respaldo.
+    this.ejecutarEnSecuencia(costosParaActualizar, ({ costo, index }, esUltimo) => {
       const costoParaEnviar: Partial<Costos> = {
         costo: costo.costo,
-        recalc: recalc,
+        recalc: esUltimo,
       };
 
       return this.inversionService
@@ -1346,9 +1362,7 @@ export class DatosIniciales implements OnInit, OnDestroy {
           };
           return response;
         });
-    });
-
-    Promise.all(promesas)
+    })
       .then(() => {
         // Recargar precios y costos
         this.recargarPreciosProducto();
