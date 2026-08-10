@@ -14,6 +14,7 @@
   <main class="main-content">
     <div class="content-container">
       <h1>Evaluacion</h1>
+      <app-aviso-sensibilidad></app-aviso-sensibilidad>
       
       <div class="content-section">
         <div class="panel-header">
@@ -116,7 +117,7 @@
             <div class="panel-header analisis-header">
               <div class="header-content">
                 <h2>Análisis de Sensibilidad</h2>
-                <p class="panel-description">Matriz resultado por variaciones de Volumen (filas) y Costo (columnas).</p>
+                <p class="panel-description">Matriz resultado por variaciones de {{ etiquetaEje(variableFila) }} (filas) y {{ etiquetaEje(variableColumna) }} (columnas).</p>
               </div>
               <div class="header-actions">
                 <!-- Indicador de estado -->
@@ -126,7 +127,7 @@
                     {{ cargandoStatus ? 'Cargando...' : (statusAnalisis === true ? 'Análisis de sensibilidad Actualizado' : 'Análisis de sensibilidad pendiente de actualizar') }}
                   </span>
                 </div>
-                
+
                 <button class="btn-recalcular" (click)="ejecutarRecalcular()" [disabled]="cargandoRecalcular || cargandoStatus" title="Ejecutar recalcular">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="23 4 23 10 17 10"></polyline>
@@ -137,6 +138,35 @@
                 </button>
               </div>
             </div>
+
+            <!-- Selector de variables: elegir cuáles 2 de las 3 (Volumen/Precio/Costo) arman la matriz -->
+            <div class="selector-ejes">
+              <div class="selector-ejes-campo">
+                <label>Filas</label>
+                <select [(ngModel)]="variableFilaSeleccionada" [disabled]="cargandoGenerar">
+                  <option *ngFor="let v of opcionesEjeDisponibles(variableColumnaSeleccionada)" [value]="v">{{ etiquetaEje(v) }}</option>
+                </select>
+              </div>
+              <div class="selector-ejes-campo">
+                <label>Columnas</label>
+                <select [(ngModel)]="variableColumnaSeleccionada" [disabled]="cargandoGenerar">
+                  <option *ngFor="let v of opcionesEjeDisponibles(variableFilaSeleccionada)" [value]="v">{{ etiquetaEje(v) }}</option>
+                </select>
+              </div>
+              <button
+                class="btn-generar-matriz"
+                type="button"
+                (click)="generarMatriz()"
+                [disabled]="!puedeGenerarMatriz || !seleccionCambiada || cargandoGenerar"
+                title="Genera una matriz nueva con estas 2 variables (los resultados anteriores se descartan)"
+              >
+                {{ cargandoGenerar ? 'Generando…' : 'Generar matriz' }}
+              </button>
+              <span class="selector-ejes-hint" *ngIf="seleccionCambiada">
+                Esto reemplaza la matriz actual. Después de generarla, pulsa "Recalcular" para calcular el VAN de cada celda.
+              </span>
+            </div>
+
             <!-- VAN corner (moved here so it's not clipped by table stacking) -->
             <div class="matrix-corner" *ngIf="evaluacionProyecto">VAN: {{ formatCurrency(evaluacionProyecto.van) }}</div>
 
@@ -147,9 +177,9 @@
                     <tr>
                       <th class="sticky-col">
                         <div class="van-badge" *ngIf="evaluacionProyecto">VAN: {{ formatCurrency(evaluacionProyecto.van) }}</div>
-                        Volumen
+                        {{ etiquetaEje(variableFila) }}
                       </th>
-                      <th *ngFor="let v of analisisVolumenes">{{ v }}%</th>
+                      <th *ngFor="let v of analisisEjeColumna">{{ v }}%</th>
                     </tr>
                   </thead>
                   <tbody>

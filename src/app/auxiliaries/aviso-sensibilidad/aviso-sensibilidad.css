@@ -1,0 +1,17 @@
+.aviso-sensibilidad {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fff8e1;
+  border: 1px solid #f0c95c;
+  color: #7a5c00;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.aviso-sensibilidad svg {
+  flex-shrink: 0;
+  color: #b8860b;
+}

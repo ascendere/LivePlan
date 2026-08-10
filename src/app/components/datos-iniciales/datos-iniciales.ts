@@ -1162,6 +1162,26 @@ export class DatosIniciales implements OnInit, OnDestroy {
   }
 
   /**
+   * Redondea el costo base a 2 decimales solo para mostrarlo en el input.
+   * El valor guardado (costo.costo) conserva su precisión completa hasta que
+   * el usuario lo edita a mano — así el costo calculado con % de sensibilidad
+   * sigue coincidiendo con Excel, sin mostrar decimales confusos en pantalla.
+   */
+  formatearCostoInput(valor: number | null | undefined): string {
+    return valor != null ? valor.toFixed(2) : '';
+  }
+
+  /**
+   * El usuario editó el costo a mano: a partir de ahora ese es el valor real
+   * (con la precisión que haya escrito), y se guarda tal cual.
+   */
+  onCostoInputChange(costo: Costos, event: Event): void {
+    const valor = (event.target as HTMLInputElement).valueAsNumber;
+    costo.costo = Number.isNaN(valor) ? 0 : valor;
+    this.onCostoChange(costo.id!);
+  }
+
+  /**
    * Verifica si hay costos modificados
    */
   hayCostosModificados(): boolean {

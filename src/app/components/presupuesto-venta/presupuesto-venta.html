@@ -10,14 +10,22 @@
     <div class="content-container">
       <div class="content-header">
         <h1>Presupuesto de Venta</h1>
+        <app-aviso-sensibilidad [variables]="['volumen', 'precio']"></app-aviso-sensibilidad>
         <p class="subtitle">Proyección de demanda por producto y año</p>
 
         <div class="acciones-toolbar" *ngIf="!cargando && presupuestosAgrupados.length > 0">
           <button *ngIf="!modoEdicion" type="button" class="btn btn-editar" (click)="activarEdicion()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
             Editar
           </button>
           <ng-container *ngIf="modoEdicion">
             <button type="button" class="btn btn-confirmar" [disabled]="guardando || !hayCambios" (click)="confirmarCambios()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
               {{ guardando ? 'Recalculando…' : 'Confirmar cambios' }}
             </button>
             <button type="button" class="btn btn-cancelar" [disabled]="guardando" (click)="cancelarEdicion()">
@@ -26,11 +34,28 @@
           </ng-container>
         </div>
 
-        <p *ngIf="modoEdicion" class="edit-hint">
-          Edita la cantidad POR DÍA de cada mes del Año 1. El total anual = (suma de los
-          12) × días por mes. Si subes un mes, el total sube. Los años 2-5 se recalculan
-          creciendo con el %.
-        </p>
+        <div *ngIf="modoEdicion" class="edit-hint">
+          <p class="edit-hint-linea">
+            Edita la cantidad POR DÍA de cada mes del Año 1. El total anual = (suma de los
+            12) × días por mes. Si subes un mes, el total sube. Los años 2-5 se recalculan
+            creciendo con el %.
+          </p>
+          <p *ngIf="haySensibilidadActiva" class="edit-hint-linea edit-hint-sensibilidad">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>
+              Tienes activa una sensibilidad de
+              <strong *ngIf="volumenSensibilidad">Volumen {{ volumenSensibilidad > 0 ? '+' : '' }}{{ volumenSensibilidad }}%</strong>
+              <ng-container *ngIf="volumenSensibilidad && precioSensibilidad">, </ng-container>
+              <strong *ngIf="precioSensibilidad">Precio {{ precioSensibilidad > 0 ? '+' : '' }}{{ precioSensibilidad }}%</strong>.
+              Los valores que ves y editas aquí son los <strong>valores base</strong>, sin ese porcentaje aplicado.
+              Al confirmar, la sensibilidad activa se vuelve a aplicar automáticamente sobre lo que edites.
+            </span>
+          </p>
+        </div>
       </div>
 
       <div *ngIf="cargando" class="loading-state">

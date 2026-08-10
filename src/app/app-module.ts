@@ -28,6 +28,7 @@ import {
   CardHome,
   NewPlanification,
   VariablesSensibilidadComponent,
+  AvisoSensibilidadComponent,
   SeccionesPDFComponent
 } from './auxiliaries';
 
@@ -61,6 +62,7 @@ import { PoliticasCV } from './auxiliaries/politicas-cv/politicas-cv';
     Prestamo,
     PresupuestoVentaComponent,
     VariablesSensibilidadComponent,
+    AvisoSensibilidadComponent,
     AcercaDe,
     Depreciaciones,
     SeccionesPDFComponent,

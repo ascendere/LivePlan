@@ -29,6 +29,10 @@ export class PresupuestoVentaComponent implements OnInit, OnDestroy {
   mesesEdit: { [id: number]: number[] } = {};
   private mesesOriginal: { [id: number]: number[] } = {};
 
+  // % de sensibilidad activos actualmente (para el aviso que se muestra al editar)
+  volumenSensibilidad: number = 0;
+  precioSensibilidad: number = 0;
+
   private subscriptions: Subscription[] = [];
 
   constructor(
@@ -61,8 +65,17 @@ avisarSiRecalculando(event: BeforeUnloadEvent): void {
     const recargar = () => { if (!this.modoEdicion) this.cargarTodo(); };
     const s1 = this.datosStateService.ventasDiarias$.subscribe(v => { if (v && v.length) recargar(); });
     const s2 = this.datosStateService.preciosProducto$.subscribe(p => { if (p && p.length) recargar(); });
-    const s3 = this.datosStateService.variablesSensibilidad$.subscribe(va => { if (va) recargar(); });
+    const s3 = this.datosStateService.variablesSensibilidad$.subscribe(va => {
+      this.volumenSensibilidad = va?.cantidad_volumen || 0;
+      this.precioSensibilidad = va?.precio || 0;
+      if (va) recargar();
+    });
     this.subscriptions.push(s1, s2, s3);
+  }
+
+  /** Hay algún % de sensibilidad (Volumen o Precio) activo que afecte esta pantalla. */
+  get haySensibilidadActiva(): boolean {
+    return this.volumenSensibilidad !== 0 || this.precioSensibilidad !== 0;
   }
 
   cargarTodo(): void {
@@ -139,14 +152,21 @@ avisarSiRecalculando(event: BeforeUnloadEvent): void {
   //  EDICIÓN DEL AÑO 1 (cantidades reales por producto)
   // ============================================================
 
-  activarEdicion(): void {
+  async activarEdicion(): Promise<void> {
     this.mesesEdit = {};
     this.mesesOriginal = {};
     const grupo1 = this.presupuestosAgrupados.find(g => g.anio === 1);
     if (grupo1) {
+      // Traer ventas por día directo del backend: no se puede depender de que
+      // otra pantalla (Datos Iniciales) ya las haya cargado en el estado
+      // compartido — si el usuario entra directo aquí, ese estado viene
+      // vacío y todos los productos sin estacionalidad propia se ven en 0.
+      const ventasDiarias = await this.inversionService
+        .getVentasDiarias(this.planId)
+        .catch(() => this.datosStateService.getVentasDiarias());
       for (const p of grupo1.items) {
         if (p.producto_id == null) continue;
-        const arr = this.getMesesAnio1(p.producto_id).map(v => this.redondear2(v));
+        const arr = (await this.getMesesBaseAnio1(p.producto_id, ventasDiarias)).map(v => this.redondear2(v));
         this.mesesEdit[p.producto_id] = arr;
         this.mesesOriginal[p.producto_id] = [...arr];
       }
@@ -154,12 +174,28 @@ avisarSiRecalculando(event: BeforeUnloadEvent): void {
     this.modoEdicion = true;
   }
 
-  private getMesesAnio1(productoId: number): number[] {
-    if (this.ventasPorMes[productoId] && this.ventasPorMes[productoId][1]) {
-      const dm = this.diasxmes > 0 ? this.diasxmes : 1;
-      return this.ventasPorMes[productoId][1].map(v => (v || 0) / dm); // a POR DÍA
+  /**
+   * Valores BASE (sin el % de Volumen/Precio de sensibilidad aplicado) del
+   * año 1 para editar: la estacionalidad guardada si el producto la tiene, o
+   * si no, la venta por día plana (modelo uniforme). Editar siempre muestra
+   * lo que el usuario escribió originalmente, no el resultado ya escalado —
+   * el % activo (si hay uno) se vuelve a aplicar solo, después de guardar.
+   */
+  private async getMesesBaseAnio1(productoId: number, ventasDiarias: { producto_servicio_id: number; venta_dia: number }[]): Promise<number[]> {
+    try {
+      const estacionalidad = await this.inversionService.getEstacionalidadProducto(productoId);
+      if (Array.isArray(estacionalidad) && estacionalidad.length === 12) {
+        const arr = new Array(12).fill(0);
+        for (const m of estacionalidad) {
+          if (m.mes >= 1 && m.mes <= 12) arr[m.mes - 1] = m.valor ?? 0;
+        }
+        return arr;
+      }
+    } catch {
+      // sin estacionalidad guardada -> cae al modelo uniforme de abajo
     }
-    return new Array(12).fill(0);
+    const venta = ventasDiarias.find(v => v.producto_servicio_id === productoId);
+    return new Array(12).fill(venta?.venta_dia ?? 0);
   }
 
   cancelarEdicion(): void {
@@ -193,13 +229,18 @@ avisarSiRecalculando(event: BeforeUnloadEvent): void {
 
     this.guardando = true;
     try {
-      // Guarda cada producto modificado (sin recalcular fila por fila)
-      for (const pid of cambiados) {
-        const meses = this.mesesEdit[pid].map((valor, i) => ({ mes: i + 1, valor }));
-        await this.inversionService.actualizarEstacionalidadProducto(pid, meses, false);
+      // Guarda cada producto modificado; solo el último dispara el recálculo
+      // real de todo el plan (Estado de Resultados, Flujo de Efectivo,
+      // Balance, Evaluación). ejecutarRecalcular2() NO sirve aquí: ese
+      // endpoint es el de la matriz de sensibilidad, corre cada combinación
+      // dentro de una transacción que SIEMPRE se revierte, así que nunca deja
+      // guardado el efecto real de este cambio sobre el plan.
+      for (let i = 0; i < cambiados.length; i++) {
+        const pid = cambiados[i];
+        const meses = this.mesesEdit[pid].map((valor, idx) => ({ mes: idx + 1, valor }));
+        const esUltimo = i === cambiados.length - 1;
+        await this.inversionService.actualizarEstacionalidadProducto(pid, meses, esUltimo);
       }
-      // Un solo recálculo de toda la cadena
-      await this.inversionService.ejecutarRecalcular2(this.planId);
       this.modoEdicion = false;
       this.cargarTodo();
     } catch (error) {

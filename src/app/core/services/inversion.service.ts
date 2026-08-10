@@ -1024,6 +1024,30 @@ export class InversionService {
     });
   }
 
+  /**
+   * Regenera la matriz de análisis de sensibilidad con el par de variables
+   * elegido (2 de: volumen, precio, costo). Borra la matriz anterior y crea
+   * una nueva con Valor=0; hay que llamar ejecutarRecalcular2() después para
+   * poblarla.
+   */
+  generarAnalisisSensibilidad(
+    planId: number,
+    variableFila: 'volumen' | 'precio' | 'costo',
+    variableColumna: 'volumen' | 'precio' | 'costo',
+  ): Promise<any> {
+    const url = `${this.apiUrl}/analisis_sensibilidad/generar/${encodeURIComponent(planId)}`;
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ variable_fila: variableFila, variable_columna: variableColumna }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Error al generar análisis de sensibilidad: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    });
+  }
+
   ejecutarRecalcular2(planId: number): Promise<{ message: string }> {
     const url = `${this.apiUrl}/recalcular2/${encodeURIComponent(planId)}`;
     // console.log('Ejecutando recalcular2 para plan:', planId);

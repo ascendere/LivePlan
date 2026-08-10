@@ -29,9 +29,18 @@ interface ConceptoEvaluacion {
     id: number;
     plan_negocio_id: number;
     volumen: number;
+    precio: number;
     costo: number;
     valor: number;
   }
+
+  export type VariableEjeSensibilidad = 'volumen' | 'precio' | 'costo';
+
+  const ETIQUETAS_EJE_SENSIBILIDAD: Record<VariableEjeSensibilidad, string> = {
+    volumen: 'Volumen',
+    precio: 'Precio',
+    costo: 'Costo',
+  };
 
 @Component({
   selector: 'app-evaluacion',
@@ -50,9 +59,17 @@ export class Evaluacion implements OnInit, OnDestroy {
   evaluationRows: { concepto: string; valores: (string | number)[] }[] = [];
   evaluacionProyecto: EvaluacionProyecto | null = null;
   analisisSensibilidad: AnalisisSensibilidadItem[] = [];
-  // matrix structure: headers = costos, rows = { volumen, valores[] }
-  analisisCostos: number[] = [];
-  analisisVolumenes: number[] = [];
+  // Qué 2 de las 3 variables (volumen/precio/costo) grafica la matriz hoy.
+  variableFila: VariableEjeSensibilidad = 'costo';
+  variableColumna: VariableEjeSensibilidad = 'volumen';
+  readonly variablesEje: VariableEjeSensibilidad[] = ['volumen', 'precio', 'costo'];
+  // Selección pendiente en el selector, antes de confirmar "Generar matriz".
+  variableFilaSeleccionada: VariableEjeSensibilidad = 'costo';
+  variableColumnaSeleccionada: VariableEjeSensibilidad = 'volumen';
+  cargandoGenerar: boolean = false;
+  // matrix structure: analisisEjeFila = valores del eje de filas, analisisEjeColumna = valores del eje de columnas
+  analisisEjeFila: number[] = [];
+  analisisEjeColumna: number[] = [];
   analisisMatrix: (number | string)[][] = [];
 
   // Estados para análisis de sensibilidad
@@ -236,6 +253,20 @@ export class Evaluacion implements OnInit, OnDestroy {
     }
   }
 
+  /** Lee, de una celda de la matriz, el valor del eje dado (volumen/precio/costo). */
+  private valorEje(item: AnalisisSensibilidadItem, variable: VariableEjeSensibilidad): number {
+    switch (variable) {
+      case 'volumen': return item.volumen;
+      case 'precio': return item.precio;
+      case 'costo': return item.costo;
+    }
+  }
+
+  /** Etiqueta legible ("Volumen"/"Precio"/"Costo") para una variable de eje. */
+  etiquetaEje(variable: VariableEjeSensibilidad): string {
+    return ETIQUETAS_EJE_SENSIBILIDAD[variable];
+  }
+
   /** Carga análisis de sensibilidad y construye matriz */
   cargarAnalisisSensibilidad(): void {
     if (!this.planId) return;
@@ -246,9 +277,16 @@ export class Evaluacion implements OnInit, OnDestroy {
           id: r.id,
           plan_negocio_id: r.plan_negocio_id,
           volumen: Number(r.volumen),
+          precio: Number(r.precio),
           costo: Number(r.costo),
           valor: Number(r.valor)
         }));
+        if (resp && resp.variable_fila && resp.variable_columna) {
+          this.variableFila = resp.variable_fila;
+          this.variableColumna = resp.variable_columna;
+          this.variableFilaSeleccionada = resp.variable_fila;
+          this.variableColumnaSeleccionada = resp.variable_columna;
+        }
         this.buildAnalisisMatrix();
       })
       .catch(err => {
@@ -259,36 +297,77 @@ export class Evaluacion implements OnInit, OnDestroy {
 
   private buildAnalisisMatrix(): void {
     if (!this.analisisSensibilidad || this.analisisSensibilidad.length === 0) {
-      this.analisisCostos = [];
-      this.analisisVolumenes = [];
+      this.analisisEjeFila = [];
+      this.analisisEjeColumna = [];
       this.analisisMatrix = [];
       return;
     }
 
-    const costosSet = new Set<number>();
-    const volumenSet = new Set<number>();
+    const filaSet = new Set<number>();
+    const columnaSet = new Set<number>();
     for (const r of this.analisisSensibilidad) {
-      costosSet.add(r.costo);
-      volumenSet.add(r.volumen);
+      filaSet.add(this.valorEje(r, this.variableFila));
+      columnaSet.add(this.valorEje(r, this.variableColumna));
     }
 
-    // Orden descendente (15%, 10%, ... -15%) para que coincida visualmente
-    // con la tabla de Excel de la que viene este análisis.
-    this.analisisCostos = Array.from(costosSet).sort((a,b)=>b-a);
-    this.analisisVolumenes = Array.from(volumenSet).sort((a,b)=>a-b);
+    // Orden descendente para las filas (15%, 10%, ... -15%) y ascendente
+    // para las columnas — el mismo orden visual que tenía la tabla de Excel
+    // de la que viene este análisis.
+    this.analisisEjeFila = Array.from(filaSet).sort((a, b) => b - a);
+    this.analisisEjeColumna = Array.from(columnaSet).sort((a, b) => a - b);
 
-    // Build matrix rows: each row starts with costo label, then values for each volumen in analisisVolumenes
+    // Build matrix rows: each row starts with the eje-fila label, then values for each eje-columna value
     const matrix: (number | string)[][] = [];
-    for (const cos of this.analisisCostos) {
-      const row: (number | string)[] = [cos];
-      for (const vol of this.analisisVolumenes) {
-        const found = this.analisisSensibilidad.find(x => x.volumen === vol && x.costo === cos);
+    for (const valFila of this.analisisEjeFila) {
+      const row: (number | string)[] = [valFila];
+      for (const valColumna of this.analisisEjeColumna) {
+        const found = this.analisisSensibilidad.find(x =>
+          this.valorEje(x, this.variableFila) === valFila && this.valorEje(x, this.variableColumna) === valColumna
+        );
         row.push(found ? found.valor : '-');
       }
       matrix.push(row);
     }
 
     this.analisisMatrix = matrix;
+  }
+
+  /** Las 2 opciones que puede tomar el otro selector, dado lo que ya está elegido en uno. */
+  opcionesEjeDisponibles(excluir: VariableEjeSensibilidad): VariableEjeSensibilidad[] {
+    return this.variablesEje.filter(v => v !== excluir);
+  }
+
+  get puedeGenerarMatriz(): boolean {
+    return this.variableFilaSeleccionada !== this.variableColumnaSeleccionada;
+  }
+
+  /** El selector tiene una combinación distinta a la que ya está graficada (hace falta regenerar). */
+  get seleccionCambiada(): boolean {
+    return this.variableFilaSeleccionada !== this.variableFila || this.variableColumnaSeleccionada !== this.variableColumna;
+  }
+
+  /**
+   * Regenera la matriz con el par de variables elegido en el selector. Borra
+   * los resultados anteriores (quedan en 0) y marca el análisis como
+   * pendiente; el usuario debe pulsar "Recalcular" después para poblarla.
+   */
+  async generarMatriz(): Promise<void> {
+    if (!this.planId || !this.puedeGenerarMatriz || this.cargandoGenerar) return;
+    this.cargandoGenerar = true;
+    try {
+      await this.inversionService.generarAnalisisSensibilidad(
+        this.planId,
+        this.variableFilaSeleccionada,
+        this.variableColumnaSeleccionada,
+      );
+      this.statusAnalisis = false;
+      this.cargarAnalisisSensibilidad();
+    } catch (error) {
+      console.error('Error al generar la matriz de análisis de sensibilidad:', error);
+      alert('No se pudo generar la matriz con esas variables. Intenta de nuevo.');
+    } finally {
+      this.cargandoGenerar = false;
+    }
   }
 
   /**

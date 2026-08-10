@@ -273,6 +273,13 @@
   border-color: #dee2e6;
 }
 
+/* === Campos calculados automáticamente (ej. Inventario de materias primas) === */
+.form-control-auto {
+  background: #eef6ff;
+  border-color: #bcd8f5;
+  color: #004271;
+}
+
 .form-control::placeholder {
   color: #adb5bd;
   font-style: italic;

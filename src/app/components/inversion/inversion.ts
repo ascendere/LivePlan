@@ -192,6 +192,30 @@ export class Inversion implements OnInit {
   }
 
   /**
+   * "Inventario de materias primas" no se edita a mano: el backend lo
+   * recalcula automáticamente (PorcenVentas% de las Ventas del mes 1) cada
+   * vez que se guarda cualquier cambio, igual que en el Excel de referencia
+   * (esa celda ahí es una fórmula, no una entrada). Mientras el plan no
+   * tenga ventas cargadas todavía, el backend conserva el valor tal cual
+   * está en vez de ponerlo en 0.
+   */
+  esInventarioMateriaPrima(detalle: InversionDetalle): boolean {
+    return (detalle.elemento || '').trim().toLowerCase() === 'inventario de materias primas';
+  }
+
+  /**
+   * "Inventario de materias primas" y "Efectivo" no se pueden borrar: el
+   * resto del cálculo (Balance General, Flujo de Efectivo) los busca por
+   * nombre exacto dentro de "Capital de trabajo inicial". Si el usuario los
+   * elimina, esos cálculos dejan de encontrarlos y usan 0 en silencio, sin
+   * ningún aviso. Todo plan nuevo ya los trae creados por defecto.
+   */
+  esFilaProtegida(detalle: InversionDetalle): boolean {
+    const nombre = (detalle.elemento || '').trim().toLowerCase();
+    return nombre === 'inventario de materias primas' || nombre === 'efectivo';
+  }
+
+  /**
    * Marca un detalle como modificado cuando cambia su importe
    */
   onDetalleImporteChange(detalle: InversionDetalle): void {
@@ -401,6 +425,10 @@ export class Inversion implements OnInit {
     if (!inversion.detalles) return;
 
     const detalle = inversion.detalles[index];
+
+    if (this.esFilaProtegida(detalle)) {
+      return;
+    }
 
     if (!detalle.id) {
       // Si no tiene ID, solo remover del array

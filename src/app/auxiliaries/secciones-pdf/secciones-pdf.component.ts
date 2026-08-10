@@ -5,6 +5,12 @@ import { FirebaseService, SeccionData, PlanNegocio } from '../../core/services/f
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
+// Paleta institucional (misma que usa el resto de la app: header, sidebar, login).
+const COLOR_PRIMARIO: [number, number, number] = [0, 66, 113]; // #004271
+const COLOR_PRIMARIO_OSCURO: [number, number, number] = [0, 49, 85]; // #003155
+const COLOR_CLARO: [number, number, number] = [216, 220, 230]; // #d8dce6
+const COLOR_GRIS_AZUL: [number, number, number] = [177, 187, 206]; // #B1BBCE
+
 @Component({
   selector: 'app-secciones-pdf',
   templateUrl: './secciones-pdf.component.html',
@@ -208,15 +214,67 @@ export class SeccionesPDFComponent implements OnInit {
   }
 
   onImagenSeleccionada(event: any, index: number): void {
-    const file: File = event.target.files[0];
-    if (!file || !this.secciones[index] || !this.planId) return;
+    const files: FileList = event.target.files;
+    const seccion = this.secciones[index];
+    if (!files || files.length === 0 || !seccion || !this.planId) return;
 
-    const seccionId = this.secciones[index].id || `temp-${Date.now()}`;
-    this.firebaseService.subirImagenAlternativo(file, seccionId, this.planId).subscribe((url) => {
-      this.secciones[index].imagenUrl = url;
-      this.secciones[index].imagenNombre = file.name;
+    if (!seccion.imagenes) {
+      seccion.imagenes = [];
+    }
+
+    const seccionId = seccion.id || `temp-${Date.now()}`;
+    const subidas = Array.from(files).map((file) =>
+      firstValueFrom(this.firebaseService.subirImagen(file, seccionId, this.planId))
+        .then((url) => ({ url, nombre: file.name }))
+        .catch((error) => {
+          console.error('Error al subir imagen:', error);
+          return null;
+        }),
+    );
+
+    Promise.all(subidas).then((resultados) => {
+      for (const resultado of resultados) {
+        if (resultado) {
+          seccion.imagenes!.push(resultado);
+        }
+      }
+      event.target.value = '';
       this.guardarSeccion(index);
     });
+  }
+
+  reemplazarImagenSeccion(event: any, seccionIndex: number, imgIndex: number): void {
+    const file: File = event.target.files[0];
+    const seccion = this.secciones[seccionIndex];
+    if (!file || !seccion || !seccion.imagenes || !this.planId) return;
+
+    const anterior = seccion.imagenes[imgIndex];
+    const seccionId = seccion.id || `temp-${Date.now()}`;
+
+    this.firebaseService.subirImagen(file, seccionId, this.planId).subscribe({
+      next: (url) => {
+        seccion.imagenes![imgIndex] = { url, nombre: file.name };
+        if (anterior?.url) {
+          this.firebaseService.eliminarImagen(anterior.url).subscribe();
+        }
+        event.target.value = '';
+        this.guardarSeccion(seccionIndex);
+      },
+      error: (error) => {
+        console.error('Error al reemplazar imagen:', error);
+      },
+    });
+  }
+
+  eliminarImagenDeSeccion(seccionIndex: number, imgIndex: number): void {
+    const seccion = this.secciones[seccionIndex];
+    if (!seccion?.imagenes) return;
+
+    const [removida] = seccion.imagenes.splice(imgIndex, 1);
+    if (removida?.url) {
+      this.firebaseService.eliminarImagen(removida.url).subscribe();
+    }
+    this.guardarSeccion(seccionIndex);
   }
 
   onSeccionChange(index: number) {
@@ -510,51 +568,75 @@ export class SeccionesPDFComponent implements OnInit {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      let y = 20;
       const margin = 15;
-      const lineHeight = 7;
-      const maxImgWidth = pageWidth - margin * 2;
-      const maxImgHeight = 80;
+      const headerHeight = 16;
+      const footerHeight = 14;
+      const contentTop = headerHeight + 10;
+      const contentBottom = pageHeight - footerHeight;
+      const lineHeight = 6.5;
       const maxTextWidth = pageWidth - margin * 2;
+      let y = contentTop;
 
-      const checkPageBreak = (requiredSpace: number = 20) => {
-        if (y + requiredSpace > pageHeight - margin) {
+      this.dibujarPortada(pdf, pageWidth, pageHeight);
+      pdf.addPage();
+      y = contentTop;
+
+      // Función PURA: no muta nada por fuera, devuelve la Y que corresponde
+      // usar a partir de ahora (la misma si cabe, o el tope de una página
+      // nueva si no). Todo el código de abajo reasigna "y = checkPageBreak(...)"
+      // — así, cualquier función auxiliar (como dibujarImagenesSeccion, que
+      // lleva su propia variable local "y") se entera de inmediato si hubo
+      // salto de página, en vez de seguir dibujando en una posición vieja.
+      const checkPageBreak = (yActual: number, requiredSpace: number = 20): number => {
+        if (yActual + requiredSpace > contentBottom) {
           pdf.addPage();
-          y = margin;
+          return contentTop;
         }
+        return yActual;
       };
 
       for (const [idx, seccion] of this.secciones.entries()) {
         // Saltar secciones sin título
         if (!seccion.titulo || seccion.titulo.trim() === '') continue;
 
-        checkPageBreak(30);
+        y = checkPageBreak(y, 20);
 
-        // Título
-        pdf.setFontSize(16);
-        pdf.setTextColor(0, 66, 113);
-        const tituloLines = pdf.splitTextToSize(seccion.titulo, maxTextWidth);
-        pdf.text(tituloLines, margin, y);
-        y += tituloLines.length * lineHeight + 3;
+        // Banda de título de sección. El tamaño/peso de letra debe fijarse
+        // ANTES de splitTextToSize: esa función mide con la fuente activa en
+        // ese momento, así que si se mide con la de la sección anterior (más
+        // chica) el texto calza mal en la banda y se sale al dibujarlo grande.
+        pdf.setFontSize(13);
+        pdf.setFont('helvetica', 'bold');
+        const tituloLines = pdf.splitTextToSize(seccion.titulo, maxTextWidth - 6);
+        const bandaAltura = tituloLines.length * 6 + 6;
+        y = checkPageBreak(y, bandaAltura + 10);
+        pdf.setFillColor(...COLOR_PRIMARIO);
+        pdf.rect(margin, y, maxTextWidth, bandaAltura, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.text(tituloLines, margin + 4, y + 6.5);
+        pdf.setFont('helvetica', 'normal');
+        y += bandaAltura + 6;
 
         // NO incluir instrucción de secciones precargadas en el PDF
 
         // Subsecciones
         for (const sub of seccion.subsecciones) {
-          pdf.setFontSize(12);
-          pdf.setTextColor(0, 0, 0);
-          const preguntaLines = pdf.splitTextToSize(`• ${sub.pregunta}`, maxTextWidth);
-          checkPageBreak(preguntaLines.length * lineHeight + 10);
+          pdf.setFontSize(11.5);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
+          const preguntaLines = pdf.splitTextToSize(sub.pregunta, maxTextWidth);
+          y = checkPageBreak(y, preguntaLines.length * lineHeight + 10);
           pdf.text(preguntaLines, margin, y);
-          y += preguntaLines.length * lineHeight + 2;
+          y += preguntaLines.length * lineHeight + 1.5;
+          pdf.setFont('helvetica', 'normal');
 
           if (sub.descripcion && sub.descripcion.trim() !== '') {
-            pdf.setFontSize(11);
+            pdf.setFontSize(10.5);
             pdf.setTextColor(60, 60, 60);
-            const descLines = pdf.splitTextToSize(sub.descripcion, maxTextWidth - 10);
-            checkPageBreak(descLines.length * lineHeight + 5);
-            pdf.text(descLines, margin + 5, y);
-            y += descLines.length * lineHeight + 3;
+            const descLines = pdf.splitTextToSize(sub.descripcion, maxTextWidth - 6);
+            y = checkPageBreak(y, descLines.length * lineHeight + 5);
+            pdf.text(descLines, margin + 4, y);
+            y += descLines.length * lineHeight + 4;
           }
         }
 
@@ -564,49 +646,195 @@ export class SeccionesPDFComponent implements OnInit {
           seccion.descripcion &&
           seccion.descripcion.trim() !== ''
         ) {
-          pdf.setFontSize(11);
+          y = checkPageBreak(y, lineHeight + 15);
+          pdf.setFontSize(11.5);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
+          pdf.text('Descripción General', margin, y);
+          y += lineHeight + 1.5;
+          pdf.setFont('helvetica', 'normal');
+
+          pdf.setFontSize(10.5);
           pdf.setTextColor(60, 60, 60);
-          const descLines = pdf.splitTextToSize(seccion.descripcion, maxTextWidth);
-          checkPageBreak(descLines.length * lineHeight + 5);
-          pdf.text(descLines, margin, y);
+          const descLines = pdf.splitTextToSize(seccion.descripcion, maxTextWidth - 6);
+          y = checkPageBreak(y, descLines.length * lineHeight + 5);
+          pdf.text(descLines, margin + 4, y);
           y += descLines.length * lineHeight + 5;
         }
 
-        // Imagen (convertir url a base64 antes de agregar)
-        if (seccion.imagenUrl) {
-          try {
-            checkPageBreak(maxImgHeight + 10);
-            const base64 = await this.convertirImagenUrlABase64(seccion.imagenUrl);
-
-            pdf.addImage(
-              base64,
-              'JPEG', // o 'PNG', puedes ajustarlo según formato real
-              margin,
-              y,
-              maxImgWidth,
-              maxImgHeight,
-              undefined,
-              'FAST',
-            );
-            y += maxImgHeight + 10;
-          } catch (error) {
-            console.warn('Error al convertir o agregar imagen:', error);
-          }
+        // Imágenes: proporción real (sin deformar), en cuadrícula de 2
+        // columnas cuando hay más de una.
+        const imagenes = seccion.imagenes || [];
+        if (imagenes.length > 0) {
+          y = await this.dibujarImagenesSeccion(pdf, imagenes, margin, y, maxTextWidth, checkPageBreak);
         }
 
         // Espacio entre secciones
         if (idx < this.secciones.length - 1) {
-          y += 15;
-          checkPageBreak(30);
+          y += 10;
+          y = checkPageBreak(y, 20);
         }
       }
 
-      pdf.save('plan.pdf');
+      this.dibujarEncabezadoPie(pdf, pageWidth, pageHeight, margin, headerHeight, footerHeight);
+
+      pdf.save(`${(this.nombrePlan || 'plan').replace(/[^\w\-]+/g, '_')}.pdf`);
     } catch (err) {
       console.error('Error exportando PDF:', err);
     } finally {
       this.loadingPDF = false;
     }
+  }
+
+  /**
+   * Portada institucional: banda superior con el nombre de la universidad,
+   * título del plan centrado y fecha de generación. Página 1, separada del
+   * contenido (que arranca en la página 2 con su propio encabezado/pie).
+   */
+  private dibujarPortada(pdf: jsPDF, pageWidth: number, pageHeight: number): void {
+    pdf.setFillColor(...COLOR_PRIMARIO);
+    pdf.rect(0, 0, pageWidth, 55, 'F');
+    pdf.setFillColor(...COLOR_PRIMARIO_OSCURO);
+    pdf.rect(0, 50, pageWidth, 5, 'F');
+
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(20);
+    pdf.text('UNIVERSIDAD TÉCNICA PARTICULAR DE LOJA', pageWidth / 2, 24, { align: 'center' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(12);
+    pdf.text('Colaborador Interactivo de Planes de Negocio', pageWidth / 2, 34, { align: 'center' });
+
+    pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(24);
+    const tituloLines = pdf.splitTextToSize(this.nombrePlan || 'Plan de Negocio', pageWidth - 50);
+    pdf.text(tituloLines, pageWidth / 2, pageHeight / 2 - 10, { align: 'center' });
+
+    pdf.setDrawColor(...COLOR_GRIS_AZUL);
+    pdf.setLineWidth(0.5);
+    pdf.line(pageWidth / 2 - 30, pageHeight / 2 + 5, pageWidth / 2 + 30, pageHeight / 2 + 5);
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(11);
+    pdf.setTextColor(90, 90, 90);
+    pdf.text('Plan de Negocio', pageWidth / 2, pageHeight / 2 + 15, { align: 'center' });
+
+    const fecha = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' });
+    pdf.setFontSize(10);
+    pdf.text(`Generado el ${fecha}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+  }
+
+  /**
+   * Encabezado y pie de página institucionales en todas las páginas de
+   * contenido (todas menos la portada, página 1). Se dibuja al final, cuando
+   * ya se conoce el total de páginas, para poder mostrar "Página X de Y".
+   */
+  private dibujarEncabezadoPie(pdf: jsPDF, pageWidth: number, pageHeight: number, margin: number, headerHeight: number, footerHeight: number): void {
+    const totalPaginas = pdf.getNumberOfPages();
+    for (let i = 2; i <= totalPaginas; i++) {
+      pdf.setPage(i);
+
+      pdf.setFillColor(...COLOR_PRIMARIO);
+      pdf.rect(0, 0, pageWidth, headerHeight, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10);
+      pdf.text('UTPL', margin, headerHeight / 2 + 2.5);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      const tituloCorto = pdf.splitTextToSize(this.nombrePlan || 'Plan de Negocio', pageWidth - margin * 2 - 20)[0] || '';
+      pdf.text(tituloCorto, pageWidth - margin, headerHeight / 2 + 2.5, { align: 'right' });
+
+      pdf.setDrawColor(...COLOR_GRIS_AZUL);
+      pdf.setLineWidth(0.3);
+      pdf.line(margin, pageHeight - footerHeight, pageWidth - margin, pageHeight - footerHeight);
+      pdf.setTextColor(120, 120, 120);
+      pdf.setFontSize(8.5);
+      pdf.text(`Página ${i - 1} de ${totalPaginas - 1}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
+    }
+  }
+
+  /**
+   * Dibuja las imágenes de una sección en cuadrícula (2 columnas si hay más
+   * de una), respetando la proporción real de cada imagen para que no salga
+   * estirada ni aplastada. Devuelve la nueva posición Y.
+   */
+  private async dibujarImagenesSeccion(
+    pdf: jsPDF,
+    imagenes: { url: string; nombre?: string }[],
+    margin: number,
+    yInicial: number,
+    anchoDisponible: number,
+    checkPageBreak: (yActual: number, espacio?: number) => number,
+  ): Promise<number> {
+    let y = yInicial;
+    const gap = 4;
+    const columnas = imagenes.length > 1 ? 2 : 1;
+    const anchoColumna = (anchoDisponible - gap * (columnas - 1)) / columnas;
+    const alturaMaxima = 70;
+
+    for (let i = 0; i < imagenes.length; i += columnas) {
+      const fila = imagenes.slice(i, i + columnas);
+      const dimensiones = await Promise.all(
+        fila.map(async (img) => {
+          try {
+            const base64 = await this.convertirImagenUrlABase64(img.url);
+            const { width, height } = await this.obtenerDimensionesImagen(base64);
+            let w = anchoColumna;
+            let h = (height / width) * w;
+            if (h > alturaMaxima) {
+              h = alturaMaxima;
+              w = (width / height) * h;
+            }
+            return { base64, w, h, formato: this.formatoImagen(base64) };
+          } catch (error) {
+            console.warn('Error al convertir o agregar imagen:', error);
+            return null;
+          }
+        }),
+      );
+
+      const alturaFila = Math.max(0, ...dimensiones.map((d) => d?.h ?? 0));
+      if (alturaFila === 0) continue;
+      // Reasignar "y" con lo que devuelva checkPageBreak: si esta fila no
+      // cabe, ya movió el cursor a la página nueva y hay que dibujar ahí,
+      // no en la posición vieja (esto era justo el bug: antes se ignoraba
+      // el resultado y las imágenes seguían cayendo al fondo de la página).
+      y = checkPageBreak(y, alturaFila + gap);
+
+      let x = margin;
+      for (const d of dimensiones) {
+        if (d) {
+          // centrado horizontal dentro de su columna
+          const offsetX = x + (anchoColumna - d.w) / 2;
+          pdf.addImage(d.base64, d.formato, offsetX, y, d.w, d.h, undefined, 'FAST');
+        }
+        x += anchoColumna + gap;
+      }
+      y += alturaFila + gap;
+    }
+
+    return y + 4;
+  }
+
+  /** Formato real de una imagen a partir de su data URL (para addImage). */
+  private formatoImagen(base64: string): 'PNG' | 'JPEG' | 'WEBP' {
+    const match = /^data:image\/(png|jpe?g|webp)/i.exec(base64);
+    const tipo = match?.[1]?.toLowerCase();
+    if (tipo === 'png') return 'PNG';
+    if (tipo === 'webp') return 'WEBP';
+    return 'JPEG';
+  }
+
+  /** Dimensiones reales (px) de una imagen a partir de su data URL. */
+  private obtenerDimensionesImagen(base64: string): Promise<{ width: number; height: number }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth || 1, height: img.naturalHeight || 1 });
+      img.onerror = reject;
+      img.src = base64;
+    });
   }
 
   private normalizarSecciones(seccionesData: any): SeccionData[] {
@@ -616,16 +844,30 @@ export class SeccionesPDFComponent implements OnInit {
         ? Object.values(seccionesData)
         : [];
 
-    return raw.map((seccion: any) => ({
-      ...seccion,
-      subsecciones: Array.isArray(seccion.subsecciones) ? seccion.subsecciones : [],
-      fechaCreacion: seccion.fechaCreacion || new Date(),
-      fechaActualizacion: seccion.fechaActualizacion || new Date(),
-    }));
+    return raw.map((seccion: any) => {
+      // Migrar el campo antiguo de una sola imagen al arreglo nuevo
+      const imagenes = Array.isArray(seccion.imagenes)
+        ? seccion.imagenes
+        : seccion.imagenUrl
+          ? [{ url: seccion.imagenUrl, nombre: seccion.imagenNombre }]
+          : [];
+
+      return {
+        ...seccion,
+        subsecciones: Array.isArray(seccion.subsecciones) ? seccion.subsecciones : [],
+        imagenes,
+        fechaCreacion: seccion.fechaCreacion || new Date(),
+        fechaActualizacion: seccion.fechaActualizacion || new Date(),
+      };
+    });
   }
 
   private async convertirImagenUrlABase64(url: string): Promise<string> {
-    const response = await fetch(url);
+    // 'no-store' evita reutilizar una respuesta "opaca" que el navegador
+    // haya cacheado al mostrar esta misma URL en un <img> (modo no-cors),
+    // que de reusarse hace fallar este fetch (modo cors) con un falso error
+    // de CORS aunque el servidor sí envíe los headers correctos.
+    const response = await fetch(url, { cache: 'no-store' });
     const blob = await response.blob();
 
     return new Promise<string>((resolve, reject) => {

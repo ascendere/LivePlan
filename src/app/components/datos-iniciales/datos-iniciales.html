@@ -12,6 +12,7 @@
   <main class="main-content">
     <div class="content-container">
       <h1>Datos Iniciales</h1>
+      <app-aviso-sensibilidad [variables]="['volumen', 'precio']"></app-aviso-sensibilidad>
 
       <div class="content-section">
         <!-- Indicador de progreso -->
@@ -944,8 +945,8 @@
                             <input
                               type="number"
                               class="form-input precio-input"
-                              [(ngModel)]="costo.costo"
-                              (ngModelChange)="onCostoChange(costo.id!)"
+                              [value]="formatearCostoInput(costo.costo)"
+                              (change)="onCostoInputChange(costo, $event)"
                               [name]="'costo-' + costo.id"
                               min="0"
                               step="0.01"

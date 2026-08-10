@@ -89,6 +89,8 @@
                           (blur)="!detalle.id && detalle.elemento ? guardarNuevoDetalle(detalle, inversion) : null"
                           placeholder="Ingrese nombre del elemento"
                           class="form-control"
+                          [readonly]="esFilaProtegida(detalle)"
+                          [title]="esFilaProtegida(detalle) ? 'El nombre no se puede cambiar: el resto del cálculo lo busca por este nombre exacto.' : ''"
                         />
                       </td>
                       <td>
@@ -98,12 +100,16 @@
                           (ngModelChange)="onDetalleImporteChange(detalle)"
                           placeholder="0.00"
                           class="form-control"
+                          [class.form-control-auto]="esInventarioMateriaPrima(detalle)"
+                          [readonly]="esInventarioMateriaPrima(detalle)"
+                          [title]="esInventarioMateriaPrima(detalle) ? 'Se calcula solo (% de ventas del mes 1); no se edita a mano.' : ''"
                           min="0"
                           step="0.01"
                         />
                       </td>
                       <td class="celda-delete">
                         <button
+                          *ngIf="!esFilaProtegida(detalle)"
                           (click)="eliminarDetalle(inversion, j)"
                           class="delete-btn"
                           title="Eliminar elemento"

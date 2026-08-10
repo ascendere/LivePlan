@@ -29,6 +29,7 @@ export interface SeccionData {
   imagenUrl?: string;
   imagenNombre?: string;
   imagenPreview?: string;
+  imagenes?: { url: string; nombre?: string }[];
   fechaCreacion?: any;
   fechaActualizacion?: any;
   nota?: string;

@@ -125,7 +125,7 @@
           ></textarea>
         </div>
 
-        <!-- Adjuntar imagen -->
+        <!-- Adjuntar imágenes -->
         <div class="imagen-section">
           <label class="btn-secondary">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -133,12 +133,31 @@
               <circle cx="8.5" cy="8.5" r="1.5"></circle>
               <polyline points="21 15 16 10 5 21"></polyline>
             </svg>
-            <input type="file" accept="image/*" (change)="onImagenSeleccionada($event, i)" style="display: none;" />
-            Adjuntar imagen
+            <input type="file" accept="image/*" multiple (change)="onImagenSeleccionada($event, i)" style="display: none;" />
+            Adjuntar imágenes
           </label>
 
-          <div *ngIf="seccion.imagenUrl" class="imagen-preview">
-            <img [src]="seccion.imagenUrl" alt="Imagen adjunta" />
+          <div *ngIf="seccion.imagenes && seccion.imagenes.length > 0" class="imagenes-grid">
+            <div *ngFor="let imagen of seccion.imagenes; let k = index" class="imagen-item">
+              <img [src]="imagen.url" alt="Imagen adjunta" />
+              <div class="imagen-item-actions">
+                <label class="imagen-action-btn" title="Reemplazar imagen">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 2v6h-6"></path>
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                    <path d="M3 22v-6h6"></path>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                  </svg>
+                  <input type="file" accept="image/*" (change)="reemplazarImagenSeccion($event, i, k)" style="display: none;" />
+                </label>
+                <button class="imagen-action-btn" title="Eliminar imagen" (click)="eliminarImagenDeSeccion(i, k)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

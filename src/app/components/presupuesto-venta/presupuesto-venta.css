@@ -302,21 +302,58 @@
 }
 .estacionalidad-panel h2 { margin: 0 0 0.25rem; font-size: 1.1rem; }
  
+.acciones-toolbar { display: flex; gap: 12px; margin-bottom: 16px; }
 .acciones-cell { white-space: nowrap; display: flex; gap: 0.35rem; }
- 
+
 .btn {
-  border: none; border-radius: 6px; padding: 0.35rem 0.7rem;
-  font-size: 0.85rem; font-weight: 600; cursor: pointer;
-  transition: background-color 0.15s ease, opacity 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-editar { background-color: #2563eb; color: #fff; }
-.btn-editar:hover:not(:disabled) { background-color: #1d4ed8; }
-.btn-confirmar { background-color: #16a34a; color: #fff; }
-.btn-confirmar:hover:not(:disabled) { background-color: #15803d; }
-.btn-cancelar { background-color: #e5e7eb; color: #111827; }
-.btn-cancelar:hover:not(:disabled) { background-color: #d1d5db; }
- 
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.btn svg { flex-shrink: 0; }
+
+.btn-editar {
+  background: linear-gradient(135deg, #004271 0%, #0056a3 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 66, 113, 0.3);
+}
+.btn-editar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #003157 0%, #004271 100%);
+  box-shadow: 0 4px 10px rgba(0, 66, 113, 0.4);
+  transform: translateY(-2px);
+}
+.btn-editar:active:not(:disabled) { transform: translateY(0); }
+
+.btn-confirmar {
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(25, 135, 84, 0.3);
+}
+.btn-confirmar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #146c43 0%, #0f5132 100%);
+  box-shadow: 0 4px 10px rgba(25, 135, 84, 0.4);
+  transform: translateY(-2px);
+}
+.btn-confirmar:active:not(:disabled) { transform: translateY(0); }
+
+.btn-cancelar {
+  background: transparent;
+  color: #004271;
+  border: 2px solid #d8dce6;
+}
+.btn-cancelar:hover:not(:disabled) {
+  background: rgba(0, 66, 113, 0.05);
+  border-color: #004271;
+}
+
 .input-mes {
   width: 60px; padding: 0.2rem 0.3rem;
   border: 1px solid #cbd5e1; border-radius: 4px;
@@ -329,6 +366,38 @@
   background: #2563eb; color: #fff; font-size: 0.7rem; font-weight: 700;
   width: 16px; height: 16px; line-height: 16px; text-align: center; border-radius: 50%;
 }
+
+/* === Aviso al editar el Año 1 === */
+.edit-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.edit-hint-linea {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  background: #eef6ff;
+  border: 1px solid #bcd8f5;
+  color: #004271;
+}
+
+.edit-hint-linea svg { flex-shrink: 0; margin-top: 2px; }
+
+.edit-hint-sensibilidad {
+  background: #fff8e1;
+  border-color: #f0c95c;
+  color: #7a5c00;
+}
+
+.edit-hint-sensibilidad svg { color: #b8860b; }
 
 
 /* ===== Modal de recálculo ===== */
