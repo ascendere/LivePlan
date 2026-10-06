@@ -767,17 +767,20 @@ export class SeccionesPDFComponent implements OnInit {
       // Numeración corrida de figuras (APA: "Figura 1", "Figura 2"...) en todo el documento.
       const figuras = { n: 0 };
       const tablas = { n: 0 };
-      // Datos de las tablas/gráficas automáticas de "Análisis económico y
-      // Financiero" (los mismos del módulo de Gráficas).
+      // Todo lo financiero (series de las tablas/gráficas de "Análisis
+      // económico y Financiero" y las tablas de los anexos) viene del backend
+      // en UNA sola petición, con los mismos números que el módulo de Gráficas
+      // y Estados Financieros.
       let resumen: ResumenFinanciero | null = null;
-      if (this.secciones.some((sec) => this.esSeccionEconomica(sec))) {
-        const planNumerico = Number(this.planLogicoId);
-        if (Number.isFinite(planNumerico) && planNumerico > 0) {
-          try {
-            resumen = await this.resumenService.obtener(planNumerico);
-          } catch (error) {
-            console.warn('No se pudo cargar el resumen financiero para el PDF:', error);
-          }
+      let anexos: AnexosFinancieros | null = null;
+      const planNumerico = Number(this.planLogicoId);
+      if (Number.isFinite(planNumerico) && planNumerico > 0) {
+        try {
+          const respuesta = await this.resumenService.pedir(planNumerico, true);
+          resumen = this.resumenService.desdeRespuesta(respuesta);
+          anexos = this.anexosService.desdeRespuesta(respuesta);
+        } catch (error) {
+          console.warn('No se pudieron cargar los datos financieros para el PDF:', error);
         }
       }
       const alturaUtilPagina = contentBottom - contentTop;
@@ -875,15 +878,6 @@ export class SeccionesPDFComponent implements OnInit {
 
       // Anexos al final: Balance General, Estado de Resultados, Flujo de
       // Efectivo (módulo Estados Financieros) y Préstamo (módulo Préstamo).
-      let anexos: AnexosFinancieros | null = null;
-      const planParaAnexos = Number(this.planLogicoId);
-      if (Number.isFinite(planParaAnexos) && planParaAnexos > 0) {
-        try {
-          anexos = await this.anexosService.obtener(planParaAnexos);
-        } catch (error) {
-          console.warn('No se pudieron cargar los datos de los anexos:', error);
-        }
-      }
       entradasIndice.push(...this.dibujarAnexos(pdf, anexos, margin, headerHeight, footerHeight, contentTop));
 
       this.dibujarIndice(pdf, entradasIndice, paginaIndice, paginasIndice, margin, contentTop, pageWidth, contentBottom);

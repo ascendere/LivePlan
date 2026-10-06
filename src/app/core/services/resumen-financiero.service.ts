@@ -27,8 +27,7 @@ export interface ResumenFinanciero {
   flujo: ResumenGrafica;
 }
 
-const ANIOS = [1, 2, 3, 4, 5];
-const ETIQUETAS_ANIOS = ANIOS.map((a) => `Año ${a}`);
+const ETIQUETAS_ANIOS = [1, 2, 3, 4, 5].map((a) => `Año ${a}`);
 
 // Colores por serie (borde); el relleno de las barras es el mismo con alfa.
 const COLORES: Record<TipoGrafica, string[]> = {
@@ -47,66 +46,37 @@ const COLORES: Record<TipoGrafica, string[]> = {
 export class ResumenFinancieroService {
   constructor(private readonly inversionService: InversionService) {}
 
+  /** Serie de Estado de Resultados, Balance General y Flujo de Efectivo (una petición). */
   async obtener(planId: number): Promise<ResumenFinanciero> {
-    const [estado, balance, flujo] = await Promise.all([
-      this.inversionService.getEstadoResultados(planId).catch(() => null),
-      this.inversionService.getBalanceGeneral(planId).catch(() => null),
-      this.inversionService.getFlujoEfectivo(planId).catch(() => null),
-    ]);
-
-    const e = (estado as any)?.sumas_anuales;
-    const b = (balance as any)?.sumas_anuales;
-    const f = (flujo as any)?.sumas_anuales;
-
-    return {
-      estado: {
-        tipo: 'estado',
-        filas: [
-          { concepto: 'Utilidad Bruta', valores: this.serie(e, 'utilidad_bruta') },
-          // "Utilidad de Operación" = utilidad antes de intereses e impuestos.
-          { concepto: 'Utilidad de Operación', valores: this.serie(e, 'utilidad_previo_int_imp') },
-          { concepto: 'Utilidad Neta', valores: this.serie(e, 'utilidad_neta') },
-        ],
-      },
-      balance: {
-        tipo: 'balance',
-        // Siempre los TOTALES: las sumas anuales traen también cada renglón
-        // (p. ej. pasivo_proveedores_corto_plazo, capital_social) y no son
-        // lo que se quiere graficar.
-        filas: [
-          { concepto: 'Activo', valores: this.serie(b, 'total_activo'), anio0: this.mes0(balance, 'total_activo') },
-          { concepto: 'Pasivo', valores: this.serie(b, 'total_pasivo'), anio0: this.mes0(balance, 'total_pasivo') },
-          { concepto: 'Capital Contable', valores: this.serie(b, 'total_capital_contable'), anio0: this.mes0(balance, 'total_capital_contable') },
-        ],
-      },
-      flujo: {
-        tipo: 'flujo',
-        filas: [
-          { concepto: 'Ingresos', valores: this.serie(f, 'ingresos') },
-          { concepto: 'Egresos', valores: this.serie(f, 'egresos') },
-          { concepto: 'Flujo de Efectivo Neto', valores: this.serie(f, 'flujo_caja') },
-        ],
-      },
-    };
+    return this.desdeRespuesta(await this.pedir(planId, false));
   }
 
-  /** Valor del mes 0 (inicio del proyecto) de un campo, tomado de los renglones mensuales. */
-  private mes0(respuesta: any, clave: string): number {
-    const items: any[] = Array.isArray(respuesta?.items) ? respuesta.items : [];
-    const inicial = items.find((it: any) => Number(it?.anio) === 1 && Number(it?.mes) === 0);
-    const n = Number(inicial?.[clave]);
-    return Number.isFinite(n) ? n : 0;
+  /**
+   * Respuesta cruda del backend. Con `conAnexos` incluye además las tablas de
+   * los anexos (AnexosFinancierosService.desdeRespuesta las interpreta): el PDF
+   * pide todo de una vez.
+   */
+  pedir(planId: number, conAnexos: boolean): Promise<any> {
+    return this.inversionService.getResumenFinanciero(planId, conAnexos);
   }
 
-  /** Serie de 5 valores (años 1..5) a partir de las sumas anuales; 0 si falta. */
-  private serie(sumas: any[] | undefined, clave: string): number[] {
-    if (!Array.isArray(sumas)) return ANIOS.map(() => 0);
-    return ANIOS.map((anio) => {
-      const fila = sumas.find((it: any) => Number(it?.anio) === anio);
-      const valor = fila?.[clave];
-      const n = typeof valor === 'number' ? valor : Number(valor);
-      return Number.isFinite(n) ? n : 0;
+  /**
+   * El backend ya trae los totales anuales y los nombres de renglón; aquí solo
+   * se completa lo que la pantalla necesita (el tipo de cada gráfica).
+   * Balance General usa siempre los TOTALES (activo, pasivo, capital contable)
+   * y es el único con "Año 0" (inicio del proyecto).
+   */
+  desdeRespuesta(respuesta: any): ResumenFinanciero {
+    const r = respuesta?.resumen ?? {};
+    const grupo = (tipo: TipoGrafica): ResumenGrafica => ({
+      tipo,
+      filas: (r[tipo]?.filas ?? []).map((f: any) => ({
+        concepto: f.concepto,
+        valores: (f.valores ?? []).map((v: unknown) => Number(v) || 0),
+        ...(typeof f.anio0 === 'number' ? { anio0: f.anio0 } : {}),
+      })),
     });
+    return { estado: grupo('estado'), balance: grupo('balance'), flujo: grupo('flujo') };
   }
 
   /** Formato "$1,234" / "-$1,234" (igual que el pipe currency de la tabla de Gráficas). */
