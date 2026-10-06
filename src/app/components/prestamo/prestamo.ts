@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { InversionService } from '../../core/services/inversion.service';
 import { DatosPrestamo, CuotasPrestamo } from '../../interfaces';
+import { ExcelExportService, HojaExcel } from '../../core/services/excel-export.service';
 
 @Component({
   selector: 'app-prestamo',
@@ -26,8 +27,31 @@ export class Prestamo implements OnInit {
 
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly inversionService: InversionService
+    private readonly inversionService: InversionService,
+    private readonly excelService: ExcelExportService
   ) {}
+
+  /**
+   * Hojas para "Exportar a Excel": una con los datos del préstamo (que en
+   * pantalla están en tarjetas y campos, no en una tabla) y luego las tablas
+   * de amortización de cada año tal como se ven.
+   */
+  generarHojasExcel = (): HojaExcel[] => {
+    const d = this.datosPrestamo;
+    const hojaDatos: HojaExcel = {
+      nombre: 'Datos del préstamo',
+      filas: [
+        [{ v: 'Concepto', encabezado: true }, { v: 'Valor', encabezado: true }],
+        [{ v: 'Monto del préstamo' }, { v: d.monto ?? 0, formato: 'moneda' }],
+        [{ v: 'Tasa de interés anual' }, { v: (d.tasa_anual ?? 0) / 100, formato: 'porcentaje2' }],
+        [{ v: 'Periodo de capitalización' }, { v: d.periodos_capitalizacion ?? 0 }],
+        [{ v: 'Tasa de interés mensual' }, { v: (d.tasa_mensual ?? 0) / 100, formato: 'porcentaje2' }],
+        [{ v: 'Periodos de amortización' }, { v: d.periodos_amortizacion ?? 0 }],
+        [{ v: 'Cuota fija' }, { v: d.cuota ?? 0, formato: 'moneda' }],
+      ],
+    };
+    return [hojaDatos, ...this.excelService.hojasDesdeDom(document.querySelector('main'))];
+  };
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {

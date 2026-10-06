@@ -6,3 +6,4 @@ export * from './variables-sensibilidad/variables-sensibilidad';
 export * from './aviso-sensibilidad/aviso-sensibilidad';
 export * from './secciones-pdf/secciones-pdf.component';
 export * from './politicas-cv/politicas-cv';
+export * from './exportar-excel/exportar-excel';

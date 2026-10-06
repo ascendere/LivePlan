@@ -14,7 +14,7 @@
   <main class="main-content">
     <div class="content-container">
       <div class="content-header">
-        <h1>Costos de Ventas</h1>
+        <h1><app-exportar-excel nombre="Costos de Ventas" [planId]="planId"></app-exportar-excel>Costos de Ventas</h1>
         <app-aviso-sensibilidad [variables]="['volumen', 'costo']"></app-aviso-sensibilidad>
         <p class="subtitle">Costos mensuales de ventas por producto y año</p>
       </div>

@@ -13,7 +13,7 @@
   <!-- Main Content Area -->
   <main class="main-content">
     <div class="content-container">
-      <h1>Préstamo</h1>
+      <h1><app-exportar-excel nombre="Préstamo" [planId]="planId" [generarHojas]="generarHojasExcel"></app-exportar-excel>Préstamo</h1>
       <app-aviso-sensibilidad [variables]="['volumen', 'precio']"></app-aviso-sensibilidad>
       
       <div *ngIf="cargando" class="loading-container">

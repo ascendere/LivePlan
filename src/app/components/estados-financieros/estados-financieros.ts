@@ -3,6 +3,8 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { EstadoResultados, Items, SumasAnuales, Gasto } from '../../interfaces';
 import { InversionService, DatosStateService } from '../../core/services';
+import { AnexosFinancierosService, TablaAnexo } from '../../core/services/anexos-financieros.service';
+import { CeldaExcel, HojaExcel } from '../../core/services/excel-export.service';
 
 interface Tab {
   id: string;
@@ -71,8 +73,64 @@ export class EstadosFinancieros implements OnInit, OnDestroy {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly inversionService: InversionService,
-    private readonly datosStateService: DatosStateService
+    private readonly datosStateService: DatosStateService,
+    private readonly anexosService: AnexosFinancierosService
   ) {}
+
+  /**
+   * Hojas para "Exportar a Excel": los TRES estados (no solo la pestaña que
+   * está abierta), cada uno con la misma disposición que en pantalla: año 1,
+   * 2 y 3 con sus meses y total, y los totales de los años 4 y 5.
+   */
+  generarHojasExcel = async (): Promise<HojaExcel[]> => {
+    const anexos = await this.anexosService.obtener(this.planId);
+    return [
+      this.hojaEstadoFinanciero('Estado de Resultados', anexos.estado.tablas),
+      this.hojaEstadoFinanciero('Balance General', anexos.balance.tablas),
+      this.hojaEstadoFinanciero('Flujo de Efectivo', anexos.flujo.tablas),
+    ].filter((h): h is HojaExcel => !!h);
+  };
+
+  private hojaEstadoFinanciero(nombre: string, tablas: TablaAnexo[]): HojaExcel | null {
+    if (tablas.length < 4) return null;
+    const anios = tablas.slice(0, 3);
+    const totales = tablas[3];
+    const enc = (v: string): CeldaExcel => ({ v, encabezado: true });
+
+    // Dos filas de encabezado: años (combinadas) y meses.
+    const fila1: (CeldaExcel | null)[] = [enc('Concepto')];
+    const fila2: (CeldaExcel | null)[] = [enc('')];
+    const combinadas: NonNullable<HojaExcel['combinadas']> = [{ fila0: 0, col0: 0, fila1: 1, col1: 0 }];
+    let col = 1;
+    anios.forEach((t, i) => {
+      fila1.push(enc(`Año ${i + 1}`));
+      for (let k = 1; k < t.columnas.length; k++) fila1.push(enc(''));
+      t.columnas.forEach((c) => fila2.push(enc(c.replace('Mes ', ''))));
+      combinadas.push({ fila0: 0, col0: col, fila1: 0, col1: col + t.columnas.length - 1 });
+      col += t.columnas.length;
+    });
+    for (const etiqueta of ['Total Año 4', 'Total Año 5']) {
+      fila1.push(enc(etiqueta));
+      fila2.push(enc(''));
+      combinadas.push({ fila0: 0, col0: col, fila1: 1, col1: col });
+      col += 1;
+    }
+
+    const filas: (CeldaExcel | null)[][] = [fila1, fila2];
+    anios[0].filas.forEach((base, i) => {
+      const negrita = base.tipo === 'subtotal' || base.tipo === 'total';
+      const fila: (CeldaExcel | null)[] = [{ v: base.concepto, negrita }];
+      const valores = [
+        ...anios.flatMap((t) => t.filas[i].valores),
+        totales.filas[i].valores[3],
+        totales.filas[i].valores[4],
+      ];
+      valores.forEach((v) => fila.push({ v, formato: 'decimal', negrita }));
+      filas.push(fila);
+    });
+
+    return { nombre, filas, combinadas, congelarFilas: 2, congelarColumnas: 1 };
+  }
 
   ngOnInit(): void {
     // Captura el ID de la ruta

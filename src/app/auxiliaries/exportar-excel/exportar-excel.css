@@ -1,0 +1,55 @@
+/* Por defecto un botón normal; dentro de un <h1> se coloca a la derecha del título,
+   en la misma línea, sin empujar el contenido de abajo. */
+:host {
+  display: inline-flex;
+  align-items: center;
+}
+
+:host-context(h1) {
+  float: right;
+  /* Alto = una línea del título (hereda el tamaño del h1) para centrar el botón con el texto */
+  height: 1.15em;
+  margin-left: 16px;
+}
+
+.btn-exportar-excel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 2px solid #004271;
+  border-radius: 6px;
+  background: transparent;
+  color: #004271;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-exportar-excel:hover:not(:disabled) {
+  background: #004271;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 66, 113, 0.3);
+}
+
+.btn-exportar-excel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* En pantallas angostas solo el ícono, para que no choque con el título */
+@media (max-width: 768px) {
+  .btn-exportar-excel {
+    padding: 6px 8px;
+  }
+
+  .btn-exportar-excel .texto {
+    display: none;
+  }
+}

@@ -29,6 +29,7 @@ import {
   NewPlanification,
   VariablesSensibilidadComponent,
   AvisoSensibilidadComponent,
+  ExportarExcelComponent,
   SeccionesPDFComponent
 } from './auxiliaries';
 
@@ -63,6 +64,7 @@ import { PoliticasCV } from './auxiliaries/politicas-cv/politicas-cv';
     PresupuestoVentaComponent,
     VariablesSensibilidadComponent,
     AvisoSensibilidadComponent,
+    ExportarExcelComponent,
     AcercaDe,
     Depreciaciones,
     SeccionesPDFComponent,
