@@ -993,8 +993,8 @@ export class SeccionesPDFComponent implements OnInit {
   // ============================================================
 
   /**
-   * Anexos al final del PDF: una página índice (vertical) y luego, en hojas
-   * horizontales para que quepan las columnas mensuales:
+   * Anexos al final del PDF, en hojas horizontales para que quepan las
+   * columnas mensuales (sin hoja de portada: el índice ya los lista):
    *   Anexo 1. Balance General     (módulo Estados Financieros)
    *   Anexo 2. Estado de Resultados (módulo Estados Financieros)
    *   Anexo 3. Flujo de Efectivo   (módulo Estados Financieros)
@@ -1017,31 +1017,6 @@ export class SeccionesPDFComponent implements OnInit {
       { num: 3, titulo: 'Flujo de Efectivo', origen: 'Módulo Estados Financieros', tablas: anexos?.flujo.tablas ?? [], dinero: false },
       { num: 4, titulo: 'Préstamo', origen: 'Módulo Préstamo', tablas: anexos?.prestamo?.tablas ?? [], dinero: true },
     ];
-
-    // --- Página índice (vertical)
-    pdf.addPage();
-    entradas.push({ titulo: 'Anexos', pagina: pdf.getNumberOfPages(), nivel: 0 });
-    let y = contentTopVertical;
-    const anchoV = pdf.internal.pageSize.getWidth() - margin * 2;
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(13);
-    pdf.setFillColor(...COLOR_PRIMARIO);
-    pdf.rect(margin, y, anchoV, 12, 'F');
-    pdf.setTextColor(255, 255, 255);
-    pdf.text('Anexos', margin + 4, y + 8);
-    y += 22;
-    for (const d of definiciones) {
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(11.5);
-      pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
-      pdf.text(`Anexo ${d.num}. ${d.titulo}`, margin, y);
-      y += 6;
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10.5);
-      pdf.setTextColor(60, 60, 60);
-      pdf.text(d.origen, margin + 4, y);
-      y += 12;
-    }
 
     // --- Anexos (horizontales)
     const W = 297;
@@ -1066,6 +1041,8 @@ export class SeccionesPDFComponent implements OnInit {
     for (const d of definiciones) {
       const tituloAnexo = `Anexo ${d.num}. ${d.titulo}`;
       nuevaPagina(tituloAnexo, false);
+      // "Anexos" no tiene hoja propia (el índice ya los lista): su entrada apunta al primer anexo.
+      if (d.num === 1) entradas.push({ titulo: 'Anexos', pagina: pdf.getNumberOfPages(), nivel: 0 });
       entradas.push({ titulo: tituloAnexo, pagina: pdf.getNumberOfPages(), nivel: 1 });
 
       if (d.tablas.length === 0) {
