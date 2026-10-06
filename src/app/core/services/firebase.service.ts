@@ -245,11 +245,15 @@ export class FirebaseService {
             descripcion: '',
           },
           {
-            pregunta: 'Cuota de resultados',
+            pregunta: 'Cuenta de resultados',
             descripcion: '',
           },
           {
             pregunta: 'Flujo de efectivo',
+            descripcion: '',
+          },
+          {
+            pregunta: 'Evaluación Financiera',
             descripcion: '',
           },
         ],

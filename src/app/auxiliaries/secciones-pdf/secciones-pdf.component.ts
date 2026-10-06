@@ -5,7 +5,7 @@ import { FirebaseService, SeccionData, PlanNegocio, ImagenSeccion } from '../../
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AnexosFinancierosService, AnexosFinancieros, TablaAnexo, FilaAnexo } from '../../core/services/anexos-financieros.service';
-import { ResumenFinancieroService, ResumenFinanciero, ResumenGrafica, TipoGrafica } from '../../core/services/resumen-financiero.service';
+import { ResumenFinancieroService, ResumenFinanciero, ResumenGrafica, TipoGrafica, EvaluacionFinanciera } from '../../core/services/resumen-financiero.service';
 
 // Paleta institucional (misma que usa el resto de la app: header, sidebar, login).
 const COLOR_PRIMARIO: [number, number, number] = [0, 66, 113]; // #004271
@@ -275,6 +275,15 @@ export class SeccionesPDFComponent implements OnInit {
    */
   permiteImagenPorPregunta(seccion: SeccionData): boolean {
     return !this.esSeccionEconomica(seccion) && (seccion.subsecciones?.length ?? 0) > 0;
+  }
+
+  /** Minúsculas y sin acentos, para comparar nombres de preguntas. */
+  private normalizarTexto(texto: unknown): string {
+    return String(texto ?? '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 
   private esSeccionEconomica(seccion: SeccionData): boolean {
@@ -686,11 +695,15 @@ export class SeccionesPDFComponent implements OnInit {
             descripcion: '',
           },
           {
-            pregunta: 'Cuota de resultados',
+            pregunta: 'Cuenta de resultados',
             descripcion: '',
           },
           {
             pregunta: 'Flujo de efectivo',
+            descripcion: '',
+          },
+          {
+            pregunta: 'Evaluación Financiera',
             descripcion: '',
           },
         ],
@@ -773,12 +786,14 @@ export class SeccionesPDFComponent implements OnInit {
       // y Estados Financieros.
       let resumen: ResumenFinanciero | null = null;
       let anexos: AnexosFinancieros | null = null;
+      let evaluacion: EvaluacionFinanciera | null = null;
       const planNumerico = Number(this.planLogicoId);
       if (Number.isFinite(planNumerico) && planNumerico > 0) {
         try {
-          const respuesta = await this.resumenService.pedir(planNumerico, true);
+          const respuesta = await this.resumenService.pedir(planNumerico, true, true);
           resumen = this.resumenService.desdeRespuesta(respuesta);
           anexos = this.anexosService.desdeRespuesta(respuesta);
+          evaluacion = this.resumenService.evaluacionDesdeRespuesta(respuesta);
         } catch (error) {
           console.warn('No se pudieron cargar los datos financieros para el PDF:', error);
         }
@@ -837,6 +852,14 @@ export class SeccionesPDFComponent implements OnInit {
 
           // Análisis económico y Financiero: primero la tabla y luego la
           // gráfica que corresponde a la pregunta.
+          if (
+            evaluacion &&
+            this.esSeccionEconomica(seccion) &&
+            this.normalizarTexto(sub.pregunta) === 'evaluacion financiera'
+          ) {
+            y = this.dibujarEvaluacionFinanciera(pdf, evaluacion, margin, y, maxTextWidth, checkPageBreak, tablas);
+          }
+
           const tipo = this.esSeccionEconomica(seccion) ? this.tipoResumenDePregunta(sub.pregunta) : null;
           if (tipo && resumen) {
             y = this.dibujarTablaResumen(pdf, resumen[tipo], tipo, margin, y, maxTextWidth, lineHeight, checkPageBreak, tablas);
@@ -1437,12 +1460,171 @@ export class SeccionesPDFComponent implements OnInit {
     return y + 6;
   }
 
+  /**
+   * "Evaluación Financiera": las tablas del módulo Evaluación — conceptos por
+   * año (Año 0 a 5), indicadores (VAN, TIR, TREMA) y la matriz del análisis
+   * de sensibilidad con el par de variables que esté activo.
+   */
+  private dibujarEvaluacionFinanciera(
+    pdf: jsPDF,
+    ev: EvaluacionFinanciera,
+    margin: number,
+    yInicial: number,
+    anchoDisponible: number,
+    checkPageBreak: (yActual: number, espacio?: number) => number,
+    tablas: { n: number },
+  ): number {
+    let y = yInicial;
+    const dinero = (v: number) => this.resumenService.formatearMonedaDecimales(v);
+    const porcentaje = (v: number) => `${v.toFixed(2)}%`;
+
+    // 1) Conceptos de evaluación por año
+    if (ev.conceptos.columnas.length > 0) {
+      y = this.dibujarTablaTexto(pdf, {
+        subtitulo: 'Conceptos de evaluación financiera',
+        esquina: 'Concepto',
+        columnas: ev.conceptos.columnas,
+        filas: ev.conceptos.filas.map((f) => ({ etiqueta: f.concepto, celdas: f.valores.map(dinero) })),
+        anchoConcepto: 48,
+        tamano: 9,
+      }, margin, y, anchoDisponible, checkPageBreak, tablas);
+    }
+
+    // 2) Indicadores del proyecto
+    if (ev.indicadores) {
+      y = this.dibujarTablaTexto(pdf, {
+        subtitulo: 'Indicadores de rentabilidad del proyecto',
+        esquina: 'Indicador',
+        columnas: ['Valor'],
+        filas: [
+          { etiqueta: 'VAN', celdas: [dinero(ev.indicadores.van)] },
+          { etiqueta: 'TIR', celdas: [ev.indicadores.tir === null ? 'No aplica' : porcentaje(ev.indicadores.tir)] },
+          { etiqueta: 'TREMA', celdas: [porcentaje(ev.indicadores.trema)] },
+        ],
+        anchoConcepto: 60,
+        anchoColumna: 40,
+        tamano: 10,
+      }, margin, y, anchoDisponible, checkPageBreak, tablas);
+    }
+
+    // 3) Matriz del análisis de sensibilidad (VAN)
+    const m = ev.sensibilidad;
+    if (m && m.filas.length > 0 && m.columnas.length > 0) {
+      const etiqueta = (v: string) => ({ volumen: 'Volumen', precio: 'Precio', costo: 'Costo' } as Record<string, string>)[v] ?? v;
+      y = this.dibujarTablaTexto(pdf, {
+        subtitulo: `Análisis de sensibilidad del VAN: ${etiqueta(m.variableFila)} (filas) y ${etiqueta(m.variableColumna)} (columnas)`,
+        esquina: etiqueta(m.variableFila),
+        columnas: m.columnas.map((c) => `${c}%`),
+        filas: m.filas.map((fila, i) => ({
+          etiqueta: `${fila}%`,
+          celdas: m.valores[i].map((v) => (v === null ? '-' : dinero(v))),
+        })),
+        anchoConcepto: 24,
+        tamano: 8,
+        nota: m.actualizada
+          ? ''
+          : 'La matriz de sensibilidad estaba pendiente de actualizar al generar este documento.',
+      }, margin, y, anchoDisponible, checkPageBreak, tablas);
+    }
+    return y;
+  }
+
+  /**
+   * Tabla de texto ya formateado en estilo APA 7 ("Tabla N" en negrita, título
+   * en cursiva, solo líneas horizontales, "Nota." al pie). Se mantiene entera
+   * en una página. `anchoColumna` fija el ancho de cada columna de valores; si
+   * no se indica, las columnas reparten el ancho que deja la primera.
+   */
+  private dibujarTablaTexto(
+    pdf: jsPDF,
+    t: {
+      subtitulo: string;
+      esquina: string;
+      columnas: string[];
+      filas: { etiqueta: string; celdas: string[] }[];
+      anchoConcepto: number;
+      anchoColumna?: number;
+      tamano: number;
+      nota?: string;
+    },
+    margin: number,
+    yInicial: number,
+    anchoDisponible: number,
+    checkPageBreak: (yActual: number, espacio?: number) => number,
+    tablas: { n: number },
+  ): number {
+    const lh = 5.2;
+    const alturaFila = 7;
+    const colW = t.anchoColumna ?? (anchoDisponible - t.anchoConcepto) / t.columnas.length;
+    const xDerecha = margin + t.anchoConcepto + colW * t.columnas.length;
+
+    pdf.setFontSize(10.5);
+    pdf.setFont('helvetica', 'italic');
+    const tituloLines = pdf.splitTextToSize(t.subtitulo, anchoDisponible) as string[];
+    const notaTexto = ('Elaboración propia. ' + (t.nota ?? '')).trim();
+    pdf.setFont('helvetica', 'normal');
+    const notaLines = pdf.splitTextToSize(`Nota. ${notaTexto}`, anchoDisponible) as string[];
+
+    const alturaEncabezado = lh + tituloLines.length * lh + 1.5;
+    const alturaTabla = alturaFila * (t.filas.length + 1);
+    const alturaNota = 2.5 + notaLines.length * lh;
+
+    let y = checkPageBreak(yInicial, alturaEncabezado + alturaTabla + alturaNota + 6);
+    tablas.n += 1;
+
+    pdf.setTextColor(40, 40, 40);
+    pdf.setFontSize(10.5);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Tabla ${tablas.n}`, margin, y + 3.8);
+    y += lh;
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(tituloLines, margin, y + 3.8);
+    y += tituloLines.length * lh + 1.5;
+
+    const linea = (yl: number, grosor: number) => {
+      pdf.setDrawColor(40, 40, 40);
+      pdf.setLineWidth(grosor);
+      pdf.line(margin, yl, xDerecha, yl);
+    };
+    const xCol = (i: number) => margin + t.anchoConcepto + colW * (i + 1) - 1;
+
+    linea(y, 0.4);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(t.tamano);
+    pdf.text(t.esquina, margin + 1, y + 4.8);
+    t.columnas.forEach((c, i) => pdf.text(c, xCol(i), y + 4.8, { align: 'right' }));
+    y += alturaFila;
+    linea(y, 0.2);
+
+    pdf.setFont('helvetica', 'normal');
+    for (const fila of t.filas) {
+      pdf.text(fila.etiqueta, margin + 1, y + 4.8);
+      fila.celdas.forEach((c, i) => pdf.text(c, xCol(i), y + 4.8, { align: 'right' }));
+      y += alturaFila;
+    }
+    linea(y, 0.4);
+
+    // Nota (APA): "Nota." en cursiva, el resto en normal.
+    y += 2.5;
+    pdf.setFontSize(10.5);
+    pdf.setTextColor(60, 60, 60);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text('Nota.', margin, y + 3.8);
+    const anchoNota = pdf.getTextWidth('Nota.');
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(notaLines[0].slice('Nota.'.length), margin + anchoNota, y + 3.8);
+    if (notaLines.length > 1) pdf.text(notaLines.slice(1), margin, y + 3.8 + lh);
+
+    return y + notaLines.length * lh + 4;
+  }
+
   /** Qué resumen financiero acompaña a cada pregunta de "Análisis económico y Financiero". */
   private tipoResumenDePregunta(pregunta: string): TipoGrafica | null {
-    switch ((pregunta || '').trim().toLowerCase()) {
+    switch (this.normalizarTexto(pregunta)) {
       case 'plan de inversiones':
         return 'balance';
-      case 'cuota de resultados':
+      case 'cuenta de resultados':
+      case 'cuota de resultados': // nombre anterior de la etiqueta
         return 'estado';
       case 'flujo de efectivo':
         return 'flujo';
@@ -1576,9 +1758,29 @@ export class SeccionesPDFComponent implements OnInit {
           ? [{ url: seccion.imagenUrl, nombre: seccion.imagenNombre }]
           : [];
 
+      let subsecciones = Array.isArray(seccion.subsecciones) ? [...seccion.subsecciones] : [];
+      // La etiqueta "Cuota de resultados" pasó a llamarse "Cuenta de resultados":
+      // se renombra en los planes ya guardados sin tocar lo que el usuario escribió.
+      if (this.esSeccionEconomica(seccion)) {
+        subsecciones = subsecciones.map((sub: any) =>
+          this.normalizarTexto(sub?.pregunta) === 'cuota de resultados'
+            ? { ...sub, pregunta: 'Cuenta de resultados' }
+            : sub,
+        );
+      }
+      // Planes guardados antes de existir la pregunta "Evaluación Financiera":
+      // se agrega al final de "Análisis económico y Financiero" para que
+      // aparezca su bloque de texto (se guarda con el siguiente cambio).
+      if (
+        this.esSeccionEconomica(seccion) &&
+        !subsecciones.some((sub: any) => this.normalizarTexto(sub?.pregunta) === 'evaluacion financiera')
+      ) {
+        subsecciones.push({ pregunta: 'Evaluación Financiera', descripcion: '' });
+      }
+
       return {
         ...seccion,
-        subsecciones: Array.isArray(seccion.subsecciones) ? seccion.subsecciones : [],
+        subsecciones,
         imagenes,
         fechaCreacion: seccion.fechaCreacion || new Date(),
         fechaActualizacion: seccion.fechaActualizacion || new Date(),

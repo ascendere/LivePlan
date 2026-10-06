@@ -457,10 +457,12 @@ export class InversionService {
   /**
    * Resumen financiero ya armado por el backend (series de Estado de
    * Resultados, Balance General y Flujo de Efectivo) y, con `conAnexos`, las
-   * tablas completas de los anexos (incluye Préstamo). Una sola petición.
+   * tablas completas de los anexos (incluye Préstamo) y con `conEvaluacion`
+   * las tablas del módulo Evaluación. Una sola petición.
    */
-  getResumenFinanciero(planNegocioId: number, conAnexos = false): Promise<any> {
-    const url = `${this.apiUrl}/resumen_financiero/${encodeURIComponent(planNegocioId)}${conAnexos ? '?anexos=1' : ''}`;
+  getResumenFinanciero(planNegocioId: number, conAnexos = false, conEvaluacion = false): Promise<any> {
+    const opciones = [conAnexos ? 'anexos=1' : '', conEvaluacion ? 'evaluacion=1' : ''].filter(Boolean).join('&');
+    const url = `${this.apiUrl}/resumen_financiero/${encodeURIComponent(planNegocioId)}${opciones ? `?${opciones}` : ''}`;
     return fetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener el resumen financiero');

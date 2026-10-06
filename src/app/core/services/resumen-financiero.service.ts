@@ -27,6 +27,22 @@ export interface ResumenFinanciero {
   flujo: ResumenGrafica;
 }
 
+/** Tablas del módulo Evaluación (conceptos por año, VAN/TIR/TREMA y matriz de sensibilidad). */
+export interface EvaluacionFinanciera {
+  conceptos: { columnas: string[]; filas: { concepto: string; valores: number[] }[] };
+  indicadores: { van: number; tir: number | null; trema: number } | null;
+  sensibilidad: {
+    variableFila: 'volumen' | 'precio' | 'costo';
+    variableColumna: 'volumen' | 'precio' | 'costo';
+    /** false = la matriz está pendiente de actualizar (hubo cambios desde el último "Recalcular"). */
+    actualizada: boolean;
+    filas: number[];
+    columnas: number[];
+    /** valores[fila][columna] = VAN; null = celda sin dato. */
+    valores: (number | null)[][];
+  } | null;
+}
+
 const ETIQUETAS_ANIOS = [1, 2, 3, 4, 5].map((a) => `Año ${a}`);
 
 // Colores por serie (borde); el relleno de las barras es el mismo con alfa.
@@ -56,8 +72,45 @@ export class ResumenFinancieroService {
    * los anexos (AnexosFinancierosService.desdeRespuesta las interpreta): el PDF
    * pide todo de una vez.
    */
-  pedir(planId: number, conAnexos: boolean): Promise<any> {
-    return this.inversionService.getResumenFinanciero(planId, conAnexos);
+  pedir(planId: number, conAnexos: boolean, conEvaluacion = false): Promise<any> {
+    return this.inversionService.getResumenFinanciero(planId, conAnexos, conEvaluacion);
+  }
+
+  /** Interpreta la parte `evaluacion` de la respuesta (`?evaluacion=1`); null si no vino. */
+  evaluacionDesdeRespuesta(respuesta: any): EvaluacionFinanciera | null {
+    const e = respuesta?.evaluacion;
+    if (!e) return null;
+    const num = (v: unknown) => Number(v) || 0;
+    const s = e.sensibilidad;
+    return {
+      conceptos: {
+        columnas: e.conceptos?.columnas ?? [],
+        filas: (e.conceptos?.filas ?? []).map((f: any) => ({
+          concepto: f.concepto,
+          valores: (f.valores ?? []).map(num),
+        })),
+      },
+      indicadores: e.indicadores
+        ? {
+            van: num(e.indicadores.van),
+            // null = la TIR no existe (flujos siempre negativos): se conserva, no se vuelve 0
+            tir: e.indicadores.tir === null || e.indicadores.tir === undefined ? null : Number(e.indicadores.tir),
+            trema: num(e.indicadores.trema),
+          }
+        : null,
+      sensibilidad: s
+        ? {
+            variableFila: s.variable_fila,
+            variableColumna: s.variable_columna,
+            actualizada: !!s.actualizada,
+            filas: (s.filas ?? []).map(num),
+            columnas: (s.columnas ?? []).map(num),
+            valores: (s.valores ?? []).map((fila: (number | null)[]) =>
+              fila.map((v) => (v === null || v === undefined ? null : Number(v))),
+            ),
+          }
+        : null,
+    };
   }
 
   /**
@@ -77,6 +130,12 @@ export class ResumenFinancieroService {
       })),
     });
     return { estado: grupo('estado'), balance: grupo('balance'), flujo: grupo('flujo') };
+  }
+
+ /** Formato "-$1,234.56" (2 decimales), como las tablas del módulo Evaluación. */
+  formatearMonedaDecimales(valor: number): string {
+    const texto = Math.abs(valor).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${valor < 0 && texto !== '0.00' ? '-' : ''}$${texto}`;
   }
 
   /** Formato "$1,234" / "-$1,234" (igual que el pipe currency de la tabla de Gráficas). */
