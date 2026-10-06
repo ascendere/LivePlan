@@ -14,6 +14,7 @@ import {
   ComposicionFinanciamiento,
 } from '../../interfaces/';
 import { AuthService, InversionService, DatosStateService } from '../../core/services';
+import { CeldaExcel, HojaExcel } from '../../core/services/excel-export.service';
 
 @Component({
   selector: 'app-datos-iniciales',
@@ -141,6 +142,113 @@ export class DatosIniciales implements OnInit, OnDestroy {
   costosProducto: Costos[] = [];
   costosModificados: Set<number> = new Set(); // IDs de costos modificados
   productosConCostosCache: Array<{ productoId: number; producto: string; costos: Costos[] }> = [];
+
+  /**
+   * Hojas para "Exportar a Excel". Datos Iniciales es un asistente por
+   * secciones y en pantalla solo existe la sección abierta (y la mayoría son
+   * formularios, no tablas), así que se exportan TODAS las secciones desde
+   * los datos cargados: una hoja por sección.
+   */
+  generarHojasExcel = (): HojaExcel[] => {
+    const enc = (v: string): CeldaExcel => ({ v, encabezado: true });
+    const dec = (v: number | undefined | null): CeldaExcel => ({ v: v ?? 0, formato: 'decimal' });
+    const par = (etiqueta: string, valor: number | undefined | null): (CeldaExcel | null)[] => [{ v: etiqueta }, dec(valor)];
+    const hoja = (nombre: string, filas: (CeldaExcel | null)[][]): HojaExcel => ({ nombre, filas, congelarFilas: 1 });
+    const encabezadoDatos = [enc('Concepto'), enc('Valor')];
+
+    const hojas: HojaExcel[] = [];
+    const m = this.macros;
+    hojas.push(
+      hoja('Indicadores Macro', [
+        encabezadoDatos,
+        par('Tipo de Cambio', m.tipo_cambio),
+        par('Inflación Anual (%)', m.inflacion),
+        par('Tasa de Interés para Deuda (%)', m.tasa_deuda),
+        par('Tasa de Interés para Inversiones Libre de Riesgo (%)', m.tasa_interes),
+        par('Tasa de Impuesto Sobre la Renta (%)', m.tasa_impuesto),
+        par('PTU - Participación de Trabajadores (%)', m.ptu),
+        par('Días por Mes Promedio', m.diasxmes),
+      ]),
+    );
+
+    const c = this.composicionFinanciamiento;
+    const filasComposicion = [
+      encabezadoDatos,
+      par('Capital (%)', c.capital_porcentaje),
+      par('Deuda (%)', c.deuda_porcentaje),
+      par('Total (%)', c.total_porcentaje),
+    ];
+    if (c.total_inversion !== undefined && c.total_inversion !== null) {
+      filasComposicion.push(par('Total de inversión', c.total_inversion));
+    }
+    hojas.push(hoja('Composición Financiamiento', filasComposicion));
+
+    if (this.productos.length > 0) {
+      hojas.push(
+        hoja('Productos y Servicios', [
+          [enc('Nombre'), enc('Estado')],
+          ...this.productos.map((p) => [{ v: p.nombre }, { v: p.id ? 'Guardado' : 'Pendiente' }] as (CeldaExcel | null)[]),
+        ]),
+      );
+    }
+
+    const s = this.supuestos;
+    hojas.push(
+      hoja('Supuestos', [
+        encabezadoDatos,
+        par('Porcentaje de Ventas para determinar el inventario (%)', s.porcen_ventas),
+        par('Variación Porcentaje de Ventas pronosticadas (%)', s.variacion_porcen_ventas),
+        par('PTU - Participación de Trabajadores (%)', s.ptu),
+        par('ISR - Impuesto Sobre la Renta (%)', s.isr),
+      ]),
+    );
+
+    if (this.ventasDiarias.length > 0) {
+      hojas.push(
+        hoja('Ventas por Día', [
+          [enc('Producto / Servicio'), enc('Ventas por Día')],
+          ...this.ventasDiarias.map((v) => [{ v: v.producto_servicio?.nombre || 'Sin nombre' }, dec(v.venta_dia)] as (CeldaExcel | null)[]),
+        ]),
+      );
+    }
+
+    const va = this.variacionAnual;
+    hojas.push(
+      hoja('Variación Anual', [
+        [enc('Año'), enc('Variación (%)')],
+        par('Año 1', va.anio1),
+        par('Año 2', va.anio2),
+        par('Año 3', va.anio3),
+        par('Año 4', va.anio4),
+        par('Año 5', va.anio5),
+      ]),
+    );
+
+    if (this.preciosProducto.length > 0) {
+      hojas.push(
+        hoja('Precios', [
+          [enc('Producto / Servicio'), enc('Precio'), enc('Precio Calculado')],
+          ...this.preciosProducto.map(
+            (p) => [{ v: p.producto_servicio?.nombre || 'Sin nombre' }, dec(p.precio), dec(p.precio_calc)] as (CeldaExcel | null)[],
+          ),
+        ]),
+      );
+    }
+
+    const grupos = this.getProductosConCostos();
+    if (grupos.length > 0) {
+      hojas.push(
+        hoja('Costos', [
+          [enc('Producto / Servicio'), enc('Categoría'), enc('Costo')],
+          ...grupos.flatMap((g) =>
+            g.costos.map((k) => [{ v: g.producto }, { v: k.categoria_costo?.nombre || 'Sin categoría' }, dec(k.costo)] as (CeldaExcel | null)[]),
+          ),
+        ]),
+      );
+    }
+
+    return hojas;
+  };
 
   constructor(
     private router: Router,
