@@ -14,10 +14,10 @@
 
     <!-- Modal Body -->
     <form class="modal-body" (ngSubmit)="onSubmit()" #planForm="ngForm">
-      <!-- Campo Problemática -->
+      <!-- Nombre del proyecto (único dato que se pide al crear el plan) -->
       <div class="form-group">
         <label for="problematica" class="form-label">
-          Problemática <span class="required">*</span>
+          Nombre del proyecto <span class="required">*</span>
         </label>
         <input
           type="text"
@@ -25,37 +25,16 @@
           name="problematica"
           class="form-input"
           [(ngModel)]="formData.problematica"
-          placeholder="Ej: Falta de sistema de gestión de inventarios"
+          placeholder="Ej: Panadería artesanal La Espiga"
           required
           maxlength="100"
+          autocomplete="off"
           #problematica="ngModel"
         />
         <div class="error-message" *ngIf="problematica.invalid && problematica.touched">
-          <small *ngIf="problematica.errors?.['required']">La problemática es obligatoria</small>
+          <small *ngIf="problematica.errors?.['required']">El nombre del proyecto es obligatorio</small>
         </div>
         <small class="character-count">{{ formData.problematica.length }}/100</small>
-      </div>
-
-      <!-- Campo Descripción -->
-      <div class="form-group">
-        <label for="descripcion" class="form-label">
-          Descripción <span class="required">*</span>
-        </label>
-        <textarea
-          id="descripcion"
-          name="descripcion"
-          class="form-textarea"
-          [(ngModel)]="formData.descripcion"
-          placeholder="Describe detalladamente el problema que quieres resolver con este plan de negocio..."
-          required
-          rows="6"
-          maxlength="500"
-          #descripcion="ngModel"
-        ></textarea>
-        <div class="error-message" *ngIf="descripcion.invalid && descripcion.touched">
-          <small *ngIf="descripcion.errors?.['required']">La descripción es obligatoria</small>
-        </div>
-        <small class="character-count">{{ formData.descripcion.length }}/500</small>
       </div>
 
       <!-- Modal Footer -->

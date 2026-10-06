@@ -697,3 +697,56 @@
 .btn-cancelar-popup:hover:not(:disabled) {
   border-color: #004271;
 }
+
+
+/* === Nombre del proyecto (editable) === */
+.nombre-proyecto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+}
+
+.nombre-etiqueta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.nombre-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nombre-texto {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #004271;
+  cursor: text;
+}
+
+.nombre-input {
+  flex: 1;
+  max-width: 560px;
+  padding: 8px 12px;
+  border: 2px solid #004271;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #004271;
+  box-sizing: border-box;
+}
+
+.nombre-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 66, 113, 0.15);
+}
+
+.nombre-error {
+  font-size: 0.85rem;
+  color: #b42318;
+}

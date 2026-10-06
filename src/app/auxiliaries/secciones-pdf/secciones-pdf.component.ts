@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import jsPDF from 'jspdf';
 import { FirebaseService, SeccionData, PlanNegocio, ImagenSeccion } from '../../core/services/firebase.service';
+import { InversionService } from '../../core/services/inversion.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AnexosFinancierosService, AnexosFinancieros, TablaAnexo, FilaAnexo } from '../../core/services/anexos-financieros.service';
@@ -73,6 +74,11 @@ export class SeccionesPDFComponent implements OnInit {
   planLogicoId = '';
   editandoTitulo: number | null = null;
   nombrePlan: string = 'Plan sin título';
+  // Edición del nombre del proyecto
+  editandoNombre = false;
+  nombreEdicion = '';
+  guardandoNombre = false;
+  errorNombre = '';
 
   // Páginas del PDF en horizontal (los anexos con tablas mensuales); el resto va vertical.
   private paginasHorizontales = new Set<number>();
@@ -86,6 +92,7 @@ export class SeccionesPDFComponent implements OnInit {
     private readonly router: Router,
     private readonly resumenService: ResumenFinancieroService,
     private readonly anexosService: AnexosFinancierosService,
+    private readonly inversionService: InversionService,
   ) {}
 
   ngOnInit() {
@@ -103,6 +110,7 @@ export class SeccionesPDFComponent implements OnInit {
                   this.planId = plan.id!;
                   this.nombrePlan = plan.nombre || 'Plan sin título';
                   this.secciones = this.normalizarSecciones(plan.secciones);
+                  this.sincronizarNombreConBackend();
                 } else {
                   const nuevoPlan: PlanNegocio = {
                     nombre: 'Plan sin título',
@@ -116,6 +124,7 @@ export class SeccionesPDFComponent implements OnInit {
                   this.firebaseService.guardarPlan(nuevoPlan).subscribe((res) => {
                     this.planId = res.id;
                     this.secciones = this.generarPlantillaSecciones();
+                    this.sincronizarNombreConBackend();
                   });
                 }
               });
@@ -128,6 +137,73 @@ export class SeccionesPDFComponent implements OnInit {
         // Redirigir al login si no está autenticado
       }
     });
+  }
+
+  // ============================================================
+  //  NOMBRE DEL PROYECTO
+  // ============================================================
+
+  /**
+   * El nombre del proyecto vive en el backend (es lo que muestra el Home);
+   * Firebase guarda una copia para el título del PDF. Al abrir el plan se
+   * toma el del backend, así ambos coinciden.
+   */
+  private sincronizarNombreConBackend(): void {
+    const id = Number(this.planLogicoId);
+    if (!Number.isFinite(id) || id <= 0) return;
+    this.inversionService
+      .getPlanNegocio(id)
+      .then((plan) => {
+        const nombre = (plan?.problematica || '').trim();
+        if (nombre && nombre !== this.nombrePlan && !this.editandoNombre) {
+          this.nombrePlan = nombre;
+        }
+      })
+      .catch(() => {
+        /* sin conexión con el backend: se queda el nombre guardado en Firebase */
+      });
+  }
+
+  iniciarEdicionNombre(): void {
+    this.nombreEdicion = this.nombrePlan;
+    this.errorNombre = '';
+    this.editandoNombre = true;
+    setTimeout(() => (document.getElementById('input-nombre-proyecto') as HTMLInputElement | null)?.select(), 0);
+  }
+
+  cancelarEdicionNombre(): void {
+    this.editandoNombre = false;
+    this.errorNombre = '';
+  }
+
+  async guardarNombre(): Promise<void> {
+    if (!this.editandoNombre || this.guardandoNombre) return;
+
+    const nuevo = this.nombreEdicion.trim();
+    if (!nuevo) {
+      this.errorNombre = 'El nombre del proyecto no puede estar vacío.';
+      return;
+    }
+    if (nuevo === this.nombrePlan) {
+      this.editandoNombre = false;
+      return;
+    }
+
+    this.guardandoNombre = true;
+    this.errorNombre = '';
+    try {
+      await this.inversionService.actualizarNombrePlan(Number(this.planLogicoId), nuevo);
+      this.nombrePlan = nuevo;
+      this.editandoNombre = false;
+      this.guardarTodasLasSecciones(); // copia en Firebase (título del PDF)
+      this.mensajeGuardado = 'Nombre del proyecto actualizado';
+      setTimeout(() => (this.mensajeGuardado = ''), 3000);
+    } catch (error) {
+      console.error('Error al cambiar el nombre del proyecto:', error);
+      this.errorNombre = 'No se pudo cambiar el nombre. Intenta de nuevo.';
+    } finally {
+      this.guardandoNombre = false;
+    }
   }
 
   mostrarNota(index: number, event: MouseEvent, btn: HTMLElement) {
@@ -780,6 +856,30 @@ export class SeccionesPDFComponent implements OnInit {
       // Numeración corrida de figuras (APA: "Figura 1", "Figura 2"...) en todo el documento.
       const figuras = { n: 0 };
       const tablas = { n: 0 };
+      // Escribe un párrafo línea por línea, pasando a la hoja siguiente solo cuando
+      // se llena la actual (un párrafo largo no deja un hueco en blanco al pie de
+      // la hoja ni se corta). El avance entre líneas es el real de la letra
+      // (10.5 pt × 1.15), no un valor fijo mayor, que dejaba espacios enormes.
+      const interlineado = 10.5 * 1.15 * 0.3528;
+      const escribirParrafo = (texto: string): void => {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(60, 60, 60);
+        // trim: un espacio o salto de línea al final del texto del usuario generaba una
+        // línea vacía extra (un hueco de más entre respuestas).
+        const lineas = pdf.splitTextToSize(texto.trim(), maxTextWidth - 6) as string[];
+        while (lineas.length > 0 && lineas[lineas.length - 1].trim() === '') lineas.pop();
+        for (const linea of lineas) {
+          if (y + interlineado > contentBottom) {
+            pdf.addPage();
+            y = contentTop;
+          }
+          pdf.text(linea, margin + 4, y);
+          y += interlineado;
+        }
+        y += 3; // separación entre una respuesta y la siguiente
+      };
+
       // Todo lo financiero (series de las tablas/gráficas de "Análisis
       // económico y Financiero" y las tablas de los anexos) viene del backend
       // en UNA sola petición, con los mismos números que el módulo de Gráficas
@@ -827,7 +927,7 @@ export class SeccionesPDFComponent implements OnInit {
         pdf.setTextColor(255, 255, 255);
         pdf.text(tituloLines, margin + 4, y + 6.5);
         pdf.setFont('helvetica', 'normal');
-        y += bandaAltura + 6;
+        y += bandaAltura + 8;
 
         // NO incluir instrucción de secciones precargadas en el PDF
 
@@ -836,13 +936,7 @@ export class SeccionesPDFComponent implements OnInit {
         // preguntas sin respuesta no dejan nada.
         for (const sub of seccion.subsecciones) {
           if (sub.descripcion && sub.descripcion.trim() !== '') {
-            pdf.setFont('helvetica', 'normal');
-            pdf.setFontSize(10.5);
-            pdf.setTextColor(60, 60, 60);
-            const descLines = pdf.splitTextToSize(sub.descripcion, maxTextWidth - 6);
-            y = checkPageBreak(y, descLines.length * lineHeight + 5);
-            pdf.text(descLines, margin + 4, y);
-            y += descLines.length * lineHeight + 4;
+            escribirParrafo(sub.descripcion);
           }
 
           // Imágenes de esta pregunta, justo debajo de su respuesta.
@@ -874,20 +968,15 @@ export class SeccionesPDFComponent implements OnInit {
           }
         }
 
-        // Texto general de la sección (sin rótulo propio: "Descripción
-        // General" no es un título de sección, así que no se imprime).
+        // Texto libre de la sección. Solo las secciones SIN preguntas lo usan (las
+        // propias que crea el usuario); en las demás el campo "Descripción
+        // General" ya no se muestra, así que tampoco se imprime.
         if (
-          seccion.titulo !== 'Análisis DAFO' &&
+          (seccion.subsecciones?.length ?? 0) === 0 &&
           seccion.descripcion &&
           seccion.descripcion.trim() !== ''
         ) {
-          pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(10.5);
-          pdf.setTextColor(60, 60, 60);
-          const descLines = pdf.splitTextToSize(seccion.descripcion, maxTextWidth - 6);
-          y = checkPageBreak(y, descLines.length * lineHeight + 5);
-          pdf.text(descLines, margin + 4, y);
-          y += descLines.length * lineHeight + 5;
+          escribirParrafo(seccion.descripcion);
         }
 
         // Imágenes a nivel de sección (Análisis económico, secciones propias

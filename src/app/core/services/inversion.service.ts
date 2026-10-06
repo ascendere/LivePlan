@@ -182,6 +182,32 @@ export class InversionService {
     });
   }
 
+  /** Un plan por su id (su nombre es el campo `problematica`, el mismo que muestra el Home). */
+  getPlanNegocio(planNegocioId: number): Promise<PlanNegocio> {
+    const url = `${this.apiUrl}/plan/item/${encodeURIComponent(planNegocioId)}`;
+    return fetch(url).then((response) => {
+      if (!response.ok) {
+        throw new Error('Error al obtener el plan de negocio');
+      }
+      return response.json();
+    });
+  }
+
+  /** Cambia el nombre del proyecto (guardado en el campo `problematica` del plan). */
+  actualizarNombrePlan(planNegocioId: number, nombre: string): Promise<PlanNegocio> {
+    const url = `${this.apiUrl}/plan/${encodeURIComponent(planNegocioId)}`;
+    return fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ problematica: nombre }),
+    }).then((response) => {
+      if (!response.ok) {
+        throw new Error('Error al actualizar el nombre del plan');
+      }
+      return response.json();
+    });
+  }
+
   getPlanNegocioByAutor(authorUuid: number): Promise<PlanNegocio[]> {
     const url = `${this.apiUrl}/plan/${encodeURIComponent(authorUuid)}`;
     return fetch(url).then((response) => {
