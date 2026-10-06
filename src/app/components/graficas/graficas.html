@@ -100,6 +100,7 @@
                 <thead>
                   <tr>
                     <th>Concepto</th>
+                    <th>Año 0</th>
                     <th>Año 1</th>
                     <th>Año 2</th>
                     <th>Año 3</th>
@@ -110,6 +111,7 @@
                 <tbody>
                   <tr *ngFor="let row of balanceData">
                     <td class="concept-cell">{{ row.concepto }}</td>
+                    <td>{{ row.ano0 | currency : '$' : 'symbol' : '1.0-0' }}</td>
                     <td>{{ row.ano1 | currency : '$' : 'symbol' : '1.0-0' }}</td>
                     <td>{{ row.ano2 | currency : '$' : 'symbol' : '1.0-0' }}</td>
                     <td>{{ row.ano3 | currency : '$' : 'symbol' : '1.0-0' }}</td>

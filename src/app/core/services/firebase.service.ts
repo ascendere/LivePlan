@@ -17,6 +17,19 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Observable, from, of } from 'rxjs';
 import { catchError, switchMap, take } from 'rxjs/operators';
 
+/**
+ * Imagen adjunta a una pregunta (o a una sección completa). `descripcion` y
+ * `fuente` alimentan el pie de figura en formato APA dentro del PDF; las
+ * imágenes subidas antes de existir estos campos no los tienen y se dibujan
+ * sin leyenda.
+ */
+export interface ImagenSeccion {
+  url: string;
+  nombre?: string;
+  descripcion?: string;
+  fuente?: string;
+}
+
 export interface SeccionData {
   id?: string;
   titulo: string;
@@ -25,11 +38,12 @@ export interface SeccionData {
   subsecciones: {
     pregunta: string;
     descripcion: string;
+    imagenes?: ImagenSeccion[];
   }[];
   imagenUrl?: string;
   imagenNombre?: string;
   imagenPreview?: string;
-  imagenes?: { url: string; nombre?: string }[];
+  imagenes?: ImagenSeccion[];
   fechaCreacion?: any;
   fechaActualizacion?: any;
   nota?: string;

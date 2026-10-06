@@ -1,15 +1,57 @@
 import { Component, OnInit } from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import jsPDF from 'jspdf';
-import { FirebaseService, SeccionData, PlanNegocio } from '../../core/services/firebase.service';
+import { FirebaseService, SeccionData, PlanNegocio, ImagenSeccion } from '../../core/services/firebase.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { AnexosFinancierosService, AnexosFinancieros, TablaAnexo, FilaAnexo } from '../../core/services/anexos-financieros.service';
+import { ResumenFinancieroService, ResumenFinanciero, ResumenGrafica, TipoGrafica } from '../../core/services/resumen-financiero.service';
 
 // Paleta institucional (misma que usa el resto de la app: header, sidebar, login).
 const COLOR_PRIMARIO: [number, number, number] = [0, 66, 113]; // #004271
 const COLOR_PRIMARIO_OSCURO: [number, number, number] = [0, 49, 85]; // #003155
 const COLOR_CLARO: [number, number, number] = [216, 220, 230]; // #d8dce6
 const COLOR_GRIS_AZUL: [number, number, number] = [177, 187, 206]; // #B1BBCE
+
+const TITULO_TABLA_RESUMEN: Record<TipoGrafica, string> = {
+  estado: 'Estado de resultados proyectado: utilidad bruta, de operación y neta',
+  balance: 'Balance general proyectado: activo, pasivo y capital contable',
+  flujo: 'Flujo de efectivo proyectado: ingresos, egresos y flujo neto',
+};
+
+const TITULO_FIGURA_RESUMEN: Record<TipoGrafica, string> = {
+  estado: 'Utilidad bruta, de operación y neta por año',
+  balance: 'Activo, pasivo y capital contable por año',
+  flujo: 'Ingresos, egresos y flujo de efectivo neto por año',
+};
+
+/** Entrada del índice del PDF: `pagina` es la página física (la numeración visible resta la portada). */
+interface EntradaIndice {
+  titulo: string;
+  pagina: number;
+  nivel: 0 | 1;
+}
+
+const LINEAS_POR_PAGINA_INDICE = 28;
+
+/** Estado del popup de descripción/fuente de una imagen. */
+class PopupImagen {
+  visible = false;
+  modo: 'nueva' | 'reemplazar' | 'editar' = 'nueva';
+  seccionIndex = 0;
+  subIndex: number | null = null;
+  imgIndex: number | null = null;
+  archivo: File | null = null;
+  previewUrl = '';
+  descripcion = '';
+  fuente = '';
+  subiendo = false;
+  error = '';
+
+  static cerrado(): PopupImagen {
+    return new PopupImagen();
+  }
+}
 
 @Component({
   selector: 'app-secciones-pdf',
@@ -32,10 +74,18 @@ export class SeccionesPDFComponent implements OnInit {
   editandoTitulo: number | null = null;
   nombrePlan: string = 'Plan sin título';
 
+  // Páginas del PDF en horizontal (los anexos con tablas mensuales); el resto va vertical.
+  private paginasHorizontales = new Set<number>();
+
+  // Popup para pedir descripción y fuente (APA) al subir/reemplazar/editar una imagen.
+  popupImagen: PopupImagen = PopupImagen.cerrado();
+
   constructor(
     private readonly firebaseService: FirebaseService,
     private readonly route: ActivatedRoute,
     private readonly router: Router,
+    private readonly resumenService: ResumenFinancieroService,
+    private readonly anexosService: AnexosFinancierosService,
   ) {}
 
   ngOnInit() {
@@ -106,6 +156,7 @@ export class SeccionesPDFComponent implements OnInit {
         subsecciones: seccion.subsecciones.map((sub) => ({
           pregunta: sub.pregunta,
           descripcion: sub.descripcion,
+          ...(sub.imagenes?.length ? { imagenes: sub.imagenes } : {}),
         })),
         imagenUrl: seccion.imagenPreview || '',
       })),
@@ -213,68 +264,174 @@ export class SeccionesPDFComponent implements OnInit {
     });
   }
 
-  onImagenSeleccionada(event: any, index: number): void {
-    const files: FileList = event.target.files;
-    const seccion = this.secciones[index];
-    if (!files || files.length === 0 || !seccion || !this.planId) return;
+  // ============================================================
+  //  IMÁGENES (por pregunta; por sección solo donde no hay preguntas)
+  // ============================================================
 
-    if (!seccion.imagenes) {
-      seccion.imagenes = [];
+  /**
+   * Las imágenes se suben por cada pregunta, en todas las secciones menos
+   * "Análisis económico y Financiero" (que se resolverá aparte) y las
+   * secciones propias sin preguntas, que conservan la subida a nivel sección.
+   */
+  permiteImagenPorPregunta(seccion: SeccionData): boolean {
+    return !this.esSeccionEconomica(seccion) && (seccion.subsecciones?.length ?? 0) > 0;
+  }
+
+  private esSeccionEconomica(seccion: SeccionData): boolean {
+    return (seccion.titulo || '').trim().toLowerCase() === 'análisis económico y financiero';
+  }
+
+  /** Lista de imágenes de una pregunta (subIndex) o de la sección (subIndex null). */
+  private listaImagenes(seccionIndex: number, subIndex: number | null): ImagenSeccion[] {
+    const seccion = this.secciones[seccionIndex];
+    if (subIndex === null) {
+      return (seccion.imagenes ??= []);
     }
+    return (seccion.subsecciones[subIndex].imagenes ??= []);
+  }
 
-    const seccionId = seccion.id || `temp-${Date.now()}`;
-    const subidas = Array.from(files).map((file) =>
-      firstValueFrom(this.firebaseService.subirImagen(file, seccionId, this.planId))
-        .then((url) => ({ url, nombre: file.name }))
-        .catch((error) => {
-          console.error('Error al subir imagen:', error);
-          return null;
-        }),
-    );
+  onImagenSeleccionada(event: any, seccionIndex: number, subIndex: number | null): void {
+    const file: File | undefined = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !this.planId) return;
+    this.abrirPopupImagen({ modo: 'nueva', seccionIndex, subIndex, archivo: file });
+  }
 
-    Promise.all(subidas).then((resultados) => {
-      for (const resultado of resultados) {
-        if (resultado) {
-          seccion.imagenes!.push(resultado);
-        }
-      }
-      event.target.value = '';
-      this.guardarSeccion(index);
+  reemplazarImagen(event: any, seccionIndex: number, subIndex: number | null, imgIndex: number): void {
+    const file: File | undefined = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !this.planId) return;
+    const actual = this.listaImagenes(seccionIndex, subIndex)[imgIndex];
+    this.abrirPopupImagen({
+      modo: 'reemplazar',
+      seccionIndex,
+      subIndex,
+      imgIndex,
+      archivo: file,
+      descripcion: actual?.descripcion,
+      fuente: actual?.fuente,
     });
   }
 
-  reemplazarImagenSeccion(event: any, seccionIndex: number, imgIndex: number): void {
-    const file: File = event.target.files[0];
-    const seccion = this.secciones[seccionIndex];
-    if (!file || !seccion || !seccion.imagenes || !this.planId) return;
-
-    const anterior = seccion.imagenes[imgIndex];
-    const seccionId = seccion.id || `temp-${Date.now()}`;
-
-    this.firebaseService.subirImagen(file, seccionId, this.planId).subscribe({
-      next: (url) => {
-        seccion.imagenes![imgIndex] = { url, nombre: file.name };
-        if (anterior?.url) {
-          this.firebaseService.eliminarImagen(anterior.url).subscribe();
-        }
-        event.target.value = '';
-        this.guardarSeccion(seccionIndex);
-      },
-      error: (error) => {
-        console.error('Error al reemplazar imagen:', error);
-      },
+  editarDatosImagen(seccionIndex: number, subIndex: number | null, imgIndex: number): void {
+    const actual = this.listaImagenes(seccionIndex, subIndex)[imgIndex];
+    if (!actual) return;
+    this.abrirPopupImagen({
+      modo: 'editar',
+      seccionIndex,
+      subIndex,
+      imgIndex,
+      descripcion: actual.descripcion,
+      fuente: actual.fuente,
+      previewUrl: actual.url,
     });
   }
 
-  eliminarImagenDeSeccion(seccionIndex: number, imgIndex: number): void {
-    const seccion = this.secciones[seccionIndex];
-    if (!seccion?.imagenes) return;
-
-    const [removida] = seccion.imagenes.splice(imgIndex, 1);
+  eliminarImagen(seccionIndex: number, subIndex: number | null, imgIndex: number): void {
+    const [removida] = this.listaImagenes(seccionIndex, subIndex).splice(imgIndex, 1);
     if (removida?.url) {
       this.firebaseService.eliminarImagen(removida.url).subscribe();
     }
     this.guardarSeccion(seccionIndex);
+  }
+
+  private abrirPopupImagen(datos: {
+    modo: 'nueva' | 'reemplazar' | 'editar';
+    seccionIndex: number;
+    subIndex: number | null;
+    imgIndex?: number;
+    archivo?: File;
+    descripcion?: string;
+    fuente?: string;
+    previewUrl?: string;
+  }): void {
+    this.liberarPreviewPopup();
+    this.popupImagen = {
+      visible: true,
+      modo: datos.modo,
+      seccionIndex: datos.seccionIndex,
+      subIndex: datos.subIndex,
+      imgIndex: datos.imgIndex ?? null,
+      archivo: datos.archivo ?? null,
+      previewUrl: datos.archivo ? URL.createObjectURL(datos.archivo) : datos.previewUrl || '',
+      descripcion: datos.descripcion || '',
+      fuente: datos.fuente || '',
+      subiendo: false,
+      error: '',
+    };
+  }
+
+  cancelarPopupImagen(): void {
+    if (this.popupImagen.subiendo) return;
+    this.cerrarPopupImagen();
+  }
+
+  private cerrarPopupImagen(): void {
+    this.liberarPreviewPopup();
+    this.popupImagen = PopupImagen.cerrado();
+  }
+
+  private liberarPreviewPopup(): void {
+    if (this.popupImagen.archivo && this.popupImagen.previewUrl) {
+      URL.revokeObjectURL(this.popupImagen.previewUrl);
+    }
+  }
+
+  usarElaboracionPropia(): void {
+    this.popupImagen.fuente = 'Elaboración propia';
+  }
+
+  async confirmarPopupImagen(): Promise<void> {
+    const p = this.popupImagen;
+    if (!p.visible || p.subiendo) return;
+
+    const descripcion = p.descripcion.trim();
+    const fuente = p.fuente.trim();
+    if (!descripcion || !fuente) {
+      p.error = 'Completa la descripción y la fuente de la imagen.';
+      return;
+    }
+
+    const lista = this.listaImagenes(p.seccionIndex, p.subIndex);
+
+    if (p.modo === 'editar') {
+      const img = lista[p.imgIndex!];
+      if (img) {
+        img.descripcion = descripcion;
+        img.fuente = fuente;
+      }
+      this.cerrarPopupImagen();
+      this.guardarSeccion(p.seccionIndex);
+      return;
+    }
+
+    const seccion = this.secciones[p.seccionIndex];
+    const idBase = seccion.id || `temp-${Date.now()}`;
+    const contenedorId = p.subIndex === null ? idBase : `${idBase}-p${p.subIndex}`;
+
+    p.subiendo = true;
+    p.error = '';
+    try {
+      const url = await firstValueFrom(
+        this.firebaseService.subirImagen(p.archivo!, contenedorId, this.planId),
+      );
+      const nueva: ImagenSeccion = { url, nombre: p.archivo!.name, descripcion, fuente };
+      if (p.modo === 'nueva') {
+        lista.push(nueva);
+      } else {
+        const anterior = lista[p.imgIndex!];
+        lista[p.imgIndex!] = nueva;
+        if (anterior?.url) {
+          this.firebaseService.eliminarImagen(anterior.url).subscribe();
+        }
+      }
+      this.cerrarPopupImagen();
+      this.guardarSeccion(p.seccionIndex);
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      p.error = 'No se pudo subir la imagen. Intenta de nuevo.';
+      p.subiendo = false;
+    }
   }
 
   onSeccionChange(index: number) {
@@ -563,6 +720,7 @@ export class SeccionesPDFComponent implements OnInit {
 
   async exportarPDF() {
     this.loadingPDF = true;
+    this.paginasHorizontales = new Set<number>();
 
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -578,6 +736,17 @@ export class SeccionesPDFComponent implements OnInit {
       let y = contentTop;
 
       this.dibujarPortada(pdf, pageWidth, pageHeight);
+
+      // Índice al principio (después de la portada). Se reserva(n) la(s)
+      // página(s) ahora y se dibuja al final, cuando ya se sabe en qué página
+      // empieza cada sección y cada anexo. Entradas: secciones con título +
+      // "Anexos" + los 4 anexos.
+      const seccionesConTitulo = this.secciones.filter((sec) => sec.titulo && sec.titulo.trim() !== '');
+      const entradasIndice: EntradaIndice[] = [];
+      const paginasIndice = Math.max(1, Math.ceil((seccionesConTitulo.length + 5) / LINEAS_POR_PAGINA_INDICE));
+      for (let i = 0; i < paginasIndice; i++) pdf.addPage();
+      const paginaIndice = 2; // física; la numeración visible resta la portada
+
       pdf.addPage();
       y = contentTop;
 
@@ -595,11 +764,36 @@ export class SeccionesPDFComponent implements OnInit {
         return yActual;
       };
 
-      for (const [idx, seccion] of this.secciones.entries()) {
+      // Numeración corrida de figuras (APA: "Figura 1", "Figura 2"...) en todo el documento.
+      const figuras = { n: 0 };
+      const tablas = { n: 0 };
+      // Datos de las tablas/gráficas automáticas de "Análisis económico y
+      // Financiero" (los mismos del módulo de Gráficas).
+      let resumen: ResumenFinanciero | null = null;
+      if (this.secciones.some((sec) => this.esSeccionEconomica(sec))) {
+        const planNumerico = Number(this.planLogicoId);
+        if (Number.isFinite(planNumerico) && planNumerico > 0) {
+          try {
+            resumen = await this.resumenService.obtener(planNumerico);
+          } catch (error) {
+            console.warn('No se pudo cargar el resumen financiero para el PDF:', error);
+          }
+        }
+      }
+      const alturaUtilPagina = contentBottom - contentTop;
+      let primeraSeccion = true;
+      for (const seccion of this.secciones) {
         // Saltar secciones sin título
         if (!seccion.titulo || seccion.titulo.trim() === '') continue;
 
-        y = checkPageBreak(y, 20);
+        // Cada sección arranca en hoja nueva (la primera ya la tiene: la
+        // portada dejó una página nueva lista).
+        if (!primeraSeccion) {
+          pdf.addPage();
+          y = contentTop;
+        }
+        primeraSeccion = false;
+        entradasIndice.push({ titulo: seccion.titulo.trim(), pagina: pdf.getNumberOfPages(), nivel: 0 });
 
         // Banda de título de sección. El tamaño/peso de letra debe fijarse
         // ANTES de splitTextToSize: esa función mide con la fuente activa en
@@ -619,18 +813,12 @@ export class SeccionesPDFComponent implements OnInit {
 
         // NO incluir instrucción de secciones precargadas en el PDF
 
-        // Subsecciones
+        // Subsecciones: solo se imprime la respuesta. El título de la pregunta
+        // (sub.pregunta) NO se incluye en el PDF, aunque esté respondida; las
+        // preguntas sin respuesta no dejan nada.
         for (const sub of seccion.subsecciones) {
-          pdf.setFontSize(11.5);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
-          const preguntaLines = pdf.splitTextToSize(sub.pregunta, maxTextWidth);
-          y = checkPageBreak(y, preguntaLines.length * lineHeight + 10);
-          pdf.text(preguntaLines, margin, y);
-          y += preguntaLines.length * lineHeight + 1.5;
-          pdf.setFont('helvetica', 'normal');
-
           if (sub.descripcion && sub.descripcion.trim() !== '') {
+            pdf.setFont('helvetica', 'normal');
             pdf.setFontSize(10.5);
             pdf.setTextColor(60, 60, 60);
             const descLines = pdf.splitTextToSize(sub.descripcion, maxTextWidth - 6);
@@ -638,22 +826,36 @@ export class SeccionesPDFComponent implements OnInit {
             pdf.text(descLines, margin + 4, y);
             y += descLines.length * lineHeight + 4;
           }
+
+          // Imágenes de esta pregunta, justo debajo de su respuesta.
+          if (sub.imagenes && sub.imagenes.length > 0) {
+            y = await this.dibujarImagenesSeccion(pdf, sub.imagenes, margin, y, maxTextWidth, alturaUtilPagina, checkPageBreak, figuras);
+          }
+
+          // Análisis económico y Financiero: primero la tabla y luego la
+          // gráfica que corresponde a la pregunta.
+          const tipo = this.esSeccionEconomica(seccion) ? this.tipoResumenDePregunta(sub.pregunta) : null;
+          if (tipo && resumen) {
+            y = this.dibujarTablaResumen(pdf, resumen[tipo], tipo, margin, y, maxTextWidth, lineHeight, checkPageBreak, tablas);
+            const imagen = this.resumenService.graficaComoImagen(tipo, resumen[tipo].filas);
+            if (imagen) {
+              y = this.dibujarFigura(
+                pdf, imagen.dataUrl, 'PNG', imagen.ancho, imagen.alto,
+                TITULO_FIGURA_RESUMEN[tipo], 'Elaboración propia',
+                margin, y, maxTextWidth, alturaUtilPagina, checkPageBreak, figuras,
+              );
+            }
+          }
         }
 
-        // Descripción general
+        // Texto general de la sección (sin rótulo propio: "Descripción
+        // General" no es un título de sección, así que no se imprime).
         if (
           seccion.titulo !== 'Análisis DAFO' &&
           seccion.descripcion &&
           seccion.descripcion.trim() !== ''
         ) {
-          y = checkPageBreak(y, lineHeight + 15);
-          pdf.setFontSize(11.5);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
-          pdf.text('Descripción General', margin, y);
-          y += lineHeight + 1.5;
           pdf.setFont('helvetica', 'normal');
-
           pdf.setFontSize(10.5);
           pdf.setTextColor(60, 60, 60);
           const descLines = pdf.splitTextToSize(seccion.descripcion, maxTextWidth - 6);
@@ -662,19 +864,29 @@ export class SeccionesPDFComponent implements OnInit {
           y += descLines.length * lineHeight + 5;
         }
 
-        // Imágenes: proporción real (sin deformar), en cuadrícula de 2
-        // columnas cuando hay más de una.
+        // Imágenes a nivel de sección (Análisis económico, secciones propias
+        // sin preguntas e imágenes subidas antes de existir las de pregunta).
         const imagenes = seccion.imagenes || [];
         if (imagenes.length > 0) {
-          y = await this.dibujarImagenesSeccion(pdf, imagenes, margin, y, maxTextWidth, checkPageBreak);
+          y = await this.dibujarImagenesSeccion(pdf, imagenes, margin, y, maxTextWidth, alturaUtilPagina, checkPageBreak, figuras);
         }
 
-        // Espacio entre secciones
-        if (idx < this.secciones.length - 1) {
-          y += 10;
-          y = checkPageBreak(y, 20);
+      }
+
+      // Anexos al final: Balance General, Estado de Resultados, Flujo de
+      // Efectivo (módulo Estados Financieros) y Préstamo (módulo Préstamo).
+      let anexos: AnexosFinancieros | null = null;
+      const planParaAnexos = Number(this.planLogicoId);
+      if (Number.isFinite(planParaAnexos) && planParaAnexos > 0) {
+        try {
+          anexos = await this.anexosService.obtener(planParaAnexos);
+        } catch (error) {
+          console.warn('No se pudieron cargar los datos de los anexos:', error);
         }
       }
+      entradasIndice.push(...this.dibujarAnexos(pdf, anexos, margin, headerHeight, footerHeight, contentTop));
+
+      this.dibujarIndice(pdf, entradasIndice, paginaIndice, paginasIndice, margin, contentTop, pageWidth, contentBottom);
 
       this.dibujarEncabezadoPie(pdf, pageWidth, pageHeight, margin, headerHeight, footerHeight);
 
@@ -730,10 +942,14 @@ export class SeccionesPDFComponent implements OnInit {
    * contenido (todas menos la portada, página 1). Se dibuja al final, cuando
    * ya se conoce el total de páginas, para poder mostrar "Página X de Y".
    */
-  private dibujarEncabezadoPie(pdf: jsPDF, pageWidth: number, pageHeight: number, margin: number, headerHeight: number, footerHeight: number): void {
+  private dibujarEncabezadoPie(pdf: jsPDF, pageWidthVertical: number, pageHeightVertical: number, margin: number, headerHeight: number, footerHeight: number): void {
     const totalPaginas = pdf.getNumberOfPages();
     for (let i = 2; i <= totalPaginas; i++) {
       pdf.setPage(i);
+      // Las páginas de anexos con tablas mensuales son horizontales: intercambian ancho y alto.
+      const horizontal = this.paginasHorizontales.has(i);
+      const pageWidth = horizontal ? pageHeightVertical : pageWidthVertical;
+      const pageHeight = horizontal ? pageWidthVertical : pageHeightVertical;
 
       pdf.setFillColor(...COLOR_PRIMARIO);
       pdf.rect(0, 0, pageWidth, headerHeight, 'F');
@@ -755,67 +971,581 @@ export class SeccionesPDFComponent implements OnInit {
     }
   }
 
+  // ============================================================
+  //  ANEXOS
+  // ============================================================
+
   /**
-   * Dibuja las imágenes de una sección en cuadrícula (2 columnas si hay más
-   * de una), respetando la proporción real de cada imagen para que no salga
-   * estirada ni aplastada. Devuelve la nueva posición Y.
+   * Anexos al final del PDF: una página índice (vertical) y luego, en hojas
+   * horizontales para que quepan las columnas mensuales:
+   *   Anexo 1. Balance General     (módulo Estados Financieros)
+   *   Anexo 2. Estado de Resultados (módulo Estados Financieros)
+   *   Anexo 3. Flujo de Efectivo   (módulo Estados Financieros)
+   *   Anexo 4. Préstamo            (módulo Préstamo)
+   * Cada anexo empieza en hoja nueva; cada tabla anual va en su propia hoja
+   * (las filas se reparten en varias hojas, repitiendo el encabezado, si no caben).
    */
-  private async dibujarImagenesSeccion(
+  private dibujarAnexos(
     pdf: jsPDF,
-    imagenes: { url: string; nombre?: string }[],
+    anexos: AnexosFinancieros | null,
+    margin: number,
+    headerHeight: number,
+    footerHeight: number,
+    contentTopVertical: number,
+  ): EntradaIndice[] {
+    const entradas: EntradaIndice[] = [];
+    const definiciones: { num: number; titulo: string; origen: string; tablas: TablaAnexo[]; dinero: boolean }[] = [
+      { num: 1, titulo: 'Balance General', origen: 'Módulo Estados Financieros', tablas: anexos?.balance.tablas ?? [], dinero: false },
+      { num: 2, titulo: 'Estado de Resultados', origen: 'Módulo Estados Financieros', tablas: anexos?.estado.tablas ?? [], dinero: false },
+      { num: 3, titulo: 'Flujo de Efectivo', origen: 'Módulo Estados Financieros', tablas: anexos?.flujo.tablas ?? [], dinero: false },
+      { num: 4, titulo: 'Préstamo', origen: 'Módulo Préstamo', tablas: anexos?.prestamo?.tablas ?? [], dinero: true },
+    ];
+
+    // --- Página índice (vertical)
+    pdf.addPage();
+    entradas.push({ titulo: 'Anexos', pagina: pdf.getNumberOfPages(), nivel: 0 });
+    let y = contentTopVertical;
+    const anchoV = pdf.internal.pageSize.getWidth() - margin * 2;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(13);
+    pdf.setFillColor(...COLOR_PRIMARIO);
+    pdf.rect(margin, y, anchoV, 12, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Anexos', margin + 4, y + 8);
+    y += 22;
+    for (const d of definiciones) {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11.5);
+      pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
+      pdf.text(`Anexo ${d.num}. ${d.titulo}`, margin, y);
+      y += 6;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10.5);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(d.origen, margin + 4, y);
+      y += 12;
+    }
+
+    // --- Anexos (horizontales)
+    const W = 297;
+    const H = 210;
+    const contentTop = headerHeight + 8;
+    const contentBottom = H - footerHeight;
+    const ancho = W - margin * 2;
+    let yH = contentTop;
+
+    const nuevaPagina = (tituloAnexo: string, continuacion: boolean): void => {
+      pdf.addPage('a4', 'l');
+      this.paginasHorizontales.add(pdf.getNumberOfPages());
+      pdf.setFillColor(...COLOR_PRIMARIO);
+      pdf.rect(margin, contentTop, ancho, 9, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text(continuacion ? `${tituloAnexo} (continuación)` : tituloAnexo, margin + 4, contentTop + 6.2);
+      yH = contentTop + 9 + 6;
+    };
+
+    for (const d of definiciones) {
+      const tituloAnexo = `Anexo ${d.num}. ${d.titulo}`;
+      nuevaPagina(tituloAnexo, false);
+      entradas.push({ titulo: tituloAnexo, pagina: pdf.getNumberOfPages(), nivel: 1 });
+
+      if (d.tablas.length === 0) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10.5);
+        pdf.setTextColor(90, 90, 90);
+        pdf.text('No hay datos disponibles para este anexo.', margin, yH + 4);
+        continue;
+      }
+
+      let numTabla = 0;
+
+      // Anexo 4: primero los datos generales del préstamo (una sola fila).
+      if (d.num === 4 && anexos?.prestamo && anexos.prestamo.resumen.length > 0) {
+        numTabla += 1;
+        yH = this.dibujarResumenAnexo(pdf, anexos.prestamo.resumen, `Tabla A${d.num}.${numTabla}`, 'Datos del préstamo', margin, yH, ancho);
+      }
+
+      d.tablas.forEach((tabla, indice) => {
+        numTabla += 1;
+        const esAmortizacion = d.num === 4;
+        // Estados financieros: cada tabla anual en hoja nueva. Préstamo: tablas
+        // pequeñas, se acomodan varias por hoja.
+        if (indice > 0 && !esAmortizacion) nuevaPagina(tituloAnexo, false);
+        yH = this.dibujarTablaAnexo(
+          pdf, tabla, `Tabla A${d.num}.${numTabla}`, d.dinero, margin, yH, ancho,
+          contentBottom, () => nuevaPagina(tituloAnexo, true), () => yH,
+        );
+      });
+    }
+
+    return entradas;
+  }
+
+  /**
+   * Dibuja el índice en la(s) página(s) reservada(s) después de la portada:
+   * título de cada sección y anexo, puntos guía y número de página (el mismo
+   * que muestra el pie de página, que no cuenta la portada).
+   */
+  private dibujarIndice(
+    pdf: jsPDF,
+    entradas: EntradaIndice[],
+    primeraPagina: number,
+    cantidadPaginas: number,
+    margin: number,
+    contentTop: number,
+    pageWidth: number,
+    contentBottom: number,
+  ): void {
+    const ancho = pageWidth - margin * 2;
+    const alturaLinea = 8;
+    let pagina = primeraPagina;
+    pdf.setPage(pagina);
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(13);
+    pdf.setFillColor(...COLOR_PRIMARIO);
+    pdf.rect(margin, contentTop, ancho, 12, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Índice', margin + 4, contentTop + 8);
+    let y = contentTop + 12 + 12;
+
+    for (const e of entradas) {
+      const sangria = e.nivel * 8;
+      const tamano = e.nivel === 0 ? 11 : 10.5;
+      const color: [number, number, number] = e.nivel === 0 ? COLOR_PRIMARIO_OSCURO : [60, 60, 60];
+      const interlineado = tamano * 1.15 * 0.3528; // mm entre líneas de un título largo
+
+      pdf.setFont('helvetica', e.nivel === 0 ? 'bold' : 'normal');
+      pdf.setFontSize(tamano);
+      const numero = String(e.pagina - 1); // el pie de página no cuenta la portada
+      const anchoNumero = pdf.getTextWidth(numero);
+      const lineas = pdf.splitTextToSize(e.titulo, ancho - sangria - anchoNumero - 8) as string[];
+
+      if (y + lineas.length * interlineado > contentBottom && pagina < primeraPagina + cantidadPaginas - 1) {
+        pagina += 1;
+        pdf.setPage(pagina);
+        y = contentTop;
+      }
+
+      pdf.setTextColor(...color);
+      pdf.text(lineas, margin + sangria, y);
+
+      // Puntos guía hasta el número de página, en la última línea del título.
+      const yUltima = y + (lineas.length - 1) * interlineado;
+      const finTexto = margin + sangria + pdf.getTextWidth(lineas[lineas.length - 1]) + 2;
+      const inicioNumero = margin + ancho - anchoNumero;
+      const cantidadPuntos = Math.floor((inicioNumero - 2 - finTexto) / pdf.getTextWidth('.'));
+      if (cantidadPuntos > 0) {
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('.'.repeat(cantidadPuntos), finTexto, yUltima);
+      }
+      pdf.setTextColor(...color);
+      pdf.text(numero, margin + ancho, yUltima, { align: 'right' });
+
+      y = yUltima + alturaLinea + (e.nivel === 0 ? 1.5 : 0);
+    }
+  }
+
+  /** Dibuja los datos generales del préstamo como una tabla de una fila (estilo APA). */
+  private dibujarResumenAnexo(
+    pdf: jsPDF,
+    resumen: { etiqueta: string; valor: string }[],
+    numero: string,
+    titulo: string,
     margin: number,
     yInicial: number,
     anchoDisponible: number,
-    checkPageBreak: (yActual: number, espacio?: number) => number,
-  ): Promise<number> {
+  ): number {
     let y = yInicial;
-    const gap = 4;
-    const columnas = imagenes.length > 1 ? 2 : 1;
-    const anchoColumna = (anchoDisponible - gap * (columnas - 1)) / columnas;
-    const alturaMaxima = 70;
+    pdf.setTextColor(40, 40, 40);
+    pdf.setFontSize(10.5);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(numero, margin, y + 3.8);
+    y += 5.2;
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(titulo, margin, y + 3.8);
+    y += 5.2 + 1.5;
 
-    for (let i = 0; i < imagenes.length; i += columnas) {
-      const fila = imagenes.slice(i, i + columnas);
-      const dimensiones = await Promise.all(
-        fila.map(async (img) => {
-          try {
-            const base64 = await this.convertirImagenUrlABase64(img.url);
-            const { width, height } = await this.obtenerDimensionesImagen(base64);
-            let w = anchoColumna;
-            let h = (height / width) * w;
-            if (h > alturaMaxima) {
-              h = alturaMaxima;
-              w = (width / height) * h;
-            }
-            return { base64, w, h, formato: this.formatoImagen(base64) };
-          } catch (error) {
-            console.warn('Error al convertir o agregar imagen:', error);
-            return null;
-          }
-        }),
-      );
+    const colW = anchoDisponible / resumen.length;
+    const linea = (yl: number, grosor: number) => {
+      pdf.setDrawColor(40, 40, 40);
+      pdf.setLineWidth(grosor);
+      pdf.line(margin, yl, margin + anchoDisponible, yl);
+    };
+    linea(y, 0.4);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    resumen.forEach((r, i) => pdf.text(r.etiqueta, margin + colW * i + colW / 2, y + 5, { align: 'center' }));
+    y += 7.5;
+    linea(y, 0.2);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    resumen.forEach((r, i) => pdf.text(r.valor, margin + colW * i + colW / 2, y + 5.5, { align: 'center' }));
+    y += 8;
+    linea(y, 0.4);
+    return y + 9;
+  }
 
-      const alturaFila = Math.max(0, ...dimensiones.map((d) => d?.h ?? 0));
-      if (alturaFila === 0) continue;
-      // Reasignar "y" con lo que devuelva checkPageBreak: si esta fila no
-      // cabe, ya movió el cursor a la página nueva y hay que dibujar ahí,
-      // no en la posición vieja (esto era justo el bug: antes se ignoraba
-      // el resultado y las imágenes seguían cayendo al fondo de la página).
-      y = checkPageBreak(y, alturaFila + gap);
+  /**
+   * Tabla de anexo en estilo APA: "Tabla N" en negrita, título en cursiva,
+   * solo líneas horizontales, "Nota." al pie. Si las filas no caben en la
+   * hoja, sigue en una hoja nueva repitiendo el encabezado de columnas.
+   * Devuelve la Y donde puede seguir dibujándose.
+   */
+  private dibujarTablaAnexo(
+    pdf: jsPDF,
+    tabla: TablaAnexo,
+    numero: string,
+    conSimboloDinero: boolean,
+    margin: number,
+    yInicial: number,
+    anchoDisponible: number,
+    contentBottom: number,
+    nuevaPaginaContinuacion: () => void,
+    leerY: () => number,
+  ): number {
+    const n = tabla.columnas.length;
+    const denso = n >= 12;
+    const alturaEncabezado = denso ? 6 : 7;
+    const lh = 5.2;
 
-      let x = margin;
-      for (const d of dimensiones) {
-        if (d) {
-          // centrado horizontal dentro de su columna
-          const offsetX = x + (anchoColumna - d.w) / 2;
-          pdf.addImage(d.base64, d.formato, offsetX, y, d.w, d.h, undefined, 'FAST');
-        }
-        x += anchoColumna + gap;
-      }
-      y += alturaFila + gap;
+    // Altura de fila: la deseada, pero si la tabla entera cabe en una hoja
+    // apretando un poco las filas, se aprietan (mejor una tabla completa en
+    // una hoja que 3 filas sueltas en la siguiente). Mínimo 3.6 mm; si ni así
+    // cabe, continúa en la hoja siguiente repitiendo el encabezado.
+    const filaDeseada = denso ? 5 : 5.6;
+    const espacioFilas = contentBottom - (yInicial + lh * 2 + 1.5 + alturaEncabezado + 2.5 + lh + 3);
+    const filaAjustada = tabla.filas.length > 0 ? espacioFilas / tabla.filas.length : filaDeseada;
+    const alturaFila = Math.max(3.6, Math.min(filaDeseada, filaAjustada));
+    const tamano = denso ? (alturaFila >= 4.8 ? 7.5 : alturaFila >= 4.2 ? 7 : 6.5) : 8.5;
+
+    // Geometría: pocas columnas → anchas pero acotadas; muchas → reparten el ancho.
+    const anchoColumna = n <= 6 ? 30 : undefined;
+    const anchoConcepto = anchoColumna ? Math.min(110, anchoDisponible - n * anchoColumna) : denso && n > 13 ? 56 : 62;
+    const colW = anchoColumna ?? (anchoDisponible - anchoConcepto) / n;
+    const anchoTabla = anchoConcepto + colW * n;
+    const xDerecha = margin + anchoTabla;
+
+    let y = yInicial;
+    const alturaMinima = lh * 2 + 1.5 + alturaEncabezado + alturaFila * 3 + 4;
+    if (y + alturaMinima > contentBottom) {
+      nuevaPaginaContinuacion();
+      y = leerY();
     }
 
-    return y + 4;
+    // Leyenda
+    pdf.setTextColor(40, 40, 40);
+    pdf.setFontSize(10.5);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(numero, margin, y + 3.8);
+    y += lh;
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(tabla.subtitulo, margin, y + 3.8);
+    y += lh + 1.5;
+
+    const linea = (yl: number, grosor: number, gris = 40) => {
+      pdf.setDrawColor(gris, gris, gris);
+      pdf.setLineWidth(grosor);
+      pdf.line(margin, yl, xDerecha, yl);
+    };
+    const encabezado = () => {
+      linea(y, 0.4);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(tamano);
+      pdf.setTextColor(40, 40, 40);
+      pdf.text('Concepto', margin + 1, y + alturaEncabezado - 1.9);
+      tabla.columnas.forEach((col, i) => {
+        pdf.text(col, margin + anchoConcepto + colW * (i + 1) - 1, y + alturaEncabezado - 1.9, { align: 'right' });
+      });
+      y += alturaEncabezado;
+      linea(y, 0.2);
+    };
+    encabezado();
+
+    const formato = (v: number): string => {
+      if (Number.isNaN(v)) return '-';
+      const texto = this.anexosService.formatoNumero(v);
+      return conSimboloDinero ? (v < 0 ? `-$${texto.slice(1)}` : `$${texto}`) : texto;
+    };
+
+    for (const fila of tabla.filas) {
+      if (y + alturaFila > contentBottom) {
+        linea(y, 0.4);
+        nuevaPaginaContinuacion();
+        y = leerY();
+        encabezado();
+      }
+      const negrita = fila.tipo === 'subtotal' || fila.tipo === 'total';
+      if (fila.tipo === 'total') linea(y, 0.3);
+      pdf.setFont('helvetica', negrita ? 'bold' : 'normal');
+      pdf.setFontSize(tamano);
+      pdf.setTextColor(fila.tipo === 'detalle' ? 90 : 40, fila.tipo === 'detalle' ? 90 : 40, fila.tipo === 'detalle' ? 90 : 40);
+
+      const sangria = fila.tipo === 'detalle' ? 3 : 0;
+      const lineas = pdf.splitTextToSize(fila.concepto, anchoConcepto - 3 - sangria) as string[];
+      const concepto = lineas.length > 1 ? `${lineas[0].slice(0, -1)}…` : lineas[0];
+      const baseline = y + alturaFila - 1.4;
+      pdf.text(concepto, margin + 1 + sangria, baseline);
+      fila.valores.forEach((v, i) => {
+        pdf.text(formato(v), margin + anchoConcepto + colW * (i + 1) - 1, baseline, { align: 'right' });
+      });
+      y += alturaFila;
+      linea(y, 0.1, 215);
+    }
+    linea(y, 0.4);
+
+    // Nota
+    y += 2.5;
+    if (y + lh > contentBottom) {
+      nuevaPaginaContinuacion();
+      y = leerY();
+    }
+    pdf.setFontSize(9);
+    pdf.setTextColor(60, 60, 60);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text('Nota.', margin, y + 3.5);
+    const anchoNota = pdf.getTextWidth('Nota.');
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(' Elaboración propia.', margin + anchoNota, y + 3.5);
+
+    return y + lh + 5;
+  }
+
+  /**
+   * Dibuja imágenes una debajo de otra (nunca dos a la misma altura), cada
+   * una con su leyenda APA (ver dibujarFigura). Las imágenes antiguas sin
+   * descripción/fuente se dibujan solas, sin número. Devuelve la nueva Y.
+   */
+  private async dibujarImagenesSeccion(
+    pdf: jsPDF,
+    imagenes: ImagenSeccion[],
+    margin: number,
+    yInicial: number,
+    anchoDisponible: number,
+    alturaUtilPagina: number,
+    checkPageBreak: (yActual: number, espacio?: number) => number,
+    figuras: { n: number },
+  ): Promise<number> {
+    let y = yInicial;
+    for (const img of imagenes) {
+      let base64: string;
+      let dims: { width: number; height: number };
+      try {
+        base64 = await this.convertirImagenUrlABase64(img.url);
+        dims = await this.obtenerDimensionesImagen(base64);
+      } catch (error) {
+        console.warn('Error al convertir o agregar imagen:', error);
+        continue;
+      }
+      y = this.dibujarFigura(
+        pdf, base64, this.formatoImagen(base64), dims.width, dims.height,
+        img.descripcion || '', img.fuente || '',
+        margin, y, anchoDisponible, alturaUtilPagina, checkPageBreak, figuras,
+      );
+    }
+    return y;
+  }
+
+  /**
+   * Dibuja una figura con su leyenda en formato APA 7:
+   *
+   *   Figura N                  (negrita)
+   *   Descripción de la figura  (cursiva)
+   *   [imagen]
+   *   Nota. Fuente              ("Nota." en cursiva)
+   *
+   * La leyenda y la imagen se mantienen juntas en la misma página. Sin
+   * descripción ni fuente se dibuja solo la imagen (sin número). Respeta la
+   * proporción real de la imagen. Devuelve la nueva posición Y.
+   */
+  private dibujarFigura(
+    pdf: jsPDF,
+    base64: string,
+    formato: 'PNG' | 'JPEG' | 'WEBP',
+    ancho: number,
+    alto: number,
+    descripcionTexto: string,
+    fuenteTexto: string,
+    margin: number,
+    yInicial: number,
+    anchoDisponible: number,
+    alturaUtilPagina: number,
+    checkPageBreak: (yActual: number, espacio?: number) => number,
+    figuras: { n: number },
+  ): number {
+    let y = yInicial;
+    const gap = 3;
+    const alturaMaxima = 90;
+    const lh = 5.2;
+
+    const descripcion = descripcionTexto.trim();
+    const fuente = fuenteTexto.trim();
+    const conLeyenda = descripcion !== '' || fuente !== '';
+
+    // Medir la leyenda con la fuente que realmente se usará al dibujarla.
+    pdf.setFontSize(10.5);
+    pdf.setFont('helvetica', 'italic');
+    const tituloLines = descripcion ? pdf.splitTextToSize(descripcion, anchoDisponible) : [];
+    pdf.setFont('helvetica', 'normal');
+    const notaLines = fuente ? pdf.splitTextToSize(`Nota. ${fuente}`, anchoDisponible) : [];
+
+    const alturaEncabezado = conLeyenda ? lh + tituloLines.length * lh + 1.5 : 0;
+    const alturaNota = notaLines.length > 0 ? gap + notaLines.length * lh : 0;
+
+    // Proporción real; si no cabe a lo alto (incluida la leyenda) se achica.
+    const alturaTope = Math.min(alturaMaxima, alturaUtilPagina - alturaEncabezado - alturaNota - 6);
+    let w = anchoDisponible;
+    let h = (alto / ancho) * w;
+    if (h > alturaTope) {
+      h = alturaTope;
+      w = (ancho / alto) * h;
+    }
+
+    // Leyenda e imagen siempre juntas: si el bloque no cabe, página nueva.
+    y = checkPageBreak(y, alturaEncabezado + h + alturaNota + 6);
+
+    if (conLeyenda) {
+      figuras.n += 1;
+      pdf.setTextColor(40, 40, 40);
+      pdf.setFontSize(10.5);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Figura ${figuras.n}`, margin, y + 3.8);
+      y += lh;
+      if (tituloLines.length > 0) {
+        pdf.setFont('helvetica', 'italic');
+        pdf.text(tituloLines, margin, y + 3.8);
+        y += tituloLines.length * lh;
+      }
+      y += 1.5;
+    }
+
+    pdf.addImage(base64, formato, margin + (anchoDisponible - w) / 2, y, w, h, undefined, 'FAST');
+    y += h;
+
+    if (notaLines.length > 0) {
+      y += gap;
+      pdf.setFontSize(10.5);
+      pdf.setTextColor(60, 60, 60);
+      // "Nota." en cursiva y el resto de la primera línea en normal.
+      pdf.setFont('helvetica', 'italic');
+      pdf.text('Nota.', margin, y + 3.8);
+      const anchoNota = pdf.getTextWidth('Nota.');
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(notaLines[0].slice('Nota.'.length), margin + anchoNota, y + 3.8);
+      if (notaLines.length > 1) {
+        pdf.text(notaLines.slice(1), margin, y + 3.8 + lh);
+      }
+      y += notaLines.length * lh;
+    }
+
+    return y + 6;
+  }
+
+  /** Qué resumen financiero acompaña a cada pregunta de "Análisis económico y Financiero". */
+  private tipoResumenDePregunta(pregunta: string): TipoGrafica | null {
+    switch ((pregunta || '').trim().toLowerCase()) {
+      case 'plan de inversiones':
+        return 'balance';
+      case 'cuota de resultados':
+        return 'estado';
+      case 'flujo de efectivo':
+        return 'flujo';
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Tabla del resumen financiero en estilo APA 7: "Tabla N" en negrita,
+   * título en cursiva, solo líneas horizontales (arriba, bajo el encabezado
+   * y al pie) y "Nota." debajo. Se mantiene completa en una sola página.
+   */
+  private dibujarTablaResumen(
+    pdf: jsPDF,
+    resumen: ResumenGrafica,
+    tipo: TipoGrafica,
+    margin: number,
+    yInicial: number,
+    anchoDisponible: number,
+    lineHeight: number,
+    checkPageBreak: (yActual: number, espacio?: number) => number,
+    tablas: { n: number },
+  ): number {
+    const lh = 5.2;
+    const alturaFila = 7;
+    const anchoConcepto = 60;
+    // Balance y Flujo traen además el "Año 0" (inicio del proyecto).
+    const conAnio0 = resumen.filas.every((f) => f.anio0 !== undefined);
+    const columnas = conAnio0 ? 6 : 5;
+    const anchoAnio = (anchoDisponible - anchoConcepto) / columnas;
+    const etiquetasAnios = conAnio0 ? [0, 1, 2, 3, 4, 5] : [1, 2, 3, 4, 5];
+
+    pdf.setFontSize(10.5);
+    pdf.setFont('helvetica', 'italic');
+    const tituloLines = pdf.splitTextToSize(TITULO_TABLA_RESUMEN[tipo], anchoDisponible);
+    const alturaEncabezado = lh + tituloLines.length * lh + 1.5;
+    const alturaTabla = alturaFila * (resumen.filas.length + 1);
+    const alturaNota = lh + 3;
+
+    let y = checkPageBreak(yInicial, alturaEncabezado + alturaTabla + alturaNota + 6);
+    tablas.n += 1;
+
+    pdf.setTextColor(40, 40, 40);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Tabla ${tablas.n}`, margin, y + 3.8);
+    y += lh;
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(tituloLines, margin, y + 3.8);
+    y += tituloLines.length * lh + 1.5;
+
+    const xDerecha = margin + anchoDisponible;
+    const linea = (yLinea: number, grosor: number) => {
+      pdf.setDrawColor(40, 40, 40);
+      pdf.setLineWidth(grosor);
+      pdf.line(margin, yLinea, xDerecha, yLinea);
+    };
+
+    // Encabezado
+    linea(y, 0.4);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.text('Concepto', margin + 1, y + 4.8);
+    etiquetasAnios.forEach((anio, i) => {
+      pdf.text(`Año ${anio}`, margin + anchoConcepto + anchoAnio * (i + 1) - 1, y + 4.8, { align: 'right' });
+    });
+    y += alturaFila;
+    linea(y, 0.2);
+
+    // Filas
+    pdf.setFont('helvetica', 'normal');
+    for (const fila of resumen.filas) {
+      pdf.text(fila.concepto, margin + 1, y + 4.8);
+      const valoresFila = conAnio0 ? [fila.anio0 as number, ...fila.valores] : fila.valores;
+      valoresFila.forEach((valor, i) => {
+        pdf.text(
+          this.resumenService.formatearMoneda(valor),
+          margin + anchoConcepto + anchoAnio * (i + 1) - 1,
+          y + 4.8,
+          { align: 'right' },
+        );
+      });
+      y += alturaFila;
+    }
+    linea(y, 0.4);
+
+    // Nota
+    y += 2.5;
+    pdf.setFontSize(10.5);
+    pdf.setTextColor(60, 60, 60);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text('Nota.', margin, y + 3.8);
+    const anchoNota = pdf.getTextWidth('Nota.');
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(' Elaboración propia.', margin + anchoNota, y + 3.8);
+
+    return y + lh + 4;
   }
 
   /** Formato real de una imagen a partir de su data URL (para addImage). */

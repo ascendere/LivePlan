@@ -110,6 +110,20 @@
               rows="3"
               class="form-textarea"
             ></textarea>
+
+            <!-- Imágenes de esta pregunta -->
+            <div class="imagen-section imagen-pregunta" *ngIf="permiteImagenPorPregunta(seccion)">
+              <label class="btn-secondary btn-secondary-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+                <input type="file" accept="image/*" (change)="onImagenSeleccionada($event, i, j)" style="display: none;" />
+                Adjuntar imagen
+              </label>
+              <ng-container *ngTemplateOutlet="galeria; context: { $implicit: subseccion.imagenes, si: i, sj: j }"></ng-container>
+            </div>
           </div>
         </div>
 
@@ -125,40 +139,25 @@
           ></textarea>
         </div>
 
-        <!-- Adjuntar imágenes -->
-        <div class="imagen-section">
+        <!-- Imágenes a nivel de sección: solo donde no hay imágenes por pregunta
+             (Análisis económico y Financiero, secciones propias sin preguntas) -->
+        <div class="imagen-section" *ngIf="!permiteImagenPorPregunta(seccion)">
           <label class="btn-secondary">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
               <circle cx="8.5" cy="8.5" r="1.5"></circle>
               <polyline points="21 15 16 10 5 21"></polyline>
             </svg>
-            <input type="file" accept="image/*" multiple (change)="onImagenSeleccionada($event, i)" style="display: none;" />
-            Adjuntar imágenes
+            <input type="file" accept="image/*" (change)="onImagenSeleccionada($event, i, null)" style="display: none;" />
+            Adjuntar imagen
           </label>
+          <ng-container *ngTemplateOutlet="galeria; context: { $implicit: seccion.imagenes, si: i, sj: null }"></ng-container>
+        </div>
 
-          <div *ngIf="seccion.imagenes && seccion.imagenes.length > 0" class="imagenes-grid">
-            <div *ngFor="let imagen of seccion.imagenes; let k = index" class="imagen-item">
-              <img [src]="imagen.url" alt="Imagen adjunta" />
-              <div class="imagen-item-actions">
-                <label class="imagen-action-btn" title="Reemplazar imagen">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 2v6h-6"></path>
-                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                    <path d="M3 22v-6h6"></path>
-                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-                  </svg>
-                  <input type="file" accept="image/*" (change)="reemplazarImagenSeccion($event, i, k)" style="display: none;" />
-                </label>
-                <button class="imagen-action-btn" title="Eliminar imagen" (click)="eliminarImagenDeSeccion(i, k)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
+        <!-- Imágenes antiguas de la sección (subidas antes de existir las de pregunta) -->
+        <div class="imagen-section imagenes-antiguas" *ngIf="permiteImagenPorPregunta(seccion) && seccion.imagenes && seccion.imagenes.length > 0">
+          <p class="imagenes-antiguas-titulo">Imágenes anteriores de la sección (salen al final de la sección en el PDF)</p>
+          <ng-container *ngTemplateOutlet="galeria; context: { $implicit: seccion.imagenes, si: i, sj: null }"></ng-container>
         </div>
 
         <!-- Botón eliminar -->
@@ -182,6 +181,75 @@
           <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
         Agregar Nueva Sección
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Galería reutilizable de imágenes (por pregunta o por sección) -->
+<ng-template #galeria let-imagenes let-si="si" let-sj="sj">
+  <div *ngIf="imagenes && imagenes.length > 0" class="imagenes-grid">
+    <div *ngFor="let imagen of imagenes; let k = index" class="imagen-item">
+      <div class="imagen-thumb">
+        <img [src]="imagen.url" alt="Imagen adjunta" />
+        <div class="imagen-item-actions">
+          <button type="button" class="imagen-action-btn" title="Editar descripción y fuente" (click)="editarDatosImagen(si, sj, k)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <label class="imagen-action-btn" title="Reemplazar imagen">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2v6h-6"></path>
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+              <path d="M3 22v-6h6"></path>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            </svg>
+            <input type="file" accept="image/*" (change)="reemplazarImagen($event, si, sj, k)" style="display: none;" />
+          </label>
+          <button type="button" class="imagen-action-btn" title="Eliminar imagen" (click)="eliminarImagen(si, sj, k)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <p class="imagen-leyenda" *ngIf="imagen.descripcion || imagen.fuente">
+        <span *ngIf="imagen.descripcion">{{ imagen.descripcion }}</span>
+        <em *ngIf="imagen.fuente">Nota. {{ imagen.fuente }}</em>
+      </p>
+      <p class="imagen-leyenda imagen-sin-leyenda" *ngIf="!imagen.descripcion && !imagen.fuente">Sin descripción ni fuente</p>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Popup: descripción y fuente de la imagen (formato APA en el PDF) -->
+<div class="popup-overlay" *ngIf="popupImagen.visible" (click)="cancelarPopupImagen()">
+  <div class="popup-imagen" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <h3>{{ popupImagen.modo === 'editar' ? 'Editar descripción y fuente' : 'Datos de la imagen' }}</h3>
+    <p class="popup-ayuda">Se mostrarán debajo de la imagen en el PDF, como figura en formato APA.</p>
+
+    <img *ngIf="popupImagen.previewUrl" [src]="popupImagen.previewUrl" alt="Vista previa" class="popup-preview" />
+
+    <label class="form-label" for="imgDescripcion">Descripción *</label>
+    <input id="imgDescripcion" type="text" class="popup-input" maxlength="200"
+           [(ngModel)]="popupImagen.descripcion" [disabled]="popupImagen.subiendo"
+           placeholder="Ej.: Ventas mensuales de la tienda durante 2024" />
+
+    <label class="form-label" for="imgFuente">Fuente *</label>
+    <input id="imgFuente" type="text" class="popup-input" maxlength="300"
+           [(ngModel)]="popupImagen.fuente" [disabled]="popupImagen.subiendo"
+           placeholder="Ej.: Elaboración propia / Adaptado de INEC (2023)" />
+    <button type="button" class="popup-chip" (click)="usarElaboracionPropia()" [disabled]="popupImagen.subiendo">Usar "Elaboración propia"</button>
+
+    <p class="popup-error" *ngIf="popupImagen.error">{{ popupImagen.error }}</p>
+
+    <div class="popup-acciones">
+      <button type="button" class="btn-cancelar-popup" (click)="cancelarPopupImagen()" [disabled]="popupImagen.subiendo">Cancelar</button>
+      <button type="button" class="btn-primary" (click)="confirmarPopupImagen()" [disabled]="popupImagen.subiendo">
+        {{ popupImagen.subiendo ? 'Subiendo…' : (popupImagen.modo === 'editar' ? 'Guardar' : 'Subir imagen') }}
       </button>
     </div>
   </div>
