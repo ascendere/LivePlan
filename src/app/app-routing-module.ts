@@ -19,6 +19,7 @@ import {
   CostoVentas,
 } from './components';
 import { AuthGuard } from './core/guard/auth.guard';
+import { PlanGuard } from './core/guard/plan.guard';
 import { Depreciaciones } from './components/depreciaciones/depreciaciones';
 
 const routes: Routes = [
@@ -27,20 +28,20 @@ const routes: Routes = [
   { path: 'acerca-de', component: AcercaDe },
 
   { path: 'home', component: Home, canActivate: [AuthGuard] },
-  { path: 'planificacion/:id', component: Planificacion, canActivate: [AuthGuard] },
-  { path: 'calculo-ventas/:id', component: CalculoVentas, canActivate: [AuthGuard] },
-  { path: 'costos-unitarios/:id', component: CostosUnitarios, canActivate: [AuthGuard] },
-  { path: 'datos-iniciales/:id', component: DatosIniciales, canActivate: [AuthGuard] },
-  { path: 'depreciaciones/:id', component: Depreciaciones, canActivate: [AuthGuard] },
-  { path: 'estados-financieros/:id', component: EstadosFinancieros, canActivate: [AuthGuard] },
-  { path: 'evaluacion/:id', component: Evaluacion, canActivate: [AuthGuard] },
-  { path: 'gastos-operacion/:id', component: GastosOperacion, canActivate: [AuthGuard] },
-  { path: 'graficas/:id', component: Graficas, canActivate: [AuthGuard] },
-  { path: 'inversion/:id', component: Inversion, canActivate: [AuthGuard] },
-  { path: 'materias-primas/:id', component: MateriasPrimas, canActivate: [AuthGuard] },
-  { path: 'prestamo/:id', component: Prestamo, canActivate: [AuthGuard] },
-  { path: 'presupuesto-venta/:id', component: PresupuestoVentaComponent, canActivate: [AuthGuard] },
-  { path: 'costo-ventas/:id', component: CostoVentas, canActivate: [AuthGuard] },
+  { path: 'planificacion/:id', component: Planificacion, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'calculo-ventas/:id', component: CalculoVentas, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'costos-unitarios/:id', component: CostosUnitarios, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'datos-iniciales/:id', component: DatosIniciales, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'depreciaciones/:id', component: Depreciaciones, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'estados-financieros/:id', component: EstadosFinancieros, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'evaluacion/:id', component: Evaluacion, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'gastos-operacion/:id', component: GastosOperacion, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'graficas/:id', component: Graficas, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'inversion/:id', component: Inversion, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'materias-primas/:id', component: MateriasPrimas, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'prestamo/:id', component: Prestamo, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'presupuesto-venta/:id', component: PresupuestoVentaComponent, canActivate: [AuthGuard, PlanGuard] },
+  { path: 'costo-ventas/:id', component: CostoVentas, canActivate: [AuthGuard, PlanGuard] },
 ];
 
 @NgModule({

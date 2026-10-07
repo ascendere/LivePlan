@@ -40,6 +40,22 @@ export class InversionService {
 
   constructor() {}
 
+  /**
+   * fetch al backend con el ID token de Firebase del usuario (el backend lo exige en cada
+   * petición y de él saca de quién es cada plan). Si responde 401 —token vencido— pide uno
+   * nuevo y reintenta una vez.
+   */
+  private async apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+    const enviar = async (renovarToken: boolean) => {
+      const headers = new Headers(init.headers);
+      const token = await this.authService.obtenerToken(renovarToken);
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+      return fetch(url, { ...init, headers });
+    };
+    const respuesta = await enviar(false);
+    return respuesta.status === 401 ? enviar(true) : respuesta;
+  }
+
   // Metodos Post
 
   addInversionGeneral(
@@ -49,7 +65,7 @@ export class InversionService {
     importe: number,
   ): Promise<InversionGeneral> {
     const url = `${this.apiUrl}/inversiones`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +93,7 @@ export class InversionService {
     vidaUtil: number,
   ): Promise<InversionDetalle> {
     const url = `${this.apiUrl}/detalles_inversion`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,7 +116,7 @@ export class InversionService {
 
   addPlanNegocio(planNegocio: PlanNegocio): Promise<PlanNegocio> {
     const url = `${this.apiUrl}/plan`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -133,7 +149,7 @@ export class InversionService {
 
   addProductoServicio(planNegocioId: number, nombre: string): Promise<Producto> {
     const url = `${this.apiUrl}/producto_servicio`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -154,7 +170,7 @@ export class InversionService {
 
   getCatalogosSistema(): Promise<TipoInversion[]> {
     const url = `${this.apiUrl}/tipos_inversion`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener catálogos del sistema');
       }
@@ -164,7 +180,7 @@ export class InversionService {
 
   getInversionesGenerales(planNegocioId: number): Promise<InversionGeneral[]> {
     const url = `${this.apiUrl}/inversiones/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener inversiones generales');
       }
@@ -174,7 +190,7 @@ export class InversionService {
 
   getDetallesInversion(planNegocioId: number): Promise<InversionDetalle[]> {
     const url = `${this.apiUrl}/detalles_inversion/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener detalles de inversión');
       }
@@ -185,7 +201,7 @@ export class InversionService {
   /** Un plan por su id (su nombre es el campo `problematica`, el mismo que muestra el Home). */
   getPlanNegocio(planNegocioId: number): Promise<PlanNegocio> {
     const url = `${this.apiUrl}/plan/item/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener el plan de negocio');
       }
@@ -193,10 +209,24 @@ export class InversionService {
     });
   }
 
+  /**
+   * ¿El plan existe y es del usuario? false si el backend dice que no (404/403/400/401).
+   * Ante un fallo de red o un error del servidor devuelve true: la pantalla mostrará su propio error
+   * en vez de expulsar al usuario por un problema pasajero.
+   */
+  async planAccesible(planNegocioId: number): Promise<boolean> {
+    try {
+      const respuesta = await this.apiFetch(`${this.apiUrl}/plan/item/${encodeURIComponent(planNegocioId)}`);
+      return respuesta.ok || respuesta.status >= 500;
+    } catch {
+      return true;
+    }
+  }
+
   /** Cambia el nombre del proyecto (guardado en el campo `problematica` del plan). */
   actualizarNombrePlan(planNegocioId: number, nombre: string): Promise<PlanNegocio> {
     const url = `${this.apiUrl}/plan/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ problematica: nombre }),
@@ -210,7 +240,7 @@ export class InversionService {
 
   getPlanNegocioByAutor(authorUuid: number): Promise<PlanNegocio[]> {
     const url = `${this.apiUrl}/plan/${encodeURIComponent(authorUuid)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -220,7 +250,7 @@ export class InversionService {
 
   getProductosServicios(planNegocioId: number): Promise<Producto[]> {
     const url = `${this.apiUrl}/producto_servicio/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener productos y servicios');
       }
@@ -230,7 +260,7 @@ export class InversionService {
 
   getSupuestos(planNegocioId: number): Promise<Supuestos[]> {
     const url = `${this.apiUrl}/supuestos/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener supuestos');
       }
@@ -240,7 +270,7 @@ export class InversionService {
 
   getVentasDiarias(planNegocioId: number): Promise<VentasDiarias[]> {
     const url = `${this.apiUrl}/ventas_diarias/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener ventas diarias');
       }
@@ -250,7 +280,7 @@ export class InversionService {
 
   getVariablesSensibilidad(planNegocioId: number): Promise<VariablesSensibilidad[]> {
     const url = `${this.apiUrl}/variables_sensibilidad/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener variables de sensibilidad');
       }
@@ -260,7 +290,7 @@ export class InversionService {
 
   getVariacionAnual(planNegocioId: number): Promise<VariacionAnual[]> {
     const url = `${this.apiUrl}/variacion_anual/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener variación anual');
       }
@@ -270,7 +300,7 @@ export class InversionService {
 
   getMacros(plan_negocio_id: number): Promise<Macros> {
     const url = `${this.apiUrl}/indicadores_macro/${encodeURIComponent(plan_negocio_id)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener macros');
       }
@@ -280,7 +310,7 @@ export class InversionService {
 
   getPreciosProductoServicio(planNegocioId: number): Promise<PreciosProducto[]> {
     const url = `${this.apiUrl}/precios_prodserv/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener precios de productos/servicios');
       }
@@ -290,7 +320,7 @@ export class InversionService {
 
   getCostosProductoServicio(planNegocioId: number): Promise<Costos[]> {
     const url = `${this.apiUrl}/costos_prodserv/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener costos de productos/servicios');
       }
@@ -300,7 +330,7 @@ export class InversionService {
 
   getDepreciacionAnual(planNegocioId: number): Promise<DepreciacionAnual[]> {
     const url = `${this.apiUrl}/depreciaciones/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener depreciación anual');
       }
@@ -310,7 +340,7 @@ export class InversionService {
 
   getComposicionFinanciamiento(planNegocioId: number): Promise<ComposicionFinanciamiento> {
     const url = `${this.apiUrl}/composicion_financiamiento/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener composición del financiamiento');
       }
@@ -320,7 +350,7 @@ export class InversionService {
 
   patchPresupuestoVenta(id: number, body: Partial<PresupuestoVenta>): Promise<PresupuestoVenta> {
     const url = `${this.apiUrl}/presupuestos_venta/item/${encodeURIComponent(id)}`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -332,7 +362,7 @@ export class InversionService {
 
   getPresupuestoVenta(planNegocioId: number): Promise<PresupuestoVenta[]> {
     const url = `${this.apiUrl}/presupuestos_venta/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener presupuesto de venta');
       }
@@ -342,7 +372,7 @@ export class InversionService {
 
   getVentasPorMes(planNegocioId: number): Promise<VentaMes[]> {
     const url = `${this.apiUrl}/ventas_dinero/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener ventas por mes');
       }
@@ -352,7 +382,7 @@ export class InversionService {
 
   getDatosPrestamo(planNegocioId: number): Promise<DatosPrestamo[]> {
     const url = `${this.apiUrl}/prestamos/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener datos de préstamo');
       }
@@ -362,7 +392,7 @@ export class InversionService {
 
   getCuotasPrestamo(planNegocioId: number): Promise<CuotasPrestamo[]> {
     const url = `${this.apiUrl}/datos_prestamos/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener cuotas de préstamo');
       }
@@ -372,7 +402,7 @@ export class InversionService {
 
   getMateriaPrima(planNegocioId: number): Promise<MateriaPrima[]> {
     const url = `${this.apiUrl}/costo_materias_primas/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener materia prima');
       }
@@ -382,7 +412,7 @@ export class InversionService {
 
   getCostosVenta(planNegocioId: number): Promise<CostosVentas[]> {
     const url = `${this.apiUrl}/costos_ventas/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener costos de venta');
       }
@@ -392,7 +422,7 @@ export class InversionService {
 
   getEstadoResultados(planNegocioId: number): Promise<EstadoResultados> {
     const url = `${this.apiUrl}/estado_resultados/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener estado de resultados');
       }
@@ -402,7 +432,7 @@ export class InversionService {
 
   getGastosOperacion(planNegocioId: number): Promise<GastosOperacion> {
     const url = `${this.apiUrl}/gastos_operacion/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener gastos de operación');
       }
@@ -412,7 +442,7 @@ export class InversionService {
 
   getFlujoEfectivo(planNegocioId: number): Promise<FlujoEfectivo> {
     const url = `${this.apiUrl}/flujo_efectivo/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener flujo de efectivo');
       }
@@ -425,7 +455,7 @@ export class InversionService {
    */
   getConceptosEvaluacion(planNegocioId: number): Promise<any> {
     const url = `${this.apiUrl}/conceptos_evaluacion/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener conceptos de evaluación');
       }
@@ -438,7 +468,7 @@ export class InversionService {
    */
   getEvaluacionProyecto(planNegocioId: number): Promise<any> {
     const url = `${this.apiUrl}/evaluacion_proyecto/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener evaluación del proyecto');
       }
@@ -453,7 +483,7 @@ export class InversionService {
    */
   actualizarTrema(evaluacionProyectoId: number, trema: number): Promise<any> {
     const url = `${this.apiUrl}/evaluacion_proyecto/item/${encodeURIComponent(evaluacionProyectoId)}`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -472,7 +502,7 @@ export class InversionService {
    */
   getAnalisisSensibilidad(planNegocioId: number): Promise<any> {
     const url = `${this.apiUrl}/analisis_sensibilidad/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener análisis de sensibilidad');
       }
@@ -489,7 +519,7 @@ export class InversionService {
   getResumenFinanciero(planNegocioId: number, conAnexos = false, conEvaluacion = false): Promise<any> {
     const opciones = [conAnexos ? 'anexos=1' : '', conEvaluacion ? 'evaluacion=1' : ''].filter(Boolean).join('&');
     const url = `${this.apiUrl}/resumen_financiero/${encodeURIComponent(planNegocioId)}${opciones ? `?${opciones}` : ''}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener el resumen financiero');
       }
@@ -499,7 +529,7 @@ export class InversionService {
 
   getBalanceGeneral(planNegocioId: number): Promise<any> {
     const url = `${this.apiUrl}/balance_general/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener balance general');
       }
@@ -509,7 +539,7 @@ export class InversionService {
 
   getPoliticaCompra(planNegocioId: number): Promise<politicaCompra[]> {
     const url = `${this.apiUrl}/politicas_compra/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener política de compra');
       }
@@ -519,7 +549,7 @@ export class InversionService {
 
   getPoliticaVenta(planNegocioId: number): Promise<PoliticasVenta[]> {
     const url = `${this.apiUrl}/politicas_venta/${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener política de venta');
       }
@@ -535,7 +565,7 @@ export class InversionService {
   ): Promise<InversionGeneral> {
     const url = `${this.apiUrl}/inversiones/item/${encodeURIComponent(inversionId)}`;
     // console.log('Actualizando inversión general con ID:', inversionId, 'con datos:', inversion);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -561,7 +591,7 @@ export class InversionService {
   ): Promise<InversionDetalle> {
     const url = `${this.apiUrl}/detalles_inversion/item/${encodeURIComponent(detalleId)}`;
     // console.log('Actualizando detalle de inversión con ID:', detalleId, 'con datos:', detalle);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -585,7 +615,7 @@ export class InversionService {
   actualizarProductoServicio(productoServicioId: number, nombre: string): Promise<Producto> {
     const url = `${this.apiUrl}/producto_servicio/item/${encodeURIComponent(productoServicioId)}`;
     // console.log('Actualizando producto con ID:', productoServicioId, 'nuevo nombre:', nombre);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -605,7 +635,7 @@ export class InversionService {
   actualizarSupuestos(supuestosId: number, supuestos: Partial<Supuestos>): Promise<Supuestos> {
     const url = `${this.apiUrl}/supuestos/item/${encodeURIComponent(supuestosId)}`;
     // console.log('Actualizando supuestos con ID:', supuestosId, 'con datos:', supuestos);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -639,7 +669,7 @@ export class InversionService {
       'recalc:',
       recalc
     ); */
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -669,7 +699,7 @@ export class InversionService {
       'con datos:',
       variables
     ); */
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -696,7 +726,7 @@ export class InversionService {
   ): Promise<VariacionAnual> {
     const url = `${this.apiUrl}/variacion_anual/item/${encodeURIComponent(variacionId)}`;
     // console.log('Actualizando variación anual con ID:', variacionId, 'con datos:', variacionAnual);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -736,7 +766,7 @@ export class InversionService {
 
     // console.log('Body a enviar:', body);
 
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -764,7 +794,7 @@ export class InversionService {
     //   'con datos:',
     //   precio,
     // );
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -788,7 +818,7 @@ export class InversionService {
     costo: Partial<Costos>,
   ): Promise<Costos> {
     const url = `${this.apiUrl}/costos_prodserv/item/${encodeURIComponent(costoId)}`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -809,7 +839,7 @@ export class InversionService {
 
   getCostosMensuales(planNegocioId: number): Promise<any[]> {
     const url = `${this.apiUrl}/costos_mensuales?plan_id=${encodeURIComponent(planNegocioId)}`;
-    return fetch(url).then((response) => {
+    return this.apiFetch(url).then((response) => {
       if (!response.ok) {
         throw new Error('Error al obtener costos mensuales');
       }
@@ -819,7 +849,7 @@ export class InversionService {
 
   actualizarCostosMensualesLote(planNegocioId: number, updates: {id: number, costo: number}[]): Promise<any> {
     const url = `${this.apiUrl}/costos_mensuales`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -851,7 +881,7 @@ export class InversionService {
       'con datos:',
       composicion
     ); */
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -878,7 +908,7 @@ export class InversionService {
   ): Promise<DatosPrestamo> {
     const url = `${this.apiUrl}/prestamos/item/${encodeURIComponent(prestamoId)}`;
     // console.log('Actualizando datos de préstamo con ID:', prestamoId, 'con datos:', prestamo);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -912,7 +942,7 @@ export class InversionService {
       'recalc:',
       recalc
     ); */
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -944,7 +974,7 @@ export class InversionService {
       'recalc:',
       recalc
     ); */
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -977,7 +1007,7 @@ export class InversionService {
       'recalc:',
       recalc
     ); */
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -1002,7 +1032,7 @@ export class InversionService {
   eliminarInversionGeneral(inversionId: number): Promise<{ success: boolean }> {
     const url = `${this.apiUrl}/inversiones/item/${encodeURIComponent(inversionId)}`;
     // console.log('Eliminando inversión general con ID:', inversionId);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'DELETE',
     }).then(async (response) => {
       if (!response.ok) {
@@ -1018,7 +1048,7 @@ export class InversionService {
   eliminarDetalleInversion(detalleId: number): Promise<{ success: boolean }> {
     const url = `${this.apiUrl}/detalles_inversion/item/${encodeURIComponent(detalleId)}`;
     // console.log('Eliminando detalle de inversión con ID:', detalleId);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'DELETE',
     }).then(async (response) => {
       if (!response.ok) {
@@ -1034,7 +1064,7 @@ export class InversionService {
   eliminarProductoServicio(productoServicioId: number): Promise<{ success: boolean }> {
     const url = `${this.apiUrl}/producto_servicio/item/${encodeURIComponent(productoServicioId)}`;
     // console.log('Eliminando producto con ID:', productoServicioId);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'DELETE',
     }).then(async (response) => {
       if (!response.ok) {
@@ -1052,7 +1082,7 @@ export class InversionService {
   ): Promise<{ id: number; plan_negocio_id: number; status: boolean }> {
     const url = `${this.apiUrl}/analisis_sensibilidad_status/${encodeURIComponent(planId)}`;
     // console.log('Obteniendo status de análisis de sensibilidad para plan:', planId);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -1079,7 +1109,7 @@ export class InversionService {
     variableColumna: 'volumen' | 'precio' | 'costo',
   ): Promise<any> {
     const url = `${this.apiUrl}/analisis_sensibilidad/generar/${encodeURIComponent(planId)}`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ variable_fila: variableFila, variable_columna: variableColumna }),
@@ -1094,7 +1124,7 @@ export class InversionService {
   ejecutarRecalcular2(planId: number): Promise<{ message: string }> {
     const url = `${this.apiUrl}/recalcular2/${encodeURIComponent(planId)}`;
     // console.log('Ejecutando recalcular2 para plan:', planId);
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1117,7 +1147,7 @@ export class InversionService {
     recalc: boolean = false,
   ): Promise<any> {
     const url = `${this.apiUrl}/presupuestos_venta/meses/${encodeURIComponent(presupuestoId)}`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ meses, recalc }),
@@ -1134,7 +1164,7 @@ export class InversionService {
   /** Vuelve una fila a distribución automática (borra sus meses) y recalcula. */
   limpiarPresupuestoVentaMeses(presupuestoId: number): Promise<void> {
     const url = `${this.apiUrl}/presupuestos_venta/meses/${encodeURIComponent(presupuestoId)}`;
-    return fetch(url, { method: 'DELETE' }).then((response) => {
+    return this.apiFetch(url, { method: 'DELETE' }).then((response) => {
       if (!response.ok) {
         throw new Error(
           `Error al limpiar meses del presupuesto: ${response.status} ${response.statusText}`,
@@ -1147,7 +1177,7 @@ export class InversionService {
     productoId: number,
   ): Promise<{ mes: number; valor: number }[]> {
     const url = `${this.apiUrl}/estacionalidad/${encodeURIComponent(productoId)}`;
-    return fetch(url).then((r) => {
+    return this.apiFetch(url).then((r) => {
       if (!r.ok) throw new Error('Error al obtener estacionalidad');
       return r.json();
     });
@@ -1160,7 +1190,7 @@ export class InversionService {
     recalc: boolean = true,
   ): Promise<any> {
     const url = `${this.apiUrl}/estacionalidad/${encodeURIComponent(productoId)}`;
-    return fetch(url, {
+    return this.apiFetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ meses, recalc }),
@@ -1173,7 +1203,7 @@ export class InversionService {
   /** Quita la estacionalidad de un producto (vuelve a uniforme) y recalcula. */
   limpiarEstacionalidadProducto(productoId: number): Promise<void> {
     const url = `${this.apiUrl}/estacionalidad/${encodeURIComponent(productoId)}`;
-    return fetch(url, { method: 'DELETE' }).then((r) => {
+    return this.apiFetch(url, { method: 'DELETE' }).then((r) => {
       if (!r.ok) throw new Error(`Error al quitar estacionalidad: ${r.status}`);
     });
   }

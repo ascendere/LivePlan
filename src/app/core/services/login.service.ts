@@ -1,6 +1,6 @@
 import {AngularFireAuth} from '@angular/fire/compat/auth';
 import {AngularFirestore} from '@angular/fire/compat/firestore';
-import {combineLatest, map, Observable, of, switchMap} from 'rxjs';
+import {combineLatest, firstValueFrom, map, Observable, of, switchMap} from 'rxjs';
 import {Router} from '@angular/router';
 import {Injectable, EnvironmentInjector, runInInjectionContext} from '@angular/core';
 import firebase from 'firebase/compat/app'; // Importa firebase
@@ -68,6 +68,16 @@ export class AuthService {
     } catch (error) {
       console.error("Hubo un error durante la desconexión:", error);
     }
+  }
+
+  /**
+   * ID token de Firebase del usuario actual para autenticarse ante el backend (null si no hay sesión).
+   * Espera a que Firebase termine de restaurar la sesión al cargar la página; el SDK renueva el token
+   * solo cuando va a vencer, y `renovar` fuerza uno nuevo.
+   */
+  async obtenerToken(renovar = false): Promise<string | null> {
+    const usuario = await firstValueFrom(this.afAuth.authState);
+    return usuario ? usuario.getIdToken(renovar) : null;
   }
 
   // Método para obtener el estado de autenticación
