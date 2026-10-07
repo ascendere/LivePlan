@@ -17,18 +17,21 @@ export class Login implements OnInit {
 
   user = signal<any>(null);
   errorMessage = signal<string>('');
+  /** Mensaje informativo (p. ej. "contraseña actualizada, vuelve a ingresar"). */
+  aviso = signal<string>('');
   showPassword = signal<boolean>(false);
-  isLoginMode = signal<boolean>(true);
-  
+  enviando = signal<boolean>(false);
+
   loginForm: FormGroup;
 
   constructor() {
     this.loginForm = this.fb.group({
-      name: [''],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['']
-    }, { validators: this.passwordMatchValidator });
+    });
+    // El aviso llega por el estado de la navegación (lo manda logout()).
+    const aviso = this.router.getCurrentNavigation()?.extras?.state?.['aviso'];
+    if (typeof aviso === 'string') this.aviso.set(aviso);
   }
 
   ngOnInit() {
@@ -37,69 +40,41 @@ export class Login implements OnInit {
     });
   }
 
-  passwordMatchValidator = (g: FormGroup) => {
-    if (this.isLoginMode()) {
-      return null;
-    }
-    const password = g.get('password')?.value;
-    const confirmPassword = g.get('confirmPassword')?.value;
-    return password === confirmPassword ? null : { mismatch: true };
-  };
-
   togglePasswordVisibility(): void {
-    this.showPassword.update(v => !v);
+    this.showPassword.update((v) => !v);
   }
 
-  toggleMode() {
-    this.isLoginMode.update(v => !v);
-    this.errorMessage.set('');
-    
-    // Si pasamos a modo registro, el nombre es requerido
-    if (!this.isLoginMode()) {
-      this.loginForm.get('name')?.setValidators([Validators.required]);
-      this.loginForm.get('confirmPassword')?.setValidators([Validators.required]);
-    } else {
-      this.loginForm.get('name')?.clearValidators();
-      this.loginForm.get('confirmPassword')?.clearValidators();
-    }
-    this.loginForm.get('name')?.updateValueAndValidity();
-    this.loginForm.get('confirmPassword')?.updateValueAndValidity();
-    this.loginForm.updateValueAndValidity();
-  }
-
-  onSubmit() {
+  async onSubmit() {
     if (this.loginForm.invalid) {
-      if (!this.isLoginMode() && this.loginForm.hasError('mismatch')) {
-        this.errorMessage.set('Las contraseñas no coinciden.');
-      } else {
-        this.errorMessage.set('Por favor, completa todos los campos correctamente.');
-      }
+      this.errorMessage.set('Por favor, completa el correo y la contraseña.');
       return;
     }
-
     this.errorMessage.set('');
-    const { name, email, password } = this.loginForm.value;
+    this.aviso.set('');
+    this.enviando.set(true);
+    const { email, password } = this.loginForm.value;
+    try {
+      await this.authService.login(String(email).trim(), password);
+      // token recién emitido: trae el rol y la marca de contraseña provisional
+      const perfil = await this.authService.obtenerPerfilDeAcceso(true);
+      this.router.navigate([perfil?.debeCambiarClave ? '/cambiar-clave' : '/home']);
+    } catch (err: any) {
+      this.errorMessage.set(this.mensajeDeError(err?.code));
+    } finally {
+      this.enviando.set(false);
+    }
+  }
 
-    if (this.isLoginMode()) {
-      this.authService
-        .login(email, password)
-        .then(() => {
-          this.router.navigate(['/home']);
-        })
-        .catch((err) => {
-          this.errorMessage.set('Credenciales incorrectas o error en inicio de sesión.');
-        });
-    } else {
-      this.authService
-        .register(name, email, password)
-        .then(() => {
-          this.router.navigate(['/home']);
-        })
-        .catch((err) => {
-          this.errorMessage.set(
-            'Error al crear la cuenta. Verifica que el correo sea válido o que no esté en uso.'
-          );
-        });
+  private mensajeDeError(codigo?: string): string {
+    switch (codigo) {
+      case 'auth/user-disabled':
+        return 'Tu cuenta está deshabilitada. Contacta al administrador.';
+      case 'auth/too-many-requests':
+        return 'Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo.';
+      case 'auth/network-request-failed':
+        return 'No hay conexión con el servidor. Revisa tu internet.';
+      default:
+        return 'Correo o contraseña incorrectos.';
     }
   }
 }

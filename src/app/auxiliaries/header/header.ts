@@ -11,6 +11,8 @@ import { Subscription } from 'rxjs';
 })
 export class Header implements OnInit, OnDestroy {
   isLoggedIn: boolean = false;
+  /** Tiene el rol de administrador de usuarios: se le muestra el botón de administración. */
+  esAdmin: boolean = false;
   private authSubscription?: Subscription;
 
   constructor(
@@ -20,8 +22,10 @@ export class Header implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Suscribirse al estado de autenticación
-    this.authSubscription = this.authService.getAuthState().subscribe(user => {
+    this.authSubscription = this.authService.getAuthState().subscribe(async user => {
       this.isLoggedIn = !!user; // Convierte a boolean
+      // El rol viene en el token; ocultar el botón solo es comodidad: el backend lo vuelve a exigir.
+      this.esAdmin = user ? !!(await this.authService.obtenerPerfilDeAcceso())?.esAdmin : false;
     });
   }
 

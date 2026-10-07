@@ -3,6 +3,7 @@ import { environment } from '../../../environments/environment.example';
 import { PlanNegocio } from '../../interfaces/planNegocio.interface';
 import { FirebaseService } from './firebase.service';
 import { AuthService } from './login.service';
+import { ApiService } from './api.service';
 import {
   Supuestos,
   Producto,
@@ -37,23 +38,13 @@ export class InversionService {
   private readonly apiUrl = environment.backend.url;
   private readonly firebaseService = inject(FirebaseService);
   private readonly authService = inject(AuthService);
+  private readonly api = inject(ApiService);
 
   constructor() {}
 
-  /**
-   * fetch al backend con el ID token de Firebase del usuario (el backend lo exige en cada
-   * petición y de él saca de quién es cada plan). Si responde 401 —token vencido— pide uno
-   * nuevo y reintenta una vez.
-   */
-  private async apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
-    const enviar = async (renovarToken: boolean) => {
-      const headers = new Headers(init.headers);
-      const token = await this.authService.obtenerToken(renovarToken);
-      if (token) headers.set('Authorization', `Bearer ${token}`);
-      return fetch(url, { ...init, headers });
-    };
-    const respuesta = await enviar(false);
-    return respuesta.status === 401 ? enviar(true) : respuesta;
+  /** fetch al backend con el ID token de Firebase (ver ApiService). */
+  private apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+    return this.api.fetch(url, init);
   }
 
   // Metodos Post

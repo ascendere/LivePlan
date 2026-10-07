@@ -1,0 +1,270 @@
+<app-header></app-header>
+
+<main class="admin-contenido">
+  <h1>Administración de usuarios</h1>
+  <p class="admin-descripcion">
+    Solo las personas de esta lista (o que ya tenían cuenta) pueden usar la herramienta. Agrega usuarios a mano o con
+    un archivo, deshabilita cuentas o restablece contraseñas olvidadas.
+  </p>
+
+  <div class="barra-superior">
+    <input
+      type="search"
+      class="buscador"
+      placeholder="Buscar por nombre, correo, cédula, carrera o asignatura…"
+      [(ngModel)]="busqueda"
+      (input)="alBuscar()"
+    />
+    <span class="contador" *ngIf="total">{{ total }} {{ total === 1 ? 'usuario' : 'usuarios' }}</span>
+    <button class="btn-principal" (click)="abrirModal('manual')">+ Agregar usuarios</button>
+  </div>
+
+  <p class="msg-ok" *ngIf="mensajeAccion">{{ mensajeAccion }}</p>
+  <p class="msg-error" *ngIf="errorAccion">{{ errorAccion }}</p>
+  <p class="msg-error" *ngIf="errorLista">{{ errorLista }}</p>
+
+  <div class="tabla-scroll">
+    <table class="tabla-usuarios" *ngIf="usuarios.length > 0">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Cédula / documento</th>
+          <th>Carrera / asignatura</th>
+          <th>Estado</th>
+          <th class="col-acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of usuarios" [class.inactivo]="!u.activo">
+          <td>{{ nombreCompleto(u) }}</td>
+          <td>{{ u.correo }}</td>
+          <td>
+            {{ u.cedula }}
+            <span class="etiqueta etiqueta-doc" *ngIf="u.tipo_documento === 'extranjero'" title="Pasaporte u otro documento de extranjero">Extranjero</span>
+          </td>
+          <td>
+            <div *ngFor="let a of u.asignaciones" class="asignacion">{{ a.carrera }} · {{ a.asignatura }}</div>
+          </td>
+          <td>
+            <span class="etiqueta" [class.etiqueta-ok]="u.activo" [class.etiqueta-off]="!u.activo">
+              {{ u.activo ? 'Activo' : 'Deshabilitado' }}
+            </span>
+          </td>
+          <td class="col-acciones">
+            <button
+              class="btn-tabla"
+              [disabled]="accionEnCurso === u.id"
+              (click)="pedirConfirmacion(u.activo ? 'deshabilitar' : 'habilitar', u)"
+            >
+              {{ u.activo ? 'Deshabilitar' : 'Habilitar' }}
+            </button>
+            <button class="btn-tabla btn-secundario" [disabled]="accionEnCurso === u.id" (click)="pedirConfirmacion('formatear', u)">
+              Formatear contraseña
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="vacio" *ngIf="!cargandoLista && usuarios.length === 0 && !errorLista">
+    {{ busqueda ? 'Ningún usuario coincide con la búsqueda.' : 'Todavía no hay usuarios. Usa "Agregar usuarios".' }}
+  </p>
+  <p class="vacio" *ngIf="cargandoLista">Cargando…</p>
+
+  <div class="paginacion" *ngIf="totalPaginas > 1">
+    <button class="btn-tabla" [disabled]="pagina <= 1" (click)="irAPagina(pagina - 1)">‹ Anterior</button>
+    <span>Página {{ pagina }} de {{ totalPaginas }}</span>
+    <button class="btn-tabla" [disabled]="pagina >= totalPaginas" (click)="irAPagina(pagina + 1)">Siguiente ›</button>
+  </div>
+</main>
+
+<!-- ====================================================== VENTANA: AGREGAR USUARIOS -->
+<div class="modal-overlay" *ngIf="modalAbierto" (click)="cerrarModal()">
+  <div class="modal-caja modal-ancha" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="titulo-agregar">
+    <div class="modal-cabecera">
+      <h2 id="titulo-agregar">Agregar usuarios</h2>
+      <button class="modal-cerrar" (click)="cerrarModal()" aria-label="Cerrar" [disabled]="cargando || guardandoManual">✕</button>
+    </div>
+
+    <div class="pestanas" role="tablist">
+      <button role="tab" [class.activa]="modo === 'manual'" (click)="cambiarModo('manual')">Ingreso manual</button>
+      <button role="tab" [class.activa]="modo === 'masiva'" (click)="cambiarModo('masiva')">Carga masiva</button>
+    </div>
+
+    <div class="modal-cuerpo">
+      <!-- ---------------------------------------------- INGRESO MANUAL -->
+      <form *ngIf="modo === 'manual'" class="form-manual" (ngSubmit)="guardarManual()" autocomplete="off">
+        <p class="nota">
+          La contraseña inicial es la <strong>cédula o documento</strong>; al ingresar por primera vez la persona deberá elegir una
+          propia. Si ya está en la lista, se le agrega la asignatura.
+        </p>
+
+        <div class="campo">
+          <label for="m-nombres">Nombres</label>
+          <input id="m-nombres" name="nombres" [(ngModel)]="manual.nombres" [disabled]="guardandoManual" />
+        </div>
+        <div class="campo">
+          <label for="m-apellidos">Apellidos</label>
+          <input id="m-apellidos" name="apellidos" [(ngModel)]="manual.apellidos" [disabled]="guardandoManual" />
+        </div>
+        <div class="campo campo-ancho">
+          <label for="m-correo">Correo</label>
+          <input id="m-correo" name="correo" type="email" [(ngModel)]="manual.correo" [disabled]="guardandoManual" />
+        </div>
+        <div class="campo">
+          <label for="m-tipo">Tipo de documento</label>
+          <select id="m-tipo" name="tipo_documento" [(ngModel)]="manual.tipo_documento" [disabled]="guardandoManual">
+            <option value="cedula">Cédula ecuatoriana</option>
+            <option value="extranjero">Pasaporte u otro (extranjero)</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="m-cedula">{{ manual.tipo_documento === 'extranjero' ? 'Número de pasaporte o documento' : 'Cédula' }}</label>
+          <input
+            id="m-cedula"
+            name="cedula"
+            [attr.inputmode]="manual.tipo_documento === 'extranjero' ? 'text' : 'numeric'"
+            [(ngModel)]="manual.cedula"
+            [disabled]="guardandoManual"
+          />
+        </div>
+        <div class="campo campo-ancho">
+          <label for="m-carrera">Carrera</label>
+          <input id="m-carrera" name="carrera" [(ngModel)]="manual.carrera" [disabled]="guardandoManual" />
+        </div>
+        <div class="campo campo-ancho">
+          <label for="m-asignatura">Asignatura</label>
+          <input id="m-asignatura" name="asignatura" [(ngModel)]="manual.asignatura" [disabled]="guardandoManual" />
+        </div>
+
+        <p class="msg-error campo-ancho" *ngIf="errorManual">{{ errorManual }}</p>
+        <p class="msg-ok campo-ancho" *ngIf="avisoManual">{{ avisoManual }}</p>
+
+        <div class="acciones-carga campo-ancho">
+          <button type="submit" class="btn-principal" [disabled]="!manualCompleto || guardandoManual">
+            {{ guardandoManual ? 'Guardando…' : 'Agregar usuario' }}
+          </button>
+          <button type="button" class="btn-tabla btn-secundario" (click)="cerrarModal()" [disabled]="guardandoManual">Cerrar</button>
+        </div>
+      </form>
+
+      <!-- ---------------------------------------------- CARGA MASIVA -->
+      <section *ngIf="modo === 'masiva'" class="carga">
+        <div class="instrucciones">
+          <h3>Cómo cargar usuarios</h3>
+          <ol>
+            <li>Descarga la plantilla y llénala. Una fila por persona y asignatura.</li>
+            <li>
+              Columnas: <strong>{{ columnas[0].etiqueta }}, {{ columnas[1].etiqueta }}, {{ columnas[2].etiqueta }},
+              {{ columnas[3].etiqueta }}, {{ columnas[5].etiqueta }}, {{ columnas[6].etiqueta }}</strong>. Si una persona
+              tiene varias asignaturas, repite sus datos en otra fila: tendrá una sola cuenta.
+              Para <strong>extranjeros</strong> agrega la columna opcional <strong>{{ columnas[4].etiqueta }}</strong> con
+              «Pasaporte» y pon su pasaporte en la columna Cédula; sin esa columna todos se tratan como cédula ecuatoriana.
+            </li>
+            <li>
+              Sube el archivo (.xlsx o .csv). Verás una <strong>vista previa</strong> con lo que pasaría con cada fila;
+              nada se crea hasta que confirmes.
+            </li>
+          </ol>
+          <p class="nota">
+            La contraseña inicial de cada cuenta nueva es su <strong>cédula o documento</strong>. Se quitan los espacios sobrantes y se
+            corrigen las cédulas a las que Excel les quitó el cero inicial. Quien ya tenía cuenta conserva su contraseña.
+          </p>
+          <button class="btn-principal btn-claro" (click)="descargarPlantilla()">Descargar plantilla</button>
+        </div>
+
+        <div class="subida" *ngIf="!resultadoFinal">
+          <label class="btn-principal" [class.deshabilitado]="leyendo || cargando">
+            {{ archivoNombre ? 'Elegir otro archivo' : 'Elegir archivo' }}
+            <input type="file" accept=".xlsx,.csv" (change)="alElegirArchivo($event)" [disabled]="leyendo || cargando" hidden />
+          </label>
+          <span class="archivo-nombre" *ngIf="archivoNombre">{{ archivoNombre }}</span>
+          <span class="leyendo" *ngIf="leyendo">Leyendo y validando…</span>
+        </div>
+
+        <p class="msg-error" *ngIf="errorCarga">{{ errorCarga }}</p>
+
+        <!-- vista previa -->
+        <div *ngIf="vista as v" class="resultado">
+          <h3>Vista previa</h3>
+          <div class="resumen">
+            <span class="chip chip-ok" *ngIf="cuenta(v, 'creado')">{{ cuenta(v, 'creado') }} cuentas nuevas</span>
+            <span class="chip chip-info" *ngIf="cuenta(v, 'vinculado')">{{ cuenta(v, 'vinculado') }} ya tienen cuenta</span>
+            <span class="chip chip-info" *ngIf="cuenta(v, 'actualizado')">{{ cuenta(v, 'actualizado') }} con asignaturas nuevas</span>
+            <span class="chip" *ngIf="cuenta(v, 'sin_cambios')">{{ cuenta(v, 'sin_cambios') }} sin cambios</span>
+            <span class="chip chip-error" *ngIf="cuenta(v, 'error')">{{ cuenta(v, 'error') }} con error</span>
+          </div>
+          <p class="msg-aviso" *ngIf="cuenta(v, 'error')">
+            Las filas con error <strong>no se cargarán</strong>. Corrígelas en el archivo y súbelo de nuevo, o confirma
+            para cargar solo las demás.
+          </p>
+
+          <ng-container *ngTemplateOutlet="tablaResultados; context: { r: v }"></ng-container>
+
+          <div class="acciones-carga">
+            <button class="btn-principal" [disabled]="!hayAlgoQueCargar || cargando" (click)="confirmarCarga()">
+              {{ cargando ? 'Cargando…' : 'Confirmar carga' }}
+            </button>
+            <button class="btn-tabla btn-secundario" [disabled]="cargando" (click)="nuevaCarga()">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- resultado final -->
+        <div *ngIf="resultadoFinal as f" class="resultado">
+          <h3>Carga terminada</h3>
+          <div class="resumen">
+            <span class="chip chip-ok" *ngIf="cuenta(f, 'creado')">{{ cuenta(f, 'creado') }} cuentas creadas</span>
+            <span class="chip chip-info" *ngIf="cuenta(f, 'vinculado')">{{ cuenta(f, 'vinculado') }} vinculadas</span>
+            <span class="chip chip-info" *ngIf="cuenta(f, 'actualizado')">{{ cuenta(f, 'actualizado') }} actualizadas</span>
+            <span class="chip" *ngIf="cuenta(f, 'sin_cambios')">{{ cuenta(f, 'sin_cambios') }} sin cambios</span>
+            <span class="chip chip-error" *ngIf="cuenta(f, 'error')">{{ cuenta(f, 'error') }} con error</span>
+          </div>
+          <ng-container *ngTemplateOutlet="tablaResultados; context: { r: f }"></ng-container>
+          <div class="acciones-carga">
+            <button class="btn-principal" (click)="irALista()">Ver usuarios</button>
+            <button class="btn-tabla btn-secundario" (click)="nuevaCarga()">Cargar otro archivo</button>
+          </div>
+        </div>
+
+        <ng-template #tablaResultados let-r="r">
+          <div class="tabla-scroll tabla-resultados">
+            <table class="tabla-usuarios">
+              <thead>
+                <tr>
+                  <th>Fila del archivo</th>
+                  <th>Correo</th>
+                  <th>Resultado</th>
+                  <th>Detalle</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let x of r.resultados" [class.fila-error]="x.estado === 'error'">
+                  <td>{{ filasDelResultado(x) }}</td>
+                  <td>{{ x.correo }}</td>
+                  <td>
+                    <span class="etiqueta" [ngClass]="'estado-' + x.estado">{{ etiquetaEstado(x.estado, r.simulado) }}</span>
+                  </td>
+                  <td>{{ x.mensaje }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-template>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- confirmación de acciones sobre un usuario -->
+<div class="modal-overlay" *ngIf="confirmacion as c" (click)="cancelarConfirmacion()">
+  <div class="modal-caja" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <h2>{{ tituloConfirmacion(c) }}</h2>
+    <p>{{ textoConfirmacion(c) }}</p>
+    <div class="modal-acciones">
+      <button class="btn-tabla btn-secundario" (click)="cancelarConfirmacion()">Cancelar</button>
+      <button class="btn-principal" (click)="confirmarAccion()">Confirmar</button>
+    </div>
+  </div>
+</div>

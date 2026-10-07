@@ -10,6 +10,7 @@
 
     <nav class="header-right" role="navigation" aria-label="Menú principal">
         <a routerLink="/home" class="nav-btn" routerLinkActive="active">Home</a>
+        <a *ngIf="esAdmin" routerLink="/admin/usuarios" class="nav-btn" routerLinkActive="active">Usuarios</a>
         <!-- <a routerLink="/acerca-de" class="nav-btn" routerLinkActive="active">Acerca del Proyecto</a> -->
 
         <!-- Botón de inicio/cierre de sesión.

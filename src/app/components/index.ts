@@ -14,3 +14,5 @@ export * from './prestamo/prestamo';
 export * from './presupuesto-venta/presupuesto-venta';
 export * from './acerca-de/acerca-de';
 export * from './costo-ventas/costo-ventas';
+export * from './cambiar-clave/cambiar-clave';
+export * from './admin-usuarios/admin-usuarios';

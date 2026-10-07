@@ -17,8 +17,10 @@ import {
   PresupuestoVentaComponent,
   AcercaDe,
   CostoVentas,
+  CambiarClave,
+  AdminUsuarios,
 } from './components';
-import { AuthGuard } from './core/guard/auth.guard';
+import { AdminGuard, AuthGuard, SesionGuard } from './core/guard/auth.guard';
 import { PlanGuard } from './core/guard/plan.guard';
 import { Depreciaciones } from './components/depreciaciones/depreciaciones';
 
@@ -26,6 +28,8 @@ const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: 'login', component: Login },
   { path: 'acerca-de', component: AcercaDe },
+  { path: 'cambiar-clave', component: CambiarClave, canActivate: [SesionGuard] },
+  { path: 'admin/usuarios', component: AdminUsuarios, canActivate: [AdminGuard] },
 
   { path: 'home', component: Home, canActivate: [AuthGuard] },
   { path: 'planificacion/:id', component: Planificacion, canActivate: [AuthGuard, PlanGuard] },

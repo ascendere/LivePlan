@@ -1,0 +1,64 @@
+<main class="contenido">
+  <section class="seccion-texto">
+    <h1>COLABORADOR INTERACTIVO<br />DE PLANES DE NEGOCIO</h1>
+    <h2>UTPL | Decide ser más.</h2>
+  </section>
+
+  <section class="aside">
+    <section class="seccion-inicio">
+      <form [formGroup]="form" (ngSubmit)="guardar()" class="formulario-inicio">
+        <h3 style="color: #004271; margin: 0 0 8px;">Elige tu contraseña</h3>
+        <p style="font-size: 0.85rem; color: #555; margin: 0 0 16px;">
+          Tu cuenta tiene una contraseña provisional. Antes de continuar, crea una propia: al menos 8
+          caracteres, que no sea solo números ni tu cédula.
+        </p>
+
+        <div class="grupo-formulario">
+          <label for="nueva">Nueva contraseña</label>
+          <div class="input-group eye-inside">
+            <input
+              [type]="mostrar() ? 'text' : 'password'"
+              formControlName="nueva"
+              class="entrada"
+              placeholder="Nueva contraseña"
+              id="nueva"
+              autocomplete="new-password"
+            />
+            <button type="button" class="toggle-password" (click)="alternarVisibilidad()" aria-label="Mostrar u ocultar contraseña">
+              <i [class]="mostrar() ? 'fa fa-eye-slash' : 'fa fa-eye'"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="grupo-formulario">
+          <label for="confirmar">Repetir contraseña</label>
+          <div class="input-group eye-inside">
+            <input
+              [type]="mostrar() ? 'text' : 'password'"
+              formControlName="confirmar"
+              class="entrada"
+              placeholder="Repetir contraseña"
+              id="confirmar"
+              autocomplete="new-password"
+            />
+          </div>
+        </div>
+
+        @if (error()) {
+          <p class="error-msg" style="color: #ff4d4f; font-size: 0.875rem; text-align: center; margin-bottom: 16px;">
+            {{ error() }}
+          </p>
+        }
+        <div class="botones-inicio">
+          <button type="submit" class="btn-utpl" [disabled]="enviando()">
+            <i class="fa fa-lock"></i> {{ enviando() ? 'Guardando…' : 'Guardar contraseña' }}
+          </button>
+          <button type="button" class="btn-toggle" (click)="cancelar()">Cerrar sesión</button>
+        </div>
+      </form>
+    </section>
+    <div class="imagen">
+      <img src="login.jpg" alt="Login Image" class="jpg" />
+    </div>
+  </section>
+</main>

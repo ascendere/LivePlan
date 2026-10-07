@@ -21,6 +21,7 @@ import {
   Prestamo,
   PresupuestoVentaComponent,
   AcercaDe,
+  AdminUsuarios,
 } from './components';
 import {
   Header,
@@ -66,6 +67,7 @@ import { PoliticasCV } from './auxiliaries/politicas-cv/politicas-cv';
     AvisoSensibilidadComponent,
     ExportarExcelComponent,
     AcercaDe,
+    AdminUsuarios,
     Depreciaciones,
     SeccionesPDFComponent,
     CostoVentas,

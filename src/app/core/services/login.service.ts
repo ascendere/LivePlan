@@ -4,6 +4,7 @@ import {combineLatest, firstValueFrom, map, Observable, of, switchMap} from 'rxj
 import {Router} from '@angular/router';
 import {Injectable, EnvironmentInjector, runInInjectionContext} from '@angular/core';
 import firebase from 'firebase/compat/app'; // Importa firebase
+import { environment } from '../../../environments/environment.example';
 
 @Injectable({
   providedIn: 'root'
@@ -38,35 +39,46 @@ export class AuthService {
     }
   }
 
-  async register(name: string, email: string, password: string) {
+  /** Cierra la sesión y lleva al login; `aviso` se muestra allí (por ejemplo, tras cambiar la contraseña). */
+  async logout(aviso?: string) {
     try {
-      const userCredential = await this.afAuth.createUserWithEmailAndPassword(email, password);
-      
-      if (userCredential.user) {
-        // Ejecutamos la obtención de colección/documento dentro del contexto de inyección
-        const promise = runInInjectionContext(this.injector, () => {
-          return this.afs.collection('users').doc(userCredential.user!.uid).set({
-            name: name,
-            email: email
-          }, { merge: true });
-        });
-        
-        await promise;
-        // console.log("Usuario registrado de forma satisfactoria");
-      }
+      await this.afAuth.signOut();
+      this.adminCache = undefined;
+      this.router.navigate(['/login'], aviso ? { state: { aviso } } : undefined);
     } catch (error) {
-      console.error("Hubo un error durante el registro:", error);
-      throw error;
+      console.error("Hubo un error durante la desconexión:", error);
     }
   }
 
-  async logout() {
+  /** Último resultado de "¿soy administrador?" (lo decide el backend); se reutiliza un minuto. */
+  private adminCache?: { uid: string; esAdmin: boolean; hasta: number };
+
+  /**
+   * Rol y marca de contraseña provisional del usuario actual (null si no hay sesión). La marca viene del ID token;
+   * si es administrador lo dice el backend (GET /usuarios/yo), porque puede serlo por la colección "admin" de
+   * Firestore y eso el token no lo refleja. Sirve para decidir qué pantallas mostrar; la seguridad la aplica el backend.
+   */
+  async obtenerPerfilDeAcceso(renovar = false): Promise<{ esAdmin: boolean; debeCambiarClave: boolean } | null> {
+    const usuario = await firstValueFrom(this.afAuth.authState);
+    if (!usuario) return null;
+    const { claims, token } = await usuario.getIdTokenResult(renovar);
+    const esAdmin = claims['rol'] === 'admin' || (await this.consultarSiEsAdmin(usuario.uid, token, renovar));
+    return { esAdmin, debeCambiarClave: claims['debe_cambiar_clave'] === true };
+  }
+
+  private async consultarSiEsAdmin(uid: string, token: string, ignorarCache: boolean): Promise<boolean> {
+    const c = this.adminCache;
+    if (!ignorarCache && c && c.uid === uid && c.hasta > Date.now()) return c.esAdmin;
     try {
-      await this.afAuth.signOut();
-      // console.log("Usuario desconectado");
-      this.router.navigate(['/login']);
-    } catch (error) {
-      console.error("Hubo un error durante la desconexión:", error);
+      const respuesta = await fetch(`${environment.backend.url}/usuarios/yo`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!respuesta.ok) return false;
+      const esAdmin = (await respuesta.json())?.es_admin === true;
+      this.adminCache = { uid, esAdmin, hasta: Date.now() + 60_000 };
+      return esAdmin;
+    } catch {
+      return false; // sin conexión con el backend: no se muestra la administración
     }
   }
 

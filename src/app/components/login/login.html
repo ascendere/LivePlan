@@ -8,20 +8,6 @@
     <section class="aside">
       <section class="seccion-inicio">
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="formulario-inicio">
-          @if (!isLoginMode()) {
-            <div class="grupo-formulario">
-              <label for="nombre">Nombre</label>
-              <input
-                type="text"
-                formControlName="name"
-                class="entrada"
-                placeholder="Ingresar nombre"
-                id="nombre"
-                name="nombre"
-                required
-              />
-            </div>
-          }
           <div class="grupo-formulario">
             <label for="correo">Email</label>
             <input
@@ -57,34 +43,22 @@
             </div>
           </div>
 
-          @if (!isLoginMode()) {
-            <div class="grupo-formulario">
-              <label for="confirmarContrasena">Confirmar Contraseña</label>
-              <div class="input-group eye-inside">
-                <input
-                  [type]="showPassword() ? 'text' : 'password'"
-                  formControlName="confirmPassword"
-                  class="entrada"
-                  placeholder="Repetir contraseña"
-                  id="confirmarContrasena"
-                  name="confirmarContrasena"
-                  required
-                />
-              </div>
-            </div>
+          @if (aviso()) {
+            <p class="aviso-msg" style="color: #1b7f3b; font-size: 0.875rem; text-align: center; margin-bottom: 16px;">
+              {{ aviso() }}
+            </p>
           }
-
           @if (errorMessage()) {
             <p class="error-msg" style="color: #ff4d4f; font-size: 0.875rem; text-align: center; margin-bottom: 16px;">
               {{ errorMessage() }}
             </p>
           }
           <div class="botones-inicio">
-            <button type="submit" class="btn-utpl"> <i class="fa fa-lock"></i> {{ isLoginMode() ? 'Iniciar Sesión' : 'Crear Cuenta' }}</button>
-            <button type="button" class="btn-toggle" (click)="toggleMode()">
-              {{ isLoginMode() ? 'Crear cuenta' : 'Ya tengo una cuenta' }}
-            </button>
+            <button type="submit" class="btn-utpl" [disabled]="enviando()"> <i class="fa fa-lock"></i> {{ enviando() ? 'Ingresando…' : 'Iniciar Sesión' }}</button>
           </div>
+          <p style="font-size: 0.8rem; text-align: center; margin-top: 12px; color: #555;">
+            ¿Olvidaste tu contraseña o aún no tienes cuenta? Contacta al administrador.
+          </p>
         </form>
       </section>
       <div class="imagen">
