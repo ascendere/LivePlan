@@ -130,7 +130,27 @@
         <!-- Subsecciones -->
         <div class="subsecciones-container" *ngIf="seccion.subsecciones && seccion.subsecciones.length > 0">
           <div class="subseccion" *ngFor="let subseccion of seccion.subsecciones; let j = index">
-            <label class="subseccion-label">{{ subseccion.pregunta }}</label>
+            <!-- Secciones propias: la etiqueta se edita y se puede eliminar -->
+            <div class="etiqueta-cabecera" *ngIf="esSeccionPropia(seccion)">
+              <input
+                type="text"
+                class="etiqueta-input"
+                [id]="'etiqueta-' + i + '-' + j"
+                [(ngModel)]="subseccion.pregunta"
+                (ngModelChange)="onSeccionChange(i)"
+                (blur)="finalizarEtiqueta(i, j)"
+                (keydown.enter)="$any($event.target).blur()"
+                maxlength="200"
+                placeholder="Nombre de la etiqueta"
+              />
+              <button type="button" class="etiqueta-eliminar" title="Eliminar etiqueta" (click)="pedirConfirmacionEliminarEtiqueta(i, j)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+            <label class="subseccion-label" *ngIf="!esSeccionPropia(seccion)">{{ subseccion.pregunta }}</label>
             <textarea
               [(ngModel)]="subseccion.descripcion"
               (ngModelChange)="onSeccionChange(i)"
@@ -155,9 +175,20 @@
           </div>
         </div>
 
-        <!-- Texto de la sección: solo las secciones propias SIN preguntas lo necesitan;
-             en las demás el campo "Descripción General" ya no se usa. -->
-        <div class="descripcion-general" *ngIf="!seccion.subsecciones || seccion.subsecciones.length === 0">
+        <!-- Secciones propias: agregar etiquetas nuevas, cada una con su campo de texto -->
+        <div class="agregar-etiqueta" *ngIf="esSeccionPropia(seccion)">
+          <button type="button" class="btn-secondary btn-secondary-sm" (click)="agregarEtiqueta(i)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Agregar etiqueta
+          </button>
+        </div>
+
+        <!-- Texto general: solo secciones propias sin etiquetas (o con texto ya escrito);
+             en las precargadas el campo "Descripción General" ya no se usa. -->
+        <div class="descripcion-general" *ngIf="usaTextoGeneral(seccion)">
           <label class="form-label">Texto de la sección</label>
           <textarea
             [(ngModel)]="seccion.descripcion"
@@ -190,8 +221,8 @@
         </div>
 
         <!-- Botón eliminar -->
-        <div class="seccion-actions">
-          <button class="btn-danger" (click)="eliminarSeccion(i)">
+        <div class="seccion-actions" *ngIf="permiteEliminarSeccion(seccion)">
+          <button class="btn-danger" (click)="pedirConfirmacionEliminar(i)">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -280,6 +311,27 @@
       <button type="button" class="btn-primary" (click)="confirmarPopupImagen()" [disabled]="popupImagen.subiendo">
         {{ popupImagen.subiendo ? 'Subiendo…' : (popupImagen.modo === 'editar' ? 'Guardar' : 'Subir imagen') }}
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup: confirmar eliminación de una sección o de una etiqueta -->
+<div class="popup-overlay" *ngIf="eliminacionPendiente !== null" (click)="cancelarEliminacion()">
+  <div class="popup-imagen popup-confirmar" (click)="$event.stopPropagation()" role="alertdialog" aria-modal="true">
+    <h3>{{ esEliminacionDeEtiqueta ? '¿Eliminar esta etiqueta?' : '¿Eliminar esta sección?' }}</h3>
+    <p class="popup-ayuda">
+      <ng-container *ngIf="!esEliminacionDeEtiqueta">
+        Se eliminará la sección <strong>«{{ tituloEliminacion }}»</strong> con todo lo que escribiste y sus
+        imágenes.
+      </ng-container>
+      <ng-container *ngIf="esEliminacionDeEtiqueta">
+        Se eliminará la etiqueta <strong>«{{ tituloEliminacion }}»</strong> con su texto y sus imágenes.
+      </ng-container>
+      Esta acción no se puede deshacer.
+    </p>
+    <div class="popup-acciones">
+      <button type="button" class="btn-cancelar-popup" (click)="cancelarEliminacion()">Cancelar</button>
+      <button type="button" class="btn-danger" (click)="confirmarEliminacion()">Sí, eliminar</button>
     </div>
   </div>
 </div>

@@ -30,8 +30,17 @@ export interface ImagenSeccion {
   fuente?: string;
 }
 
+/**
+ * Identificador estable de la sección "Análisis económico y Financiero". Se
+ * guarda en la sección misma (no depende de su título): así no se pierde ni se
+ * confunde aunque alguien renombre esa sección o cree otra con el mismo nombre.
+ */
+export const CLAVE_SECCION_ECONOMICA = 'analisis-economico';
+
 export interface SeccionData {
   id?: string;
+  /** Identificador estable de secciones especiales (ver CLAVE_SECCION_ECONOMICA). */
+  clave?: string;
   titulo: string;
   instruccion: string;
   descripcion: string;
@@ -231,6 +240,7 @@ export class FirebaseService {
         fechaActualizacion: fecha,
       },
       {
+        clave: CLAVE_SECCION_ECONOMICA,
         titulo: 'Análisis económico y Financiero',
         instruccion:
           'Una vez hayas completado el cálculo de la viabilidad económico - financiera. Se cargaran automaticamente.',

@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import jsPDF from 'jspdf';
-import { FirebaseService, SeccionData, PlanNegocio, ImagenSeccion } from '../../core/services/firebase.service';
+import { FirebaseService, SeccionData, PlanNegocio, ImagenSeccion, CLAVE_SECCION_ECONOMICA } from '../../core/services/firebase.service';
 import { InversionService } from '../../core/services/inversion.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -226,6 +226,7 @@ export class SeccionesPDFComponent implements OnInit {
       usuarioId: this.usuarioId,
       secciones: this.secciones.map((seccion, index) => ({
         id: seccion.id || this.generarIdSeccion('temp', index),
+        ...(seccion.clave ? { clave: seccion.clave } : {}),
         titulo: seccion.titulo,
         instruccion: seccion.instruccion,
         descripcion: seccion.descripcion,
@@ -316,8 +317,120 @@ export class SeccionesPDFComponent implements OnInit {
     this.guardarSeccion(newIndex);
   }
 
+  /**
+   * "Análisis económico y Financiero" no se puede eliminar: es la sección donde
+   * se cargan solas las tablas y gráficas del plan.
+   */
+  permiteEliminarSeccion(seccion: SeccionData): boolean {
+    return !this.esSeccionEconomica(seccion);
+  }
+
+  // ============================================================
+  //  SECCIONES PROPIAS Y SUS ETIQUETAS
+  // ============================================================
+
+  /** Sección creada por el usuario (no es una de las precargadas con instrucciones). */
+  esSeccionPropia(seccion: SeccionData): boolean {
+    return !seccion?.clave && !seccion?.instruccion;
+  }
+
+  /**
+   * ¿Se muestra el cuadro de texto general de la sección? Solo en secciones
+   * propias sin etiquetas (o con texto ya escrito, para no esconderlo). En las
+   * precargadas el campo "Descripción General" ya no se usa.
+   */
+  usaTextoGeneral(seccion: SeccionData): boolean {
+    if ((seccion.subsecciones?.length ?? 0) === 0) return true;
+    return this.esSeccionPropia(seccion) && !!seccion.descripcion?.trim();
+  }
+
+  /** Agrega una etiqueta nueva (con su campo de texto) a una sección propia. */
+  agregarEtiqueta(seccionIndex: number): void {
+    const seccion = this.secciones[seccionIndex];
+    if (!seccion || !this.esSeccionPropia(seccion)) return;
+    seccion.subsecciones = seccion.subsecciones || [];
+    seccion.subsecciones.push({ pregunta: '', descripcion: '' });
+    const j = seccion.subsecciones.length - 1;
+    setTimeout(() => (document.getElementById(`etiqueta-${seccionIndex}-${j}`) as HTMLInputElement | null)?.focus(), 50);
+    this.guardarSeccion(seccionIndex);
+  }
+
+  /** Al salir del nombre de una etiqueta: si quedó vacío se le pone uno por defecto. */
+  finalizarEtiqueta(seccionIndex: number, subIndex: number): void {
+    const sub = this.secciones[seccionIndex]?.subsecciones?.[subIndex];
+    if (!sub) return;
+    if (!sub.pregunta || sub.pregunta.trim() === '') {
+      sub.pregunta = 'Nueva etiqueta';
+    }
+    this.guardarSeccion(seccionIndex);
+  }
+
+  /** Borra de Firebase Storage las imágenes indicadas (no deja archivos huérfanos). */
+  private borrarImagenesDeStorage(imagenes: ImagenSeccion[] | undefined): void {
+    for (const img of imagenes ?? []) {
+      if (img?.url) this.firebaseService.eliminarImagen(img.url).subscribe();
+    }
+  }
+
+  // Confirmación antes de eliminar una sección o una etiqueta
+  eliminacionPendiente: { si: number; sj: number | null } | null = null;
+
+  get tituloEliminacion(): string {
+    const e = this.eliminacionPendiente;
+    if (!e) return '';
+    const seccion = this.secciones[e.si];
+    const texto = e.sj === null ? seccion?.titulo : seccion?.subsecciones?.[e.sj]?.pregunta;
+    return (texto || '').trim() || 'Sin título';
+  }
+
+  get esEliminacionDeEtiqueta(): boolean {
+    return this.eliminacionPendiente?.sj != null;
+  }
+
+  pedirConfirmacionEliminar(index: number): void {
+    const seccion = this.secciones[index];
+    if (!seccion || !this.permiteEliminarSeccion(seccion)) return;
+    this.eliminacionPendiente = { si: index, sj: null };
+  }
+
+  pedirConfirmacionEliminarEtiqueta(si: number, sj: number): void {
+    const seccion = this.secciones[si];
+    const sub = seccion?.subsecciones?.[sj];
+    if (!seccion || !sub || !this.esSeccionPropia(seccion)) return;
+    // Una etiqueta vacía (sin texto ni imágenes) se quita directo; si tiene contenido, se pregunta.
+    if (!sub.descripcion?.trim() && !(sub.imagenes?.length)) {
+      this.eliminarEtiqueta(si, sj);
+      return;
+    }
+    this.eliminacionPendiente = { si, sj };
+  }
+
+  cancelarEliminacion(): void {
+    this.eliminacionPendiente = null;
+  }
+
+  confirmarEliminacion(): void {
+    const e = this.eliminacionPendiente;
+    this.eliminacionPendiente = null;
+    if (!e) return;
+    if (e.sj === null) this.eliminarSeccion(e.si);
+    else this.eliminarEtiqueta(e.si, e.sj);
+  }
+
+  eliminarEtiqueta(seccionIndex: number, subIndex: number): void {
+    const seccion = this.secciones[seccionIndex];
+    if (!seccion || !this.esSeccionPropia(seccion) || !seccion.subsecciones?.[subIndex]) return;
+    const [quitada] = seccion.subsecciones.splice(subIndex, 1);
+    this.borrarImagenesDeStorage(quitada?.imagenes);
+    this.guardarSeccion(seccionIndex);
+  }
+
   eliminarSeccion(index: number): void {
-    this.secciones.splice(index, 1); // quitar del array
+    const seccion = this.secciones[index];
+    if (!seccion || !this.permiteEliminarSeccion(seccion)) return;
+    const [quitada] = this.secciones.splice(index, 1); // quitar del array
+    this.borrarImagenesDeStorage(quitada?.imagenes);
+    quitada?.subsecciones?.forEach((sub) => this.borrarImagenesDeStorage(sub.imagenes));
 
     const planActualizado: PlanNegocio = {
       id: this.planId,
@@ -362,8 +475,9 @@ export class SeccionesPDFComponent implements OnInit {
       .replace(/[\u0300-\u036f]/g, '');
   }
 
-  private esSeccionEconomica(seccion: SeccionData): boolean {
-    return (seccion.titulo || '').trim().toLowerCase() === 'análisis económico y financiero';
+  /** Se reconoce por su clave guardada, no por el título (que el usuario puede cambiar o repetir). */
+  esSeccionEconomica(seccion: SeccionData): boolean {
+    return seccion?.clave === CLAVE_SECCION_ECONOMICA;
   }
 
   /** Lista de imágenes de una pregunta (subIndex) o de la sección (subIndex null). */
@@ -757,6 +871,7 @@ export class SeccionesPDFComponent implements OnInit {
         fechaActualizacion: fecha,
       },
       {
+        clave: CLAVE_SECCION_ECONOMICA,
         titulo: 'Análisis económico y Financiero',
         instruccion:
           'Una vez hayas completado el cálculo de la viabilidad económico - financiera. Se cargaran automaticamente.',
@@ -931,6 +1046,13 @@ export class SeccionesPDFComponent implements OnInit {
 
         // NO incluir instrucción de secciones precargadas en el PDF
 
+        // Texto general de la sección: solo lo usan las secciones propias (en las
+        // precargadas el campo "Descripción General" ya no existe). Va primero,
+        // como introducción, antes de las respuestas de sus etiquetas.
+        if (this.usaTextoGeneral(seccion) && seccion.descripcion && seccion.descripcion.trim() !== '') {
+          escribirParrafo(seccion.descripcion);
+        }
+
         // Subsecciones: solo se imprime la respuesta. El título de la pregunta
         // (sub.pregunta) NO se incluye en el PDF, aunque esté respondida; las
         // preguntas sin respuesta no dejan nada.
@@ -966,17 +1088,6 @@ export class SeccionesPDFComponent implements OnInit {
               );
             }
           }
-        }
-
-        // Texto libre de la sección. Solo las secciones SIN preguntas lo usan (las
-        // propias que crea el usuario); en las demás el campo "Descripción
-        // General" ya no se muestra, así que tampoco se imprime.
-        if (
-          (seccion.subsecciones?.length ?? 0) === 0 &&
-          seccion.descripcion &&
-          seccion.descripcion.trim() !== ''
-        ) {
-          escribirParrafo(seccion.descripcion);
         }
 
         // Imágenes a nivel de sección (Análisis económico, secciones propias
@@ -1816,7 +1927,24 @@ export class SeccionesPDFComponent implements OnInit {
         ? Object.values(seccionesData)
         : [];
 
+    // Planes guardados antes de existir la clave: la sección económica se
+    // reconoce UNA vez por su título (y por ser una sección precargada, con
+    // instrucción) y desde entonces queda marcada con su clave.
+    let claveEconomicaAsignada = raw.some((s: any) => s?.clave === CLAVE_SECCION_ECONOMICA);
+
     return raw.map((seccion: any) => {
+      let clave: string | undefined = seccion.clave;
+      if (
+        !clave &&
+        !claveEconomicaAsignada &&
+        seccion.instruccion &&
+        this.normalizarTexto(seccion.titulo) === 'analisis economico y financiero'
+      ) {
+        clave = CLAVE_SECCION_ECONOMICA;
+        claveEconomicaAsignada = true;
+      }
+      const esEconomica = clave === CLAVE_SECCION_ECONOMICA;
+
       // Migrar el campo antiguo de una sola imagen al arreglo nuevo
       const imagenes = Array.isArray(seccion.imagenes)
         ? seccion.imagenes
@@ -1827,7 +1955,7 @@ export class SeccionesPDFComponent implements OnInit {
       let subsecciones = Array.isArray(seccion.subsecciones) ? [...seccion.subsecciones] : [];
       // La etiqueta "Cuota de resultados" pasó a llamarse "Cuenta de resultados":
       // se renombra en los planes ya guardados sin tocar lo que el usuario escribió.
-      if (this.esSeccionEconomica(seccion)) {
+      if (esEconomica) {
         subsecciones = subsecciones.map((sub: any) =>
           this.normalizarTexto(sub?.pregunta) === 'cuota de resultados'
             ? { ...sub, pregunta: 'Cuenta de resultados' }
@@ -1838,7 +1966,7 @@ export class SeccionesPDFComponent implements OnInit {
       // se agrega al final de "Análisis económico y Financiero" para que
       // aparezca su bloque de texto (se guarda con el siguiente cambio).
       if (
-        this.esSeccionEconomica(seccion) &&
+        esEconomica &&
         !subsecciones.some((sub: any) => this.normalizarTexto(sub?.pregunta) === 'evaluacion financiera')
       ) {
         subsecciones.push({ pregunta: 'Evaluación Financiera', descripcion: '' });
@@ -1846,6 +1974,7 @@ export class SeccionesPDFComponent implements OnInit {
 
       return {
         ...seccion,
+        ...(clave ? { clave } : {}),
         subsecciones,
         imagenes,
         fechaCreacion: seccion.fechaCreacion || new Date(),

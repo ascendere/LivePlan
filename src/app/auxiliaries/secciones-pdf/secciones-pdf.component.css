@@ -750,3 +750,62 @@
   font-size: 0.85rem;
   color: #b42318;
 }
+
+/* Popup de confirmación (eliminar sección) */
+.popup-confirmar {
+  max-width: 420px;
+}
+
+.popup-confirmar .popup-ayuda {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #495057;
+  margin-bottom: 18px;
+}
+
+/* === Etiquetas de secciones propias === */
+.etiqueta-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.etiqueta-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #d8dce6;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #004271;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.etiqueta-input:focus {
+  outline: none;
+  border-color: #004271;
+}
+
+.etiqueta-eliminar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #dc3545;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.etiqueta-eliminar:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.agregar-etiqueta {
+  margin: 4px 0 20px;
+}
