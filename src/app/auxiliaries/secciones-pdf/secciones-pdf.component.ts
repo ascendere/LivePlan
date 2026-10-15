@@ -923,7 +923,7 @@ export class SeccionesPDFComponent implements OnInit {
           },
           {
             pregunta:
-              '¿Cuál es tu estrategia de calidad? ¿En qué nivel de de calidad/ precio te quieres posicionar?',
+              '¿Cuál es tu estrategia de calidad? ¿En qué nivel de calidad/ precio te quieres posicionar?',
             descripcion: '',
           },
           {
@@ -991,7 +991,7 @@ export class SeccionesPDFComponent implements OnInit {
             descripcion: '',
           },
           {
-            pregunta: 'Cuenta de resultados',
+            pregunta: 'Estado de resultados',
             descripcion: '',
           },
           {
@@ -1870,8 +1870,9 @@ export class SeccionesPDFComponent implements OnInit {
     switch (this.normalizarTexto(pregunta)) {
       case 'plan de inversiones':
         return 'balance';
-      case 'cuenta de resultados':
-      case 'cuota de resultados': // nombre anterior de la etiqueta
+      case 'estado de resultados':
+      case 'cuenta de resultados': // nombres anteriores de la etiqueta (planes ya guardados)
+      case 'cuota de resultados':
         return 'estado';
       case 'flujo de efectivo':
         return 'flujo';
@@ -2023,15 +2024,17 @@ export class SeccionesPDFComponent implements OnInit {
           : [];
 
       let subsecciones = Array.isArray(seccion.subsecciones) ? [...seccion.subsecciones] : [];
-      // La etiqueta "Cuota de resultados" pasó a llamarse "Cuenta de resultados":
-      // se renombra en los planes ya guardados sin tocar lo que el usuario escribió.
-      if (esEconomica) {
-        subsecciones = subsecciones.map((sub: any) =>
-          this.normalizarTexto(sub?.pregunta) === 'cuota de resultados'
-            ? { ...sub, pregunta: 'Cuenta de resultados' }
-            : sub,
-        );
-      }
+      // Correcciones de las etiquetas (preguntas) en planes ya guardados, sin tocar lo que el usuario escribió:
+      // - "Cuota de resultados" y luego "Cuenta de resultados" pasaron a llamarse "Estado de resultados".
+      // - Un error de tipeo de la plantilla: "nivel de de calidad".
+      subsecciones = subsecciones.map((sub: any) => {
+        let pregunta: string = sub?.pregunta ?? '';
+        if (esEconomica && ['cuota de resultados', 'cuenta de resultados'].includes(this.normalizarTexto(pregunta))) {
+          pregunta = 'Estado de resultados';
+        }
+        pregunta = pregunta.replace('nivel de de calidad', 'nivel de calidad');
+        return pregunta === sub?.pregunta ? sub : { ...sub, pregunta };
+      });
       // Planes guardados antes de existir la pregunta "Evaluación Financiera":
       // se agrega al final de "Análisis económico y Financiero" para que
       // aparezca su bloque de texto (se guarda con el siguiente cambio).

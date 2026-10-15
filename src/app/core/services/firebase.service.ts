@@ -191,7 +191,7 @@ export class FirebaseService {
           },
           {
             pregunta:
-              '¿Cuál es tu estrategia de calidad? ¿En qué nivel de de calidad/ precio te quieres posicionar?',
+              '¿Cuál es tu estrategia de calidad? ¿En qué nivel de calidad/ precio te quieres posicionar?',
             descripcion: '',
           },
           {
@@ -259,7 +259,7 @@ export class FirebaseService {
             descripcion: '',
           },
           {
-            pregunta: 'Cuenta de resultados',
+            pregunta: 'Estado de resultados',
             descripcion: '',
           },
           {
