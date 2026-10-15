@@ -5,32 +5,97 @@
       <h1>Plan de Negocio</h1>
       <p class="subtitle">Configura y descarga tu plan de negocio completo</p>
 
-      <!-- Nombre del proyecto (editable) -->
-      <div class="nombre-proyecto">
+      <!-- Datos del proyecto: nombre, texto de la portada y logo. Se editan juntos con el lápiz. -->
+      <div class="nombre-proyecto" *ngIf="!editandoNombre">
         <span class="nombre-etiqueta">Nombre del proyecto</span>
         <div class="nombre-fila">
-          <h2 *ngIf="!editandoNombre" class="nombre-texto" (dblclick)="iniciarEdicionNombre()" title="Doble clic para editar">{{ nombrePlan }}</h2>
-          <input
-            *ngIf="editandoNombre"
-            id="input-nombre-proyecto"
-            type="text"
-            class="nombre-input"
-            maxlength="100"
-            [(ngModel)]="nombreEdicion"
-            [disabled]="guardandoNombre"
-            (keydown.enter)="guardarNombre()"
-            (keydown.escape)="cancelarEdicionNombre()"
-            (blur)="guardarNombre()"
-            placeholder="Escribe el nombre del proyecto..."
-          />
-          <button *ngIf="!editandoNombre" type="button" class="edit-titulo-btn" (click)="iniciarEdicionNombre()" title="Editar nombre del proyecto">
+          <h2 class="nombre-texto" (dblclick)="iniciarEdicionNombre()" title="Doble clic para editar">{{ nombrePlan }}</h2>
+          <button type="button" class="edit-titulo-btn" (click)="iniciarEdicionNombre()" title="Editar nombre, texto de portada y logo">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
             </svg>
           </button>
         </div>
+        <div class="portada-resumen" *ngIf="periodoPortada || logoPortadaUrl">
+          <span class="portada-resumen-etiqueta">Portada del PDF</span>
+          <span class="portada-chip" *ngIf="periodoPortada">{{ periodoPortada }}</span>
+          <span class="portada-chip portada-chip-logo" *ngIf="logoPortadaUrl">
+            <img [src]="logoPortadaUrl" alt="" />Logo
+          </span>
+        </div>
+      </div>
+
+      <div class="proyecto-editor" *ngIf="editandoNombre" (keydown.escape)="cancelarEdicionNombre()">
+        <h3 class="editor-titulo">Datos del proyecto</h3>
+
+        <div class="editor-grid">
+          <div class="editor-columna">
+            <div class="editor-campo">
+              <label class="editor-etiqueta" for="input-nombre-proyecto">Nombre del proyecto</label>
+              <input
+                id="input-nombre-proyecto"
+                type="text"
+                class="editor-input"
+                maxlength="100"
+                [(ngModel)]="nombreEdicion"
+                [disabled]="guardandoNombre"
+                (keydown.enter)="guardarNombre()"
+                placeholder="Escribe el nombre del proyecto..."
+              />
+            </div>
+            <div class="editor-campo">
+              <label class="editor-etiqueta" for="input-periodo-portada">
+                Texto bajo el título <span class="editor-opcional">opcional</span>
+              </label>
+              <input
+                id="input-periodo-portada"
+                type="text"
+                class="editor-input"
+                [attr.maxlength]="maxCaracteresPeriodo"
+                [(ngModel)]="periodoEdicion"
+                [disabled]="guardandoNombre"
+                (keydown.enter)="guardarNombre()"
+                placeholder="Ej. 2026-2027"
+              />
+              <span class="editor-ayuda">Aparece en la portada del PDF, debajo de «Plan de Negocio».</span>
+            </div>
+          </div>
+
+          <div class="editor-columna">
+            <div class="editor-campo">
+              <span class="editor-etiqueta">Logo de la empresa <span class="editor-opcional">opcional</span></span>
+              <div class="logo-zona" [class.logo-zona-vacia]="!logoVistaPrevia">
+                <img *ngIf="logoVistaPrevia" [src]="logoVistaPrevia" class="logo-vista" alt="Logo de la empresa" />
+                <div *ngIf="!logoVistaPrevia" class="logo-vacio">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+                    <circle cx="8.5" cy="9" r="1.6"></circle>
+                    <path d="M21 16l-5-5-8 8"></path>
+                  </svg>
+                  <span>Sin logo</span>
+                </div>
+              </div>
+              <div class="logo-botones">
+                <label class="btn-editor" [class.deshabilitado]="guardandoNombre">
+                  {{ logoVistaPrevia ? 'Cambiar logo' : 'Subir logo' }}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" hidden [disabled]="guardandoNombre" (change)="alElegirLogo($event)" />
+                </label>
+                <button *ngIf="logoVistaPrevia" type="button" class="btn-editor btn-editor-peligro" [disabled]="guardandoNombre" (click)="quitarLogoEdicion()">Quitar</button>
+              </div>
+              <span class="editor-ayuda">PNG, JPG o WebP. Lo ideal es un PNG con fondo transparente.</span>
+            </div>
+          </div>
+        </div>
+
         <span class="nombre-error" *ngIf="errorNombre">{{ errorNombre }}</span>
+
+        <div class="editor-acciones">
+          <button type="button" class="btn-editor" (click)="cancelarEdicionNombre()" [disabled]="guardandoNombre">Cancelar</button>
+          <button type="button" class="btn-editor btn-editor-guardar" (click)="guardarNombre()" [disabled]="guardandoNombre">
+            {{ guardandoNombre ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </div>
       </div>
     </div>
 

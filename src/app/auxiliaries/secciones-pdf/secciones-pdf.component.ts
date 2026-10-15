@@ -6,13 +6,10 @@ import { InversionService } from '../../core/services/inversion.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AnexosFinancierosService, AnexosFinancieros, TablaAnexo, FilaAnexo } from '../../core/services/anexos-financieros.service';
+import { COLOR_CLARO, COLOR_GRIS_AZUL, COLOR_PRIMARIO, COLOR_PRIMARIO_OSCURO } from './pdf-estilos';
+import { dibujarPortada, LogoPortada } from './portada-pdf';
+import { medirImagen, reducirImagen } from '../../core/utils/imagen';
 import { ResumenFinancieroService, ResumenFinanciero, ResumenGrafica, TipoGrafica, EvaluacionFinanciera } from '../../core/services/resumen-financiero.service';
-
-// Paleta institucional (misma que usa el resto de la app: header, sidebar, login).
-const COLOR_PRIMARIO: [number, number, number] = [0, 66, 113]; // #004271
-const COLOR_PRIMARIO_OSCURO: [number, number, number] = [0, 49, 85]; // #003155
-const COLOR_CLARO: [number, number, number] = [216, 220, 230]; // #d8dce6
-const COLOR_GRIS_AZUL: [number, number, number] = [177, 187, 206]; // #B1BBCE
 
 const TITULO_TABLA_RESUMEN: Record<TipoGrafica, string> = {
   estado: 'Estado de resultados proyectado: utilidad bruta, de operación y neta',
@@ -74,11 +71,22 @@ export class SeccionesPDFComponent implements OnInit {
   planLogicoId = '';
   editandoTitulo: number | null = null;
   nombrePlan: string = 'Plan sin título';
-  // Edición del nombre del proyecto
+  // Edición de los datos del proyecto (nombre + portada del PDF), todo en un mismo panel con Guardar / Cancelar
   editandoNombre = false;
   nombreEdicion = '';
   guardandoNombre = false;
   errorNombre = '';
+
+  // Portada del PDF: texto opcional bajo "Plan de Negocio" y logo opcional
+  periodoPortada = '';
+  logoPortadaUrl = '';
+  periodoEdicion = '';
+  /** Logo que se ve en el panel: el guardado, el recién elegido (sin subir aún) o vacío si se quitó. */
+  logoVistaPrevia = '';
+  private logoPendiente: File | null = null;
+  private logoPendienteObjetoUrl = '';
+  private logoQuitado = false;
+  readonly maxCaracteresPeriodo = 40;
 
   // Páginas del PDF en horizontal (los anexos con tablas mensuales); el resto va vertical.
   private paginasHorizontales = new Set<number>();
@@ -109,6 +117,8 @@ export class SeccionesPDFComponent implements OnInit {
                 if (plan) {
                   this.planId = plan.id!;
                   this.nombrePlan = plan.nombre || 'Plan sin título';
+                  this.periodoPortada = plan.periodo || '';
+                  this.logoPortadaUrl = plan.logoUrl || '';
                   this.secciones = this.normalizarSecciones(plan.secciones);
                   this.sincronizarNombreConBackend();
                 } else {
@@ -166,43 +176,138 @@ export class SeccionesPDFComponent implements OnInit {
 
   iniciarEdicionNombre(): void {
     this.nombreEdicion = this.nombrePlan;
+    this.periodoEdicion = this.periodoPortada;
+    this.descartarLogoPendiente();
+    this.logoQuitado = false;
+    this.logoVistaPrevia = this.logoPortadaUrl;
     this.errorNombre = '';
     this.editandoNombre = true;
     setTimeout(() => (document.getElementById('input-nombre-proyecto') as HTMLInputElement | null)?.select(), 0);
   }
 
   cancelarEdicionNombre(): void {
+    if (this.guardandoNombre) return;
+    this.descartarLogoPendiente();
     this.editandoNombre = false;
     this.errorNombre = '';
   }
 
+  private descartarLogoPendiente(): void {
+    if (this.logoPendienteObjetoUrl) URL.revokeObjectURL(this.logoPendienteObjetoUrl);
+    this.logoPendiente = null;
+    this.logoPendienteObjetoUrl = '';
+  }
+
+  /** Elige un logo nuevo: se reduce y se muestra de inmediato, pero no se sube hasta pulsar "Guardar cambios". */
+  async alElegirLogo(evento: Event): Promise<void> {
+    const entrada = evento.target as HTMLInputElement;
+    const archivo = entrada.files?.[0];
+    entrada.value = ''; // permite volver a elegir el mismo archivo
+    if (!archivo) return;
+
+    this.errorNombre = '';
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(archivo.type)) {
+      this.errorNombre = 'El logo debe ser una imagen PNG, JPG o WebP.';
+      return;
+    }
+    if (archivo.size > 10 * 1024 * 1024) {
+      this.errorNombre = 'La imagen es demasiado grande (máximo 10 MB).';
+      return;
+    }
+    try {
+      // Se reduce antes de subirla: sobra para la portada y pesa poco en Firebase y en el PDF.
+      const reducida = await reducirImagen(archivo);
+      this.descartarLogoPendiente();
+      this.logoPendiente = reducida;
+      this.logoPendienteObjetoUrl = URL.createObjectURL(reducida);
+      this.logoVistaPrevia = this.logoPendienteObjetoUrl;
+      this.logoQuitado = false;
+    } catch (error) {
+      console.error('Error al preparar el logo:', error);
+      this.errorNombre = 'No se pudo leer la imagen. Prueba con otra.';
+    }
+  }
+
+  quitarLogoEdicion(): void {
+    this.descartarLogoPendiente();
+    this.logoVistaPrevia = '';
+    this.logoQuitado = true;
+  }
+
+  /** Guarda nombre, texto y logo del proyecto juntos. */
   async guardarNombre(): Promise<void> {
     if (!this.editandoNombre || this.guardandoNombre) return;
 
-    const nuevo = this.nombreEdicion.trim();
-    if (!nuevo) {
+    const nombre = this.nombreEdicion.trim();
+    const periodo = this.periodoEdicion.trim().slice(0, this.maxCaracteresPeriodo);
+    if (!nombre) {
       this.errorNombre = 'El nombre del proyecto no puede estar vacío.';
       return;
     }
-    if (nuevo === this.nombrePlan) {
-      this.editandoNombre = false;
+
+    const cambioNombre = nombre !== this.nombrePlan;
+    const cambioPeriodo = periodo !== this.periodoPortada;
+    const cambioLogo = !!this.logoPendiente || (this.logoQuitado && !!this.logoPortadaUrl);
+    if (!cambioNombre && !cambioPeriodo && !cambioLogo) {
+      this.cancelarEdicionNombre();
       return;
     }
 
     this.guardandoNombre = true;
     this.errorNombre = '';
     try {
-      await this.inversionService.actualizarNombrePlan(Number(this.planLogicoId), nuevo);
-      this.nombrePlan = nuevo;
+      // 1) el nombre vive en el backend (es lo que muestra el Home)
+      if (cambioNombre) {
+        await this.inversionService.actualizarNombrePlan(Number(this.planLogicoId), nombre);
+        this.nombrePlan = nombre;
+      }
+
+      // 2) logo y texto de la portada, junto con la copia del nombre, en un solo guardado de Firebase
+      const datos: { nombre?: string; periodo?: string; logoUrl?: string } = {};
+      if (cambioNombre) datos.nombre = nombre;
+      if (cambioPeriodo) datos.periodo = periodo;
+      let logoAnterior = '';
+      if (this.logoPendiente) {
+        datos.logoUrl = await firstValueFrom(this.firebaseService.subirImagen(this.logoPendiente, 'portada-logo', this.planId));
+        logoAnterior = this.logoPortadaUrl;
+      } else if (this.logoQuitado && this.logoPortadaUrl) {
+        datos.logoUrl = '';
+        logoAnterior = this.logoPortadaUrl;
+      }
+      if (Object.keys(datos).length > 0 && this.planId) {
+        await firstValueFrom(this.firebaseService.actualizarDatosProyecto(this.planId, datos));
+      }
+
+      if (cambioPeriodo) this.periodoPortada = periodo;
+      if (datos.logoUrl !== undefined) this.logoPortadaUrl = datos.logoUrl;
+      if (logoAnterior && !logoAnterior.startsWith('data:')) {
+        this.firebaseService.eliminarImagen(logoAnterior).subscribe(); // el logo anterior ya no se usa
+      }
+
+      this.descartarLogoPendiente();
       this.editandoNombre = false;
-      this.guardarTodasLasSecciones(); // copia en Firebase (título del PDF)
-      this.mensajeGuardado = 'Nombre del proyecto actualizado';
+      this.mensajeGuardado = 'Cambios del proyecto guardados';
       setTimeout(() => (this.mensajeGuardado = ''), 3000);
     } catch (error) {
-      console.error('Error al cambiar el nombre del proyecto:', error);
-      this.errorNombre = 'No se pudo cambiar el nombre. Intenta de nuevo.';
+      console.error('Error al guardar los datos del proyecto:', error);
+      this.errorNombre = 'No se pudieron guardar los cambios. Revisa tu conexión e inténtalo de nuevo.';
     } finally {
       this.guardandoNombre = false;
+    }
+  }
+
+  /** Carga el logo para dibujarlo en el PDF; si no se puede leer, el PDF sale igual, sin logo. */
+  private async prepararLogoPortada(): Promise<LogoPortada | null> {
+    if (!this.logoPortadaUrl) return null;
+    try {
+      const dataUrl = this.logoPortadaUrl.startsWith('data:')
+        ? this.logoPortadaUrl
+        : await this.convertirImagenUrlABase64(this.logoPortadaUrl);
+      const { ancho, alto } = await medirImagen(dataUrl);
+      return { dataUrl, ancho, alto };
+    } catch (error) {
+      console.warn('No se pudo cargar el logo de la portada; el PDF se genera sin él:', error);
+      return null;
     }
   }
 
@@ -939,7 +1044,11 @@ export class SeccionesPDFComponent implements OnInit {
       const maxTextWidth = pageWidth - margin * 2;
       let y = contentTop;
 
-      this.dibujarPortada(pdf, pageWidth, pageHeight);
+      dibujarPortada(pdf, pageWidth, pageHeight, {
+        titulo: this.nombrePlan,
+        periodo: this.periodoPortada,
+        logo: await this.prepararLogoPortada(),
+      });
 
       // Índice al principio (después de la portada). Se reserva(n) la(s)
       // página(s) ahora y se dibuja al final, cuando ya se sabe en qué página
@@ -1113,45 +1222,6 @@ export class SeccionesPDFComponent implements OnInit {
     } finally {
       this.loadingPDF = false;
     }
-  }
-
-  /**
-   * Portada institucional: banda superior con el nombre de la universidad,
-   * título del plan centrado y fecha de generación. Página 1, separada del
-   * contenido (que arranca en la página 2 con su propio encabezado/pie).
-   */
-  private dibujarPortada(pdf: jsPDF, pageWidth: number, pageHeight: number): void {
-    pdf.setFillColor(...COLOR_PRIMARIO);
-    pdf.rect(0, 0, pageWidth, 55, 'F');
-    pdf.setFillColor(...COLOR_PRIMARIO_OSCURO);
-    pdf.rect(0, 50, pageWidth, 5, 'F');
-
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(20);
-    pdf.text('UNIVERSIDAD TÉCNICA PARTICULAR DE LOJA', pageWidth / 2, 24, { align: 'center' });
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(12);
-    pdf.text('Colaborador Interactivo de Planes de Negocio', pageWidth / 2, 34, { align: 'center' });
-
-    pdf.setTextColor(...COLOR_PRIMARIO_OSCURO);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(24);
-    const tituloLines = pdf.splitTextToSize(this.nombrePlan || 'Plan de Negocio', pageWidth - 50);
-    pdf.text(tituloLines, pageWidth / 2, pageHeight / 2 - 10, { align: 'center' });
-
-    pdf.setDrawColor(...COLOR_GRIS_AZUL);
-    pdf.setLineWidth(0.5);
-    pdf.line(pageWidth / 2 - 30, pageHeight / 2 + 5, pageWidth / 2 + 30, pageHeight / 2 + 5);
-
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(11);
-    pdf.setTextColor(90, 90, 90);
-    pdf.text('Plan de Negocio', pageWidth / 2, pageHeight / 2 + 15, { align: 'center' });
-
-    const fecha = new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' });
-    pdf.setFontSize(10);
-    pdf.text(`Generado el ${fecha}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
   }
 
   /**

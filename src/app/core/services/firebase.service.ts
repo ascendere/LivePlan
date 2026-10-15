@@ -64,6 +64,10 @@ export interface PlanNegocio {
   planLogicoId?: string;
   nombre: string;
   usuarioId: string;
+  /** Texto opcional bajo "Plan de Negocio" en la portada del PDF (p. ej. "2026-2027"). */
+  periodo?: string;
+  /** Logo opcional de la portada del PDF (URL de Firebase Storage). */
+  logoUrl?: string;
   secciones: SeccionData[];
   fechaCreacion?: any;
   fechaActualizacion?: any;
@@ -477,6 +481,17 @@ export class FirebaseService {
       console.error('Error eliminando imagen:', error);
       return of(undefined);
     }
+  }
+
+  /**
+   * Actualiza solo estos datos del proyecto en un único guardado: el nombre (copia para el título del PDF), el texto
+   * opcional de la portada y el logo (URL de Storage). Cadena vacía = sin texto / sin logo. No toca nada más del plan.
+   */
+  actualizarDatosProyecto(
+    planId: string,
+    datos: { nombre?: string; periodo?: string; logoUrl?: string },
+  ): Observable<void> {
+    return from(updateDoc(doc(this.firestore, 'planes', planId), { ...datos, fechaActualizacion: new Date() }));
   }
 
   // Guardar plan completo en Firestore

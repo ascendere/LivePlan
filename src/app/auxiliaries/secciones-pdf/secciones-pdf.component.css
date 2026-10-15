@@ -809,3 +809,193 @@
 .agregar-etiqueta {
   margin: 4px 0 20px;
 }
+
+/* Resumen de la portada bajo el nombre (solo si hay texto o logo) */
+.portada-resumen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.portada-resumen-etiqueta {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+.portada-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #e8eef5;
+  color: #004271;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.portada-chip-logo img {
+  height: 16px;
+  max-width: 40px;
+  object-fit: contain;
+}
+
+/* Panel de edición del proyecto: nombre, texto de portada y logo */
+.proyecto-editor {
+  margin-top: 16px;
+  padding: 20px 22px 18px;
+  background: #fff;
+  border: 1px solid #dbe3ed;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 49, 85, 0.08);
+}
+.editor-titulo {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #004271;
+}
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 22px 32px;
+}
+.editor-columna {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.editor-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.editor-etiqueta {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #343a40;
+}
+.editor-opcional {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #6c757d;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.editor-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1.5px solid #ced4da;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.95rem;
+  color: #212529;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.editor-input:focus {
+  outline: none;
+  border-color: #004271;
+  box-shadow: 0 0 0 3px rgba(0, 66, 113, 0.14);
+}
+.editor-input:disabled {
+  background: #f1f3f5;
+}
+.editor-ayuda {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #6c757d;
+}
+
+/* Zona del logo */
+.logo-zona {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 110px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1.5px solid #dbe3ed;
+  border-radius: 12px;
+  background: #f4f6f9;
+}
+.logo-zona-vacia {
+  border-style: dashed;
+  border-color: #b1bbce;
+  background: #fafbfc;
+}
+.logo-vista {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.logo-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #8a94a6;
+  font-size: 0.8rem;
+}
+.logo-botones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Botones del panel */
+.btn-editor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1.5px solid #004271;
+  border-radius: 10px;
+  background: #fff;
+  color: #004271;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.btn-editor:hover:not(:disabled):not(.deshabilitado) {
+  background: #eef3f8;
+}
+.btn-editor:disabled,
+.btn-editor.deshabilitado {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-editor-peligro {
+  border-color: #d9a3a0;
+  color: #b42318;
+}
+.btn-editor-peligro:hover:not(:disabled) {
+  background: #fdf0ef;
+}
+.btn-editor-guardar {
+  background: #004271;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 66, 113, 0.2);
+}
+.btn-editor-guardar:hover:not(:disabled) {
+  background: #003157;
+}
+.editor-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #eef1f5;
+}
+
+@media (max-width: 720px) {
+  .editor-grid {
+    grid-template-columns: 1fr;
+  }
+}
