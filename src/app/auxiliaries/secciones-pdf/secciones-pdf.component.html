@@ -17,9 +17,10 @@
             </svg>
           </button>
         </div>
-        <div class="portada-resumen" *ngIf="periodoPortada || logoPortadaUrl">
+        <!-- Texto bajo el título desactivado: antes el contenedor era *ngIf="periodoPortada || logoPortadaUrl" y mostraba
+             aquí el chip <span class="portada-chip" *ngIf="periodoPortada">{{ periodoPortada }}</span> -->
+        <div class="portada-resumen" *ngIf="logoPortadaUrl">
           <span class="portada-resumen-etiqueta">Portada del PDF</span>
-          <span class="portada-chip" *ngIf="periodoPortada">{{ periodoPortada }}</span>
           <span class="portada-chip portada-chip-logo" *ngIf="logoPortadaUrl">
             <img [src]="logoPortadaUrl" alt="" />Logo
           </span>
@@ -44,6 +45,10 @@
                 placeholder="Escribe el nombre del proyecto..."
               />
             </div>
+            <!--
+              TEXTO BAJO EL TÍTULO (desactivado por ahora: ya no se usa). Se deja comentado por si se vuelve a necesitar.
+              Para reactivarlo: descomentar este bloque, el chip del resumen de arriba y poner
+              TEXTO_BAJO_TITULO_ACTIVO = true en portada-pdf.ts (así vuelve a dibujarse en la portada del PDF).
             <div class="editor-campo">
               <label class="editor-etiqueta" for="input-periodo-portada">
                 Texto bajo el título <span class="editor-opcional">opcional</span>
@@ -60,6 +65,7 @@
               />
               <span class="editor-ayuda">Aparece en la portada del PDF, debajo de «Plan de Negocio».</span>
             </div>
+            -->
           </div>
 
           <div class="editor-columna">

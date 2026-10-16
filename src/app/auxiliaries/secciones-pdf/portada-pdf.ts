@@ -16,6 +16,13 @@ export interface DatosPortada {
   logo?: LogoPortada | null;
 }
 
+/**
+ * Texto opcional bajo "Plan de Negocio" (p. ej. "2026-2027"). Desactivado por ahora: ya no se usa. El resto del código
+ * (campo en Planificación, guardado en Firestore, dibujo en la portada) se conserva para poder reactivarlo poniendo
+ * esto en `true` y descomentando el campo en secciones-pdf.component.html.
+ */
+export const TEXTO_BAJO_TITULO_ACTIVO = false;
+
 /** Caja máxima del logo en la portada (mm): ancho y alto. Se ajusta dentro sin deformarlo. */
 export const LOGO_MAX_ANCHO_MM = 70;
 export const LOGO_MAX_ALTO_MM = 38;
@@ -91,7 +98,7 @@ export function dibujarPortada(pdf: jsPDF, pageWidth: number, pageHeight: number
 
   // Texto opcional bajo "Plan de Negocio" (p. ej. "2026-2027").
   let siguienteY = pageHeight / 2 + 15;
-  const periodo = (datos.periodo ?? '').trim();
+  const periodo = TEXTO_BAJO_TITULO_ACTIVO ? (datos.periodo ?? '').trim() : '';
   if (periodo) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(12);

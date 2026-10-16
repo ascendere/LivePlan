@@ -1,8 +1,14 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ExcelExportService } from '../../core/services/excel-export.service';
+import { FirebaseService } from '../../core/services/firebase.service';
+import { ResumenFinancieroService } from '../../core/services/resumen-financiero.service';
+import { AnexosFinancierosService } from '../../core/services/anexos-financieros.service';
+import { GeneradorPdfPlanificacion, nombreArchivoPdf } from '../../auxiliaries/secciones-pdf/generador-pdf';
+import { normalizarSecciones } from '../../auxiliaries/secciones-pdf/secciones-util';
 import {
   EstadoCarga,
   FilaCarga,
+  FiltroPlan,
   RespuestaCarga,
   UsuarioAdmin,
   UsuariosAdminService,
@@ -61,9 +67,13 @@ export class AdminUsuarios implements OnInit, OnDestroy {
   pagina = 1;
   readonly porPagina = 25;
   busqueda = '';
+  /** "con" / "sin": solo quienes ya crearon (o aún no) un plan de negocio. */
+  filtroPlan: FiltroPlan = '';
   cargandoLista = false;
   errorLista = '';
   private temporizadorBusqueda?: ReturnType<typeof setTimeout>;
+  /** Filas con la lista de planes o de asignaturas desplegada ("p-<id>" / "a-<id>"). */
+  private desplegados = new Set<string>();
   accionEnCurso: number | null = null;
   mensajeAccion = '';
   errorAccion = '';
@@ -81,10 +91,17 @@ export class AdminUsuarios implements OnInit, OnDestroy {
   resultadoFinal: RespuestaCarga | null = null;
   readonly columnas = COLUMNAS;
 
+  /** Id del plan cuyo PDF se está generando (null = ninguno). */
+  generandoPdf: number | null = null;
+  errorPdf = '';
+
   constructor(
     private readonly servicio: UsuariosAdminService,
     private readonly excel: ExcelExportService,
     private readonly cdr: ChangeDetectorRef,
+    private readonly firebaseService: FirebaseService,
+    private readonly resumenService: ResumenFinancieroService,
+    private readonly anexosService: AnexosFinancierosService,
   ) {}
 
   ngOnInit(): void {
@@ -177,7 +194,7 @@ export class AdminUsuarios implements OnInit, OnDestroy {
     this.cargandoLista = true;
     this.errorLista = '';
     try {
-      const r = await this.servicio.listar(this.busqueda, this.pagina, this.porPagina);
+      const r = await this.servicio.listar(this.busqueda, this.pagina, this.porPagina, this.filtroPlan);
       this.usuarios = r.usuarios;
       this.total = r.total;
     } catch (e: any) {
@@ -194,6 +211,67 @@ export class AdminUsuarios implements OnInit, OnDestroy {
       this.pagina = 1;
       this.cargarLista();
     }, 300);
+  }
+
+  /** Planes de un usuario como pares (id, nombre), en orden de creación. */
+  planesDe(u: UsuarioAdmin): { id: number; nombre: string }[] {
+    const ids = u.planes_ids ?? [];
+    return (u.planes_nombres ?? []).map((nombre, i) => ({ id: ids[i], nombre }));
+  }
+
+  /**
+   * Descarga el PDF de Planificación del plan de un estudiante, con el mismo formato que el que genera él:
+   * el texto sale de Firestore (lo lee el backend), las tablas y gráficas del resumen financiero.
+   */
+  async descargarPdf(plan: { id: number; nombre: string }): Promise<void> {
+    if (this.generandoPdf !== null || !plan.id) return;
+    this.generandoPdf = plan.id;
+    this.errorPdf = '';
+    this.mensajeAccion = '';
+    this.errorAccion = '';
+    try {
+      // 1) datos financieros (si fallan, se avisa en vez de entregar un PDF incompleto sin decir nada)
+      const respuestaFinanciera = await this.resumenService.pedir(plan.id, true, true);
+      // 2) texto de Planificación; null = el estudiante nunca la abrió (PDF con las plantillas vacías)
+      const texto = await this.servicio.planificacionDePlan(plan.id);
+      const doc = texto?.planificacion;
+      const secciones = doc ? normalizarSecciones(doc.secciones) : this.firebaseService.generarPlantillaSecciones();
+      const generador = new GeneradorPdfPlanificacion(
+        {
+          nombrePlan: plan.nombre,
+          periodoPortada: doc?.periodo ?? '',
+          logoPortadaUrl: doc?.logoUrl ?? '',
+          secciones,
+          planLogicoId: String(plan.id),
+          respuestaFinanciera,
+        },
+        this.resumenService,
+        this.anexosService,
+      );
+      const pdf = await generador.generar();
+      pdf.save(nombreArchivoPdf(plan.nombre));
+      if (!doc) this.mensajeAccion = `"${plan.nombre}" todavía no tiene texto de Planificación: el PDF incluye solo las tablas y gráficas financieras.`;
+    } catch (e: any) {
+      console.error('Error al generar el PDF del plan:', e);
+      this.errorPdf = `No se pudo generar el PDF de "${plan.nombre}": ${e?.message ?? 'error desconocido'}`;
+    } finally {
+      this.generandoPdf = null;
+      this.cdr.markForCheck();
+    }
+  }
+
+  alternar(tipo: 'p' | 'a', id: number): void {
+    const clave = `${tipo}-${id}`;
+    if (!this.desplegados.delete(clave)) this.desplegados.add(clave);
+  }
+
+  estaAbierto(tipo: 'p' | 'a', id: number): boolean {
+    return this.desplegados.has(`${tipo}-${id}`);
+  }
+
+  alCambiarFiltroPlan(): void {
+    this.pagina = 1;
+    this.cargarLista();
   }
 
   get totalPaginas(): number {

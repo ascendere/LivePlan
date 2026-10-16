@@ -46,7 +46,15 @@ export interface UsuarioAdmin {
   activo: boolean;
   creado_en: string;
   asignaciones: Asignacion[];
+  /** Cuántos planes de negocio ha creado y cómo se llaman (en orden de creación). */
+  planes: number;
+  planes_nombres: string[];
+  /** Ids de esos planes, en el mismo orden que `planes_nombres`. */
+  planes_ids: number[];
 }
+
+/** Filtro de la lista según si la persona ya creó un plan. */
+export type FiltroPlan = '' | 'con' | 'sin';
 
 export interface PaginaUsuarios {
   total: number;
@@ -61,9 +69,10 @@ export class UsuariosAdminService {
   private readonly api = inject(ApiService);
   private readonly base = `${environment.backend.url}/admin/usuarios`;
 
-  async listar(q: string, pagina: number, porPagina = 50): Promise<PaginaUsuarios> {
+  async listar(q: string, pagina: number, porPagina = 50, plan: FiltroPlan = ''): Promise<PaginaUsuarios> {
     const params = new URLSearchParams({ pagina: String(pagina), por_pagina: String(porPagina) });
     if (q.trim()) params.set('q', q.trim());
+    if (plan) params.set('plan', plan);
     return this.pedir(`${this.base}?${params}`);
   }
 
@@ -82,6 +91,24 @@ export class UsuariosAdminService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activo }),
     });
+  }
+
+  /**
+   * Texto de Planificación de un plan (el que escribió el estudiante, guardado en Firestore) para generar su PDF.
+   * Devuelve null si ese plan todavía no abrió Planificación (no tiene texto): el PDF sale con las plantillas vacías.
+   */
+  async planificacionDePlan(planId: number): Promise<{ nombre: string; planificacion: any } | null> {
+    const respuesta = await this.api.fetch(`${environment.backend.url}/admin/planes/${planId}/planificacion`);
+    if (respuesta.status === 404) {
+      const cuerpo = await respuesta.clone().json().catch(() => null);
+      if (cuerpo?.codigo === 'sin_planificacion') return null;
+    }
+    if (!respuesta.ok) {
+      const cuerpo = await respuesta.json().catch(() => null);
+      throw new Error(cuerpo?.mensaje ?? `Error ${respuesta.status}`);
+    }
+    const datos = await respuesta.json();
+    return { nombre: datos.plan?.nombre ?? '', planificacion: datos.planificacion };
   }
 
   async formatearClave(id: number): Promise<void> {

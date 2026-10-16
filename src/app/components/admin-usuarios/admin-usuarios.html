@@ -15,6 +15,11 @@
       [(ngModel)]="busqueda"
       (input)="alBuscar()"
     />
+    <select class="filtro-plan" [(ngModel)]="filtroPlan" (change)="alCambiarFiltroPlan()" aria-label="Filtrar por plan">
+      <option value="">Todos</option>
+      <option value="con">Con plan creado</option>
+      <option value="sin">Sin plan todavía</option>
+    </select>
     <span class="contador" *ngIf="total">{{ total }} {{ total === 1 ? 'usuario' : 'usuarios' }}</span>
     <button class="btn-principal" (click)="abrirModal('manual')">+ Agregar usuarios</button>
   </div>
@@ -22,29 +27,63 @@
   <p class="msg-ok" *ngIf="mensajeAccion">{{ mensajeAccion }}</p>
   <p class="msg-error" *ngIf="errorAccion">{{ errorAccion }}</p>
   <p class="msg-error" *ngIf="errorLista">{{ errorLista }}</p>
+  <p class="msg-error" *ngIf="errorPdf">{{ errorPdf }}</p>
+  <p class="msg-aviso" *ngIf="generandoPdf !== null">Generando el PDF… puede tardar unos segundos.</p>
 
   <div class="tabla-scroll">
-    <table class="tabla-usuarios" *ngIf="usuarios.length > 0">
+    <table class="tabla-usuarios tabla-lista" *ngIf="usuarios.length > 0">
       <thead>
         <tr>
-          <th>Nombre</th>
-          <th>Correo</th>
+          <th>Usuario</th>
           <th>Cédula / documento</th>
           <th>Carrera / asignatura</th>
+          <th>Plan</th>
           <th>Estado</th>
           <th class="col-acciones">Acciones</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let u of usuarios" [class.inactivo]="!u.activo">
-          <td>{{ nombreCompleto(u) }}</td>
-          <td>{{ u.correo }}</td>
-          <td>
-            {{ u.cedula }}
+          <td class="celda-usuario">
+            <div class="usuario-nombre">{{ nombreCompleto(u) }}</div>
+            <div class="usuario-correo" [title]="u.correo">{{ u.correo }}</div>
+          </td>
+          <td class="celda-documento">
+            <div>{{ u.cedula }}</div>
             <span class="etiqueta etiqueta-doc" *ngIf="u.tipo_documento === 'extranjero'" title="Pasaporte u otro documento de extranjero">Extranjero</span>
           </td>
-          <td>
-            <div *ngFor="let a of u.asignaciones" class="asignacion">{{ a.carrera }} · {{ a.asignatura }}</div>
+          <td class="celda-asignaciones">
+            <ng-container *ngIf="u.asignaciones.length">
+              <div class="asignacion" [title]="u.asignaciones[0].carrera + ' · ' + u.asignaciones[0].asignatura">
+                {{ u.asignaciones[0].carrera }} · {{ u.asignaciones[0].asignatura }}
+              </div>
+              <ng-container *ngIf="u.asignaciones.length > 1">
+                <button type="button" class="chip-mas" (click)="alternar('a', u.id)" [attr.aria-expanded]="estaAbierto('a', u.id)">
+                  {{ estaAbierto('a', u.id) ? 'Ver menos' : '+ ' + (u.asignaciones.length - 1) + ' más' }}
+                </button>
+                <ng-container *ngIf="estaAbierto('a', u.id)">
+                  <div class="asignacion" *ngFor="let x of u.asignaciones | slice: 1" [title]="x.carrera + ' · ' + x.asignatura">
+                    {{ x.carrera }} · {{ x.asignatura }}
+                  </div>
+                </ng-container>
+              </ng-container>
+            </ng-container>
+          </td>
+          <td class="col-planes">
+            <span *ngIf="!u.planes_nombres.length" class="plan-sin">Sin plan</span>
+            <ng-container *ngIf="u.planes_nombres.length">
+              <ng-container *ngTemplateOutlet="filaPlan; context: { plan: planesDe(u)[0] }"></ng-container>
+              <ng-container *ngIf="u.planes_nombres.length > 1">
+                <button type="button" class="chip-mas" (click)="alternar('p', u.id)" [attr.aria-expanded]="estaAbierto('p', u.id)">
+                  {{ estaAbierto('p', u.id) ? 'Ver menos' : '+ ' + (u.planes_nombres.length - 1) + ' más' }}
+                </button>
+                <ng-container *ngIf="estaAbierto('p', u.id)">
+                  <ng-container *ngFor="let plan of planesDe(u) | slice: 1">
+                    <ng-container *ngTemplateOutlet="filaPlan; context: { plan: plan }"></ng-container>
+                  </ng-container>
+                </ng-container>
+              </ng-container>
+            </ng-container>
           </td>
           <td>
             <span class="etiqueta" [class.etiqueta-ok]="u.activo" [class.etiqueta-off]="!u.activo">
@@ -53,14 +92,36 @@
           </td>
           <td class="col-acciones">
             <button
-              class="btn-tabla"
+              type="button"
+              class="btn-icono"
+              [class.btn-icono-peligro]="u.activo"
               [disabled]="accionEnCurso === u.id"
+              [title]="u.activo ? 'Deshabilitar usuario' : 'Habilitar usuario'"
+              [attr.aria-label]="u.activo ? 'Deshabilitar usuario' : 'Habilitar usuario'"
               (click)="pedirConfirmacion(u.activo ? 'deshabilitar' : 'habilitar', u)"
             >
-              {{ u.activo ? 'Deshabilitar' : 'Habilitar' }}
+              <svg *ngIf="u.activo" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <line x1="5.6" y1="5.6" x2="18.4" y2="18.4"></line>
+              </svg>
+              <svg *ngIf="!u.activo" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <polyline points="8 12.5 11 15.5 16 9"></polyline>
+              </svg>
             </button>
-            <button class="btn-tabla btn-secundario" [disabled]="accionEnCurso === u.id" (click)="pedirConfirmacion('formatear', u)">
-              Formatear contraseña
+            <button
+              type="button"
+              class="btn-icono"
+              [disabled]="accionEnCurso === u.id"
+              title="Formatear contraseña (la deja igual a su cédula o documento)"
+              aria-label="Formatear contraseña"
+              (click)="pedirConfirmacion('formatear', u)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="7.5" cy="15.5" r="3.5"></circle>
+                <path d="M10 13l9-9"></path>
+                <path d="M16 7l3 3"></path>
+              </svg>
             </button>
           </td>
         </tr>
@@ -69,7 +130,7 @@
   </div>
 
   <p class="vacio" *ngIf="!cargandoLista && usuarios.length === 0 && !errorLista">
-    {{ busqueda ? 'Ningún usuario coincide con la búsqueda.' : 'Todavía no hay usuarios. Usa "Agregar usuarios".' }}
+    {{ busqueda || filtroPlan ? 'Ningún usuario coincide con la búsqueda o el filtro.' : 'Todavía no hay usuarios. Usa "Agregar usuarios".' }}
   </p>
   <p class="vacio" *ngIf="cargandoLista">Cargando…</p>
 
@@ -79,6 +140,28 @@
     <button class="btn-tabla" [disabled]="pagina >= totalPaginas" (click)="irAPagina(pagina + 1)">Siguiente ›</button>
   </div>
 </main>
+
+<!-- Un plan de la lista: su nombre y el botón para descargar su PDF de Planificación -->
+<ng-template #filaPlan let-plan="plan">
+  <div class="plan-fila">
+    <span class="plan-nombre" [title]="plan.nombre">{{ plan.nombre }}</span>
+    <button
+      type="button"
+      class="btn-pdf"
+      [disabled]="generandoPdf !== null"
+      [title]="generandoPdf === plan.id ? 'Generando el PDF…' : 'Descargar el PDF de Planificación de este plan'"
+      [attr.aria-label]="'Descargar el PDF de ' + plan.nombre"
+      (click)="descargarPdf(plan)"
+    >
+      <span *ngIf="generandoPdf === plan.id" class="spinner-pdf" aria-hidden="true"></span>
+      <svg *ngIf="generandoPdf !== plan.id" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+    </button>
+  </div>
+</ng-template>
 
 <!-- ====================================================== VENTANA: AGREGAR USUARIOS -->
 <div class="modal-overlay" *ngIf="modalAbierto" (click)="cerrarModal()">
