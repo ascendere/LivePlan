@@ -181,7 +181,8 @@
       <form *ngIf="modo === 'manual'" class="form-manual" (ngSubmit)="guardarManual()" autocomplete="off">
         <p class="nota">
           La contraseña inicial es la <strong>cédula o documento</strong>; al ingresar por primera vez la persona deberá elegir una
-          propia. Si ya está en la lista, se le agrega la asignatura.
+          propia. La <strong>carrera y la asignatura son opcionales</strong>. Si la persona ya está en la lista, se le agrega
+          la asignatura.
         </p>
 
         <div class="campo">
@@ -214,11 +215,11 @@
           />
         </div>
         <div class="campo campo-ancho">
-          <label for="m-carrera">Carrera</label>
+          <label for="m-carrera">Carrera <span class="opcional">(opcional)</span></label>
           <input id="m-carrera" name="carrera" [(ngModel)]="manual.carrera" [disabled]="guardandoManual" />
         </div>
         <div class="campo campo-ancho">
-          <label for="m-asignatura">Asignatura</label>
+          <label for="m-asignatura">Asignatura <span class="opcional">(opcional)</span></label>
           <input id="m-asignatura" name="asignatura" [(ngModel)]="manual.asignatura" [disabled]="guardandoManual" />
         </div>
 
@@ -240,8 +241,9 @@
           <ol>
             <li>Descarga la plantilla y llénala. Una fila por persona y asignatura.</li>
             <li>
-              Columnas: <strong>{{ columnas[0].etiqueta }}, {{ columnas[1].etiqueta }}, {{ columnas[2].etiqueta }},
-              {{ columnas[3].etiqueta }}, {{ columnas[5].etiqueta }}, {{ columnas[6].etiqueta }}</strong>. Si una persona
+              Columnas obligatorias: <strong>{{ columnas[0].etiqueta }}, {{ columnas[1].etiqueta }}, {{ columnas[2].etiqueta }},
+              {{ columnas[3].etiqueta }}</strong>. La <strong>{{ columnas[5].etiqueta }}</strong> y la
+              <strong>{{ columnas[6].etiqueta }}</strong> son opcionales. Si una persona
               tiene varias asignaturas, repite sus datos en otra fila: tendrá una sola cuenta.
               Para <strong>extranjeros</strong> agrega la columna opcional <strong>{{ columnas[4].etiqueta }}</strong> con
               «Pasaporte» y pon su pasaporte en la columna Cédula; sin esa columna todos se tratan como cédula ecuatoriana.

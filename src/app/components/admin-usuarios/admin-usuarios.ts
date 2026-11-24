@@ -35,8 +35,9 @@ const COLUMNAS: { campo: keyof FilaCarga; etiqueta: string; alias: string[]; opc
     alias: ['tipodocumento', 'tipodedocumento', 'tipoidentificacion', 'tipodeidentificacion', 'tipoid', 'tipodoc'],
     opcional: true,
   },
-  { campo: 'carrera', etiqueta: 'Carrera', alias: ['carrera', 'programa'] },
-  { campo: 'asignatura', etiqueta: 'Asignatura', alias: ['asignatura', 'materia', 'curso'] },
+  // Opcionales: quien no las tenga a mano se agrega igual.
+  { campo: 'carrera', etiqueta: 'Carrera', alias: ['carrera', 'programa'], opcional: true },
+  { campo: 'asignatura', etiqueta: 'Asignatura', alias: ['asignatura', 'materia', 'curso'], opcional: true },
 ];
 
 const normalizarEncabezado = (s: string) =>
@@ -145,8 +146,10 @@ export class AdminUsuarios implements OnInit, OnDestroy {
 
   // ---- ingreso manual ----
 
+  /** Lo obligatorio es lo que identifica a la persona; la carrera y la asignatura son opcionales. */
   get manualCompleto(): boolean {
-    return Object.values(this.manual).every((v) => v.trim() !== ''); // el tipo de documento ya trae un valor
+    const m = this.manual;
+    return [m.nombres, m.apellidos, m.correo, m.cedula].every((v) => v.trim() !== '');
   }
 
   /** Manda una sola fila al mismo servicio de la carga masiva: la limpieza y las validaciones son las mismas. */

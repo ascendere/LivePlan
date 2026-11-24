@@ -633,3 +633,10 @@
 .tabla-lista tr.inactivo td.col-acciones {
   background: #fafafa;
 }
+
+/* ---- administración de usuarios: opcionales, editar, administrador y eliminar plan ---- */
+.opcional {
+  font-weight: 400;
+  color: #6b7686;
+  font-size: 12px;
+}
