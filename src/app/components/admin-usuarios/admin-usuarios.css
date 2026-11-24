@@ -635,6 +635,16 @@
 }
 
 /* ---- administración de usuarios: opcionales, editar, administrador y eliminar plan ---- */
+.etiqueta-admin {
+  margin-left: 6px;
+  background: #e1e9f7;
+  color: #004271;
+  font-size: 11px;
+  padding: 1px 8px;
+}
+.btn-icono-activo {
+  background: #e1e9f7;
+}
 .opcional {
   font-weight: 400;
   color: #6b7686;

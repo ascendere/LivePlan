@@ -51,6 +51,8 @@ export interface UsuarioAdmin {
   planes_nombres: string[];
   /** Ids de esos planes, en el mismo orden que `planes_nombres`. */
   planes_ids: number[];
+  /** Tiene el rol de administrador (el backend lo llena en el listado). */
+  es_admin?: boolean;
 }
 
 /** Datos que se pueden corregir de un usuario. Lo que no se manda no cambia; `asignaciones` reemplaza la lista. */
@@ -109,6 +111,15 @@ export class UsuariosAdminService {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(datos),
+    });
+  }
+
+  /** Da o quita el rol de administrador. */
+  async cambiarAdmin(id: number, admin: boolean): Promise<UsuarioAdmin> {
+    return this.pedir(`${this.base}/${id}/admin`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ admin }),
     });
   }
 

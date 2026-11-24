@@ -19,7 +19,7 @@ import { leerArchivoTabla } from '../../core/utils/leer-tabla';
 type ModoAgregar = 'manual' | 'masiva';
 
 interface Confirmacion {
-  accion: 'deshabilitar' | 'habilitar' | 'formatear';
+  accion: 'deshabilitar' | 'habilitar' | 'formatear' | 'hacerAdmin' | 'quitarAdmin';
   usuario: UsuarioAdmin;
 }
 
@@ -324,11 +324,21 @@ export class AdminUsuarios implements OnInit, OnDestroy {
         return `${nombre} podrá volver a iniciar sesión con su contraseña actual.`;
       case 'formatear':
         return `La contraseña de ${nombre} volverá a ser su cédula y tendrá que elegir una nueva al ingresar. Sus sesiones abiertas se cerrarán.`;
+      case 'hacerAdmin':
+        return `${nombre} podrá administrar usuarios, asignar administradores y eliminar planes. El cambio se aplica en menos de un minuto.`;
+      case 'quitarAdmin':
+        return `${nombre} dejará de ser administrador y volverá a ver solo sus propios planes. El cambio se aplica en menos de un minuto.`;
     }
   }
 
   tituloConfirmacion(c: Confirmacion): string {
-    return { deshabilitar: 'Deshabilitar usuario', habilitar: 'Habilitar usuario', formatear: 'Formatear contraseña' }[c.accion];
+    return {
+      deshabilitar: 'Deshabilitar usuario',
+      habilitar: 'Habilitar usuario',
+      formatear: 'Formatear contraseña',
+      hacerAdmin: 'Hacer administrador',
+      quitarAdmin: 'Quitar administrador',
+    }[c.accion];
   }
 
   async confirmarAccion(): Promise<void> {
@@ -342,6 +352,10 @@ export class AdminUsuarios implements OnInit, OnDestroy {
       if (c.accion === 'formatear') {
         await this.servicio.formatearClave(c.usuario.id);
         this.mensajeAccion = `Contraseña de ${this.nombreCompleto(c.usuario)} restablecida a su cédula.`;
+      } else if (c.accion === 'hacerAdmin' || c.accion === 'quitarAdmin') {
+        const actualizado = await this.servicio.cambiarAdmin(c.usuario.id, c.accion === 'hacerAdmin');
+        this.usuarios = this.usuarios.map((u) => (u.id === actualizado.id ? { ...u, es_admin: actualizado.es_admin } : u));
+        this.mensajeAccion = `${this.nombreCompleto(c.usuario)} ${actualizado.es_admin ? 'ahora es administrador' : 'ya no es administrador'}.`;
       } else {
         const actualizado = await this.servicio.cambiarActivo(c.usuario.id, c.accion === 'habilitar');
         this.usuarios = this.usuarios.map((u) => (u.id === actualizado.id ? { ...u, activo: actualizado.activo } : u));
