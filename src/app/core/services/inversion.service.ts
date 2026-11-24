@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { environment } from '../../../environments/environment.example';
+import { environment } from '../../../environments/environment';
 import { PlanNegocio } from '../../interfaces/planNegocio.interface';
 import { FirebaseService } from './firebase.service';
 import { AuthService } from './login.service';

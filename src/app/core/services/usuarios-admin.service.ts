@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { environment } from '../../../environments/environment.example';
+import { environment } from '../../../environments/environment';
 import { ApiService } from './api.service';
 
 export interface FilaCarga {

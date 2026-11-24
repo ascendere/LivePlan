@@ -4,7 +4,7 @@ import {combineLatest, firstValueFrom, map, Observable, of, switchMap} from 'rxj
 import {Router} from '@angular/router';
 import {Injectable, EnvironmentInjector, runInInjectionContext} from '@angular/core';
 import firebase from 'firebase/compat/app'; // Importa firebase
-import { environment } from '../../../environments/environment.example';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
