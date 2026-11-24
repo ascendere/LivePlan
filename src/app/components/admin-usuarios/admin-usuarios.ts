@@ -19,8 +19,10 @@ import { leerArchivoTabla } from '../../core/utils/leer-tabla';
 type ModoAgregar = 'manual' | 'masiva';
 
 interface Confirmacion {
-  accion: 'deshabilitar' | 'habilitar' | 'formatear' | 'hacerAdmin' | 'quitarAdmin';
+  accion: 'deshabilitar' | 'habilitar' | 'formatear' | 'hacerAdmin' | 'quitarAdmin' | 'eliminarPlan';
   usuario: UsuarioAdmin;
+  /** Solo en 'eliminarPlan': el plan que se va a eliminar. */
+  plan?: { id: number; nombre: string };
 }
 
 /** Lo que se está corrigiendo de un usuario en la ventana "Editar usuario". */
@@ -91,6 +93,9 @@ export class AdminUsuarios implements OnInit, OnDestroy {
   edicion: Edicion | null = null;
   guardandoEdicion = false;
   errorEdicion = '';
+
+  /** Id del plan que se está eliminando (null = ninguno). */
+  eliminandoPlan: number | null = null;
 
   // ---- carga masiva ----
   archivoNombre = '';
@@ -328,6 +333,8 @@ export class AdminUsuarios implements OnInit, OnDestroy {
         return `${nombre} podrá administrar usuarios, asignar administradores y eliminar planes. El cambio se aplica en menos de un minuto.`;
       case 'quitarAdmin':
         return `${nombre} dejará de ser administrador y volverá a ver solo sus propios planes. El cambio se aplica en menos de un minuto.`;
+      case 'eliminarPlan':
+        return `Se eliminará el plan "${c.plan?.nombre}" de ${nombre}, con todos sus datos financieros y su texto de Planificación. Esta acción no se puede deshacer.`;
     }
   }
 
@@ -338,6 +345,7 @@ export class AdminUsuarios implements OnInit, OnDestroy {
       formatear: 'Formatear contraseña',
       hacerAdmin: 'Hacer administrador',
       quitarAdmin: 'Quitar administrador',
+      eliminarPlan: 'Eliminar plan',
     }[c.accion];
   }
 
@@ -356,6 +364,8 @@ export class AdminUsuarios implements OnInit, OnDestroy {
         const actualizado = await this.servicio.cambiarAdmin(c.usuario.id, c.accion === 'hacerAdmin');
         this.usuarios = this.usuarios.map((u) => (u.id === actualizado.id ? { ...u, es_admin: actualizado.es_admin } : u));
         this.mensajeAccion = `${this.nombreCompleto(c.usuario)} ${actualizado.es_admin ? 'ahora es administrador' : 'ya no es administrador'}.`;
+      } else if (c.accion === 'eliminarPlan' && c.plan) {
+        await this.eliminarPlan(c.usuario, c.plan);
       } else {
         const actualizado = await this.servicio.cambiarActivo(c.usuario.id, c.accion === 'habilitar');
         this.usuarios = this.usuarios.map((u) => (u.id === actualizado.id ? { ...u, activo: actualizado.activo } : u));
@@ -366,6 +376,28 @@ export class AdminUsuarios implements OnInit, OnDestroy {
     } finally {
       this.accionEnCurso = null;
       this.cdr.markForCheck();
+    }
+  }
+
+  // ---- eliminar un plan ----
+
+  pedirEliminarPlan(plan: { id: number; nombre: string }): void {
+    const usuario = this.usuarios.find((u) => (u.planes_ids ?? []).includes(plan.id));
+    if (!usuario || this.eliminandoPlan !== null) return;
+    this.mensajeAccion = '';
+    this.errorAccion = '';
+    this.confirmacion = { accion: 'eliminarPlan', usuario, plan };
+  }
+
+  private async eliminarPlan(usuario: UsuarioAdmin, plan: { id: number; nombre: string }): Promise<void> {
+    this.eliminandoPlan = plan.id;
+    try {
+      const r = await this.servicio.eliminarPlan(plan.id);
+      this.mensajeAccion = `El plan "${plan.nombre}" de ${this.nombreCompleto(usuario)} fue eliminado.`;
+      if (r.aviso) this.errorAccion = r.aviso;
+      await this.cargarLista();
+    } finally {
+      this.eliminandoPlan = null;
     }
   }
 

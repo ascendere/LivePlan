@@ -650,6 +650,19 @@
   color: #6b7686;
   font-size: 12px;
 }
+.btn-pdf-peligro {
+  border-color: #d9a3a0;
+  color: #b42318;
+}
+.btn-pdf-peligro:hover:not(:disabled) {
+  background: #fdf0ef;
+  border-color: #b42318;
+}
+.btn-peligro,
+.btn-peligro:hover:not(:disabled) {
+  background: #b42318;
+  border-color: #b42318;
+}
 .asignaciones-edicion {
   display: flex;
   flex-direction: column;

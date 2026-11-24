@@ -65,6 +65,14 @@ export interface EdicionUsuario {
   asignaciones?: Asignacion[];
 }
 
+export interface ResultadoEliminarPlan {
+  mensaje: string;
+  /** Cuántos textos de Planificación se borraron de Firebase. */
+  planificacion_eliminada: number;
+  /** Si el plan se eliminó pero algo quedó pendiente (por ejemplo el texto en Firebase). */
+  aviso?: string;
+}
+
 /** Filtro de la lista según si la persona ya creó un plan. */
 export type FiltroPlan = '' | 'con' | 'sin';
 
@@ -121,6 +129,11 @@ export class UsuariosAdminService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ admin }),
     });
+  }
+
+  /** Elimina un plan con todos sus datos y su texto de Planificación. No se puede deshacer. */
+  async eliminarPlan(planId: number): Promise<ResultadoEliminarPlan> {
+    return this.pedir(`${environment.backend.url}/admin/planes/${planId}`, { method: 'DELETE' });
   }
 
   /**

@@ -190,6 +190,22 @@
         <line x1="12" y1="15" x2="12" y2="3"></line>
       </svg>
     </button>
+    <button
+      type="button"
+      class="btn-pdf btn-pdf-peligro"
+      [disabled]="eliminandoPlan !== null"
+      title="Eliminar este plan"
+      [attr.aria-label]="'Eliminar el plan ' + plan.nombre"
+      (click)="pedirEliminarPlan(plan)"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+        <path d="M10 11v6"></path>
+        <path d="M14 11v6"></path>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+      </svg>
+    </button>
   </div>
 </ng-template>
 
@@ -442,7 +458,9 @@
     <p>{{ textoConfirmacion(c) }}</p>
     <div class="modal-acciones">
       <button class="btn-tabla btn-secundario" (click)="cancelarConfirmacion()">Cancelar</button>
-      <button class="btn-principal" (click)="confirmarAccion()">Confirmar</button>
+      <button class="btn-principal" [class.btn-peligro]="c.accion === 'eliminarPlan'" (click)="confirmarAccion()">
+        {{ c.accion === 'eliminarPlan' ? 'Eliminar definitivamente' : 'Confirmar' }}
+      </button>
     </div>
   </div>
 </div>
