@@ -229,6 +229,16 @@ export class InversionService {
     });
   }
 
+  /** Elimina un plan propio con todos sus datos y su texto de Planificación. Devuelve un aviso si algo quedó pendiente. */
+  async eliminarPlanNegocio(planId: number): Promise<{ aviso?: string }> {
+    const response = await this.apiFetch(`${this.apiUrl}/plan/${encodeURIComponent(planId)}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const cuerpo = await response.json().catch(() => null);
+      throw new Error(cuerpo?.mensaje ?? 'No se pudo eliminar el plan.');
+    }
+    return response.json();
+  }
+
   getPlanNegocioByAutor(authorUuid: number): Promise<PlanNegocio[]> {
     const url = `${this.apiUrl}/plan/${encodeURIComponent(authorUuid)}`;
     return this.apiFetch(url).then((response) => {

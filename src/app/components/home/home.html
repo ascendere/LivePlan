@@ -17,6 +17,11 @@
       (input)="filterPlanes()"
     />
 
+    <p class="aviso-eliminar" *ngIf="avisoEliminar" role="status">
+      {{ avisoEliminar }}
+      <button type="button" (click)="avisoEliminar = ''" aria-label="Cerrar aviso">✕</button>
+    </p>
+
     <div class="lista-planes">
       <a
         *ngFor="let plan of filteredPlanes | slice : 0 : mostrarLimite"
@@ -51,3 +56,4 @@
   (onCreate)="handleCreatePlan($event)"
   (onClose)="handleModalClose()"
 ></app-new-planification>
+

@@ -19,6 +19,9 @@ export class Home implements OnInit {
   searchTerm: string = '';
   // isLoading = true;
 
+  // Aviso que deja la pantalla del plan al eliminarlo (p. ej. si su texto en Firebase quedó pendiente)
+  avisoEliminar: string = history.state?.avisoEliminar ?? '';
+
   // Nueva bandera para el número de planes mostrados
   mostrarLimite: number = 6;
 

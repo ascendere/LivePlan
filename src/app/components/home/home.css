@@ -188,3 +188,16 @@
     font-size: 14px;
   }
 }
+
+/* === Eliminar un plan === */
+.aviso-eliminar {
+  background: #fff4e5;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.aviso-eliminar button {
+  float: right;
+  border: none;
+  background: none;
+  cursor: pointer;
+}

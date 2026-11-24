@@ -42,6 +42,103 @@
   border-bottom: 3px solid #d8dce6;
 }
 
+/* Título + botón de eliminar el plan */
+.titulo-fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  border-bottom: 3px solid #d8dce6;
+}
+.titulo-fila h1 {
+  margin: 0;
+  border-bottom: none;
+}
+.boton-eliminar-plan {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border: 1px solid #d9a3a0;
+  border-radius: 8px;
+  background: #fff;
+  color: #b42318;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.boton-eliminar-plan svg {
+  width: 16px;
+  height: 16px;
+}
+.boton-eliminar-plan:hover,
+.boton-eliminar-plan:focus-visible {
+  background: #fdf0ef;
+  border-color: #b42318;
+}
+
+/* Ventana de confirmación */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.modal-caja {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px 28px;
+  max-width: 460px;
+  width: calc(100% - 32px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.modal-caja h2 {
+  margin: 0 0 10px;
+  color: #004271;
+  font-size: 1.2rem;
+}
+.modal-caja p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+  margin: 0 0 18px;
+}
+.modal-caja .error-eliminar {
+  color: #b42318;
+}
+.modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn-cancelar,
+.btn-eliminar {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-cancelar {
+  background: #fff;
+  color: #004271;
+  border: 1px solid #004271;
+}
+.btn-eliminar {
+  background: #b42318;
+  color: #fff;
+  border: 1px solid #b42318;
+}
+.btn-cancelar:disabled,
+.btn-eliminar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* === Content Section === */
 .content-section {
   background: white;

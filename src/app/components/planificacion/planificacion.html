@@ -7,7 +7,19 @@
   <!-- Main Content Area -->
   <main class="main-content">
     <div class="content-container">
-      <h1>Planificación</h1>
+      <div class="titulo-fila">
+        <h1>Planificación</h1>
+        <button type="button" class="boton-eliminar-plan" (click)="pedirEliminar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+          </svg>
+          Eliminar plan
+        </button>
+      </div>
       
       <div class="content-section">
         
@@ -16,4 +28,23 @@
       </div>
     </div>
   </main>
+</div>
+<!-- Confirmación para eliminar el plan -->
+<div class="modal-overlay" *ngIf="confirmandoEliminar" (click)="cancelarEliminar()">
+  <div class="modal-caja" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <h2>Eliminar plan</h2>
+    <p>
+      Se eliminará <span *ngIf="nombrePlan">el plan "<strong>{{ nombrePlan }}</strong>"</span><span *ngIf="!nombrePlan">este plan</span>
+      con todos sus datos financieros y su texto de Planificación. Esta acción no se puede deshacer.
+    </p>
+    <p class="error-eliminar" *ngIf="errorEliminar">{{ errorEliminar }}</p>
+    <div class="modal-acciones">
+      <button type="button" class="btn-cancelar" [disabled]="eliminando" (click)="cancelarEliminar()">
+        Cancelar
+      </button>
+      <button type="button" class="btn-eliminar" [disabled]="eliminando" (click)="confirmarEliminar()">
+        {{ eliminando ? 'Eliminando…' : 'Eliminar definitivamente' }}
+      </button>
+    </div>
+  </div>
 </div>
