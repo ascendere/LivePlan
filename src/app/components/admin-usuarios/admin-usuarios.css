@@ -640,3 +640,44 @@
   color: #6b7686;
   font-size: 12px;
 }
+.asignaciones-edicion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.asignaciones-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+}
+.asignacion-edicion {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.asignacion-edicion input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #b1bbce;
+  border-radius: 9px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.asignacion-edicion input:focus {
+  outline: none;
+  border-color: #004271;
+}
+.asignacion-edicion .btn-icono {
+  margin-left: 0;
+}
+@media (max-width: 640px) {
+  .asignacion-edicion {
+    grid-template-columns: 1fr auto;
+  }
+  .asignacion-edicion input:first-child {
+    grid-column: 1 / -1;
+  }
+}

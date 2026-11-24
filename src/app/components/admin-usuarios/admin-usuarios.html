@@ -94,6 +94,19 @@
             <button
               type="button"
               class="btn-icono"
+              [disabled]="accionEnCurso === u.id"
+              title="Editar los datos del usuario"
+              aria-label="Editar usuario"
+              (click)="abrirEdicion(u)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="btn-icono"
               [class.btn-icono-peligro]="u.activo"
               [disabled]="accionEnCurso === u.id"
               [title]="u.activo ? 'Deshabilitar usuario' : 'Habilitar usuario'"
@@ -338,6 +351,69 @@
           </div>
         </ng-template>
       </section>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================== VENTANA: EDITAR USUARIO -->
+<div class="modal-overlay" *ngIf="edicion as e" (click)="cerrarEdicion()">
+  <div class="modal-caja modal-ancha" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="titulo-editar">
+    <div class="modal-cabecera">
+      <h2 id="titulo-editar">Editar usuario</h2>
+      <button class="modal-cerrar" (click)="cerrarEdicion()" aria-label="Cerrar" [disabled]="guardandoEdicion">✕</button>
+    </div>
+    <div class="modal-cuerpo">
+      <form class="form-manual" (ngSubmit)="guardarEdicion()" autocomplete="off">
+        <div class="campo">
+          <label for="e-nombres">Nombres</label>
+          <input id="e-nombres" name="nombres" [(ngModel)]="e.datos.nombres" [disabled]="guardandoEdicion" />
+        </div>
+        <div class="campo">
+          <label for="e-apellidos">Apellidos</label>
+          <input id="e-apellidos" name="apellidos" [(ngModel)]="e.datos.apellidos" [disabled]="guardandoEdicion" />
+        </div>
+        <div class="campo campo-ancho">
+          <label for="e-correo">Correo</label>
+          <input id="e-correo" name="correo" type="email" [(ngModel)]="e.datos.correo" [disabled]="guardandoEdicion" />
+        </div>
+        <div class="campo">
+          <label for="e-tipo">Tipo de documento</label>
+          <select id="e-tipo" name="tipo_documento" [(ngModel)]="e.datos.tipo_documento" [disabled]="guardandoEdicion">
+            <option value="cedula">Cédula ecuatoriana</option>
+            <option value="extranjero">Pasaporte u otro (extranjero)</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="e-cedula">{{ e.datos.tipo_documento === 'extranjero' ? 'Número de pasaporte o documento' : 'Cédula' }}</label>
+          <input id="e-cedula" name="cedula" [(ngModel)]="e.datos.cedula" [disabled]="guardandoEdicion" />
+        </div>
+
+        <div class="campo-ancho asignaciones-edicion">
+          <div class="asignaciones-titulo">
+            <span>Carrera y asignatura <span class="opcional">(opcionales)</span></span>
+            <button type="button" class="btn-tabla" (click)="agregarAsignacion()" [disabled]="guardandoEdicion">+ Agregar</button>
+          </div>
+          <p class="nota" *ngIf="!e.datos.asignaciones.length">Sin carrera ni asignatura.</p>
+          <div class="asignacion-edicion" *ngFor="let a of e.datos.asignaciones; let i = index">
+            <input [name]="'carrera-' + i" [(ngModel)]="a.carrera" placeholder="Carrera" [disabled]="guardandoEdicion" [attr.aria-label]="'Carrera ' + (i + 1)" />
+            <input [name]="'asignatura-' + i" [(ngModel)]="a.asignatura" placeholder="Asignatura" [disabled]="guardandoEdicion" [attr.aria-label]="'Asignatura ' + (i + 1)" />
+            <button type="button" class="btn-icono btn-icono-peligro" (click)="quitarAsignacion(i)" [disabled]="guardandoEdicion" title="Quitar" [attr.aria-label]="'Quitar la asignatura ' + (i + 1)">✕</button>
+          </div>
+        </div>
+
+        <p class="nota campo-ancho">
+          Cambiar el <strong>correo</strong> también lo cambia en su cuenta y en sus textos de Planificación. Cambiar el
+          <strong>documento</strong> no cambia su contraseña.
+        </p>
+        <p class="msg-error campo-ancho" *ngIf="errorEdicion">{{ errorEdicion }}</p>
+
+        <div class="acciones-carga campo-ancho">
+          <button type="submit" class="btn-principal" [disabled]="!edicionCambiada || !edicionValida || guardandoEdicion">
+            {{ guardandoEdicion ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+          <button type="button" class="btn-tabla btn-secundario" (click)="cerrarEdicion()" [disabled]="guardandoEdicion">Cancelar</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

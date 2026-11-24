@@ -53,6 +53,16 @@ export interface UsuarioAdmin {
   planes_ids: number[];
 }
 
+/** Datos que se pueden corregir de un usuario. Lo que no se manda no cambia; `asignaciones` reemplaza la lista. */
+export interface EdicionUsuario {
+  nombres?: string;
+  apellidos?: string;
+  correo?: string;
+  cedula?: string;
+  tipo_documento?: string;
+  asignaciones?: Asignacion[];
+}
+
 /** Filtro de la lista según si la persona ya creó un plan. */
 export type FiltroPlan = '' | 'con' | 'sin';
 
@@ -90,6 +100,15 @@ export class UsuariosAdminService {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ activo }),
+    });
+  }
+
+  /** Corrige los datos de un usuario (nombres, correo, documento, asignaturas). Devuelve el usuario ya actualizado. */
+  async editar(id: number, datos: EdicionUsuario): Promise<UsuarioAdmin> {
+    return this.pedir(`${this.base}/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
     });
   }
 

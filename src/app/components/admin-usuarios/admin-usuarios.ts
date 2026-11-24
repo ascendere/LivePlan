@@ -6,6 +6,7 @@ import { AnexosFinancierosService } from '../../core/services/anexos-financieros
 import { GeneradorPdfPlanificacion, nombreArchivoPdf } from '../../auxiliaries/secciones-pdf/generador-pdf';
 import { normalizarSecciones } from '../../auxiliaries/secciones-pdf/secciones-util';
 import {
+  Asignacion,
   EstadoCarga,
   FilaCarga,
   FiltroPlan,
@@ -20,6 +21,12 @@ type ModoAgregar = 'manual' | 'masiva';
 interface Confirmacion {
   accion: 'deshabilitar' | 'habilitar' | 'formatear';
   usuario: UsuarioAdmin;
+}
+
+/** Lo que se está corrigiendo de un usuario en la ventana "Editar usuario". */
+interface Edicion {
+  usuario: UsuarioAdmin;
+  datos: { nombres: string; apellidos: string; correo: string; tipo_documento: string; cedula: string; asignaciones: Asignacion[] };
 }
 
 /** Columnas del archivo y los nombres con que se aceptan en el encabezado (sin tildes ni símbolos). */
@@ -79,6 +86,11 @@ export class AdminUsuarios implements OnInit, OnDestroy {
   mensajeAccion = '';
   errorAccion = '';
   confirmacion: Confirmacion | null = null;
+
+  // ---- editar usuario ----
+  edicion: Edicion | null = null;
+  guardandoEdicion = false;
+  errorEdicion = '';
 
   // ---- carga masiva ----
   archivoNombre = '';
@@ -339,6 +351,80 @@ export class AdminUsuarios implements OnInit, OnDestroy {
       this.errorAccion = e?.message ?? 'No se pudo completar la acción.';
     } finally {
       this.accionEnCurso = null;
+      this.cdr.markForCheck();
+    }
+  }
+
+  // ---- editar usuario ----
+
+  abrirEdicion(u: UsuarioAdmin): void {
+    this.mensajeAccion = '';
+    this.errorAccion = '';
+    this.errorEdicion = '';
+    this.edicion = {
+      usuario: u,
+      datos: {
+        nombres: u.nombres,
+        apellidos: u.apellidos,
+        correo: u.correo,
+        tipo_documento: u.tipo_documento || 'cedula',
+        cedula: u.cedula,
+        asignaciones: u.asignaciones.map((a) => ({ ...a })),
+      },
+    };
+  }
+
+  cerrarEdicion(): void {
+    if (this.guardandoEdicion) return;
+    this.edicion = null;
+  }
+
+  agregarAsignacion(): void {
+    this.edicion?.datos.asignaciones.push({ carrera: '', asignatura: '' });
+  }
+
+  quitarAsignacion(i: number): void {
+    this.edicion?.datos.asignaciones.splice(i, 1);
+  }
+
+  /** Cambió algo respecto de lo que había (para no habilitar "Guardar" sin motivo). */
+  get edicionCambiada(): boolean {
+    const e = this.edicion;
+    if (!e) return false;
+    const { usuario: u, datos: d } = e;
+    return (
+      d.nombres !== u.nombres ||
+      d.apellidos !== u.apellidos ||
+      d.correo !== u.correo ||
+      d.cedula !== u.cedula ||
+      d.tipo_documento !== (u.tipo_documento || 'cedula') ||
+      JSON.stringify(d.asignaciones) !== JSON.stringify(u.asignaciones)
+    );
+  }
+
+  get edicionValida(): boolean {
+    const d = this.edicion?.datos;
+    return !!d && [d.nombres, d.apellidos, d.correo, d.cedula].every((v) => v.trim() !== '');
+  }
+
+  async guardarEdicion(): Promise<void> {
+    const e = this.edicion;
+    if (!e || !this.edicionCambiada || !this.edicionValida || this.guardandoEdicion) return;
+    this.guardandoEdicion = true;
+    this.errorEdicion = '';
+    try {
+      const actualizado = await this.servicio.editar(e.usuario.id, e.datos);
+      this.usuarios = this.usuarios.map((u) => (u.id === actualizado.id ? actualizado : u));
+      const nombre = this.nombreCompleto(actualizado);
+      this.mensajeAccion =
+        actualizado.cedula !== e.usuario.cedula
+          ? `Datos de ${nombre} actualizados. Su contraseña no cambió: si todavía usa la provisional, usa "Formatear contraseña" para que vuelva a ser su documento nuevo.`
+          : `Datos de ${nombre} actualizados.`;
+      this.edicion = null;
+    } catch (err: any) {
+      this.errorEdicion = err?.message ?? 'No se pudieron guardar los cambios.';
+    } finally {
+      this.guardandoEdicion = false;
       this.cdr.markForCheck();
     }
   }
